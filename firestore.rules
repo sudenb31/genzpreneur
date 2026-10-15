@@ -1,0 +1,133 @@
+rules_version = '2';
+
+// =====================================================================
+//  GenZ Preneur OS — Firestore Security Rules (Sprint 1)
+//  Ini adalah "satpam" database. Semua aturan akses ditegakkan DI SERVER
+//  Google, sehingga tidak bisa dibypass dengan mengutak-atik browser.
+// =====================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- Helper ----------
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function myRole() {
+      let path = /databases/$(database)/documents/users/$(request.auth.uid);
+      return signedIn() && exists(path) ? get(path).data.role : 'anon';
+    }
+
+    function isAdmin() {
+      return myRole() in ['admin', 'owner'];
+    }
+
+    function isOwnerRole() {
+      return myRole() == 'owner';
+    }
+
+    function validRole(r) {
+      return r in ['user', 'mentor', 'admin', 'owner'];
+    }
+
+    function isShortString(v, max) {
+      return v is string && v.size() <= max;
+    }
+
+    // Sama persis dengan canChangeRole() di src/lib/roles.ts
+    function roleChangeAllowed(uid) {
+      let from = resource.data.role;
+      let to = request.resource.data.role;
+      return request.auth.uid != uid
+        && validRole(to)
+        && from != to
+        && (
+          isOwnerRole()
+          || (myRole() == 'admin' && from in ['user', 'mentor'] && to in ['user', 'mentor'])
+        );
+    }
+
+    // ---------- users/{uid} ----------
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+
+      // Pendaftaran: hanya untuk dirinya sendiri, role WAJIB 'user'.
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['email', 'displayName', 'role', 'createdAt', 'updatedAt'])
+        && request.resource.data.role == 'user'
+        && request.resource.data.email == request.auth.token.email
+        && isShortString(request.resource.data.displayName, 80)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if signedIn() && (
+        // (a) User mengubah profilnya sendiri — hanya nama tampilan.
+        (
+          request.auth.uid == uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'updatedAt'])
+          && isShortString(request.resource.data.displayName, 80)
+          && request.resource.data.updatedAt == request.time
+        )
+        ||
+        // (b) Admin/owner mengubah role — WAJIB disertai audit log di batch yang sama.
+        (
+          isAdmin()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'lastAuditId', 'updatedAt'])
+          && roleChangeAllowed(uid)
+          && request.resource.data.updatedAt == request.time
+          && existsAfter(/databases/$(database)/documents/auditLogs/$(request.resource.data.lastAuditId))
+          && getAfter(/databases/$(database)/documents/auditLogs/$(request.resource.data.lastAuditId)).data.targetId == uid
+          && getAfter(/databases/$(database)/documents/auditLogs/$(request.resource.data.lastAuditId)).data.after.role == request.resource.data.role
+        )
+      );
+
+      // Penghapusan akun lewat server (Sprint 7), bukan dari browser.
+      allow delete: if false;
+    }
+
+    // ---------- passports/{uid} ----------
+    // Entrepreneur Passport: hanya pemilik yang boleh baca/tulis/hapus.
+    // Admin boleh membaca (dukungan & analitik), TIDAK boleh mengubah.
+    match /passports/{uid} {
+      function validPassport() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['personal', 'skills', 'resources', 'interests', 'goals', 'ownerUid', 'createdAt', 'updatedAt'])
+          && d.keys().hasAll(['personal', 'skills', 'resources', 'interests', 'goals', 'ownerUid'])
+          && d.ownerUid == uid
+          && d.personal is map && d.skills is map && d.resources is map
+          && d.interests is map && d.goals is map
+          && isShortString(d.personal.fullName, 80)
+          && d.personal.fullName.size() >= 2
+          && isShortString(d.personal.programGoal, 500)
+          && d.updatedAt == request.time;
+      }
+
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create: if signedIn() && request.auth.uid == uid && validPassport()
+        && request.resource.data.createdAt == request.time;
+      allow update: if signedIn() && request.auth.uid == uid && validPassport()
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if signedIn() && request.auth.uid == uid;
+    }
+
+    // ---------- auditLogs/{id} ----------
+    // Hanya bisa ditambah (append-only). Tidak bisa diubah atau dihapus siapa pun.
+    match /auditLogs/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin()
+        && request.resource.data.actorUid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['actorUid', 'action', 'targetType', 'targetId', 'before', 'after', 'reason', 'createdAt'])
+        && isShortString(request.resource.data.action, 60)
+        && isShortString(request.resource.data.reason, 300)
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+
+    // Semua koleksi lain tertutup secara default.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
