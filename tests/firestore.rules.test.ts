@@ -32,7 +32,7 @@ async function seedUser(uid: string, role: string) {
 
 beforeAll(async () => {
   env = await initializeTestEnvironment({
-    projectId: 'demo-genz',
+    projectId: "demo-genz",
     firestore: { rules: readFileSync('firestore.rules', 'utf8') },
   });
 });

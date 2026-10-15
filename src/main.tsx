@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter, Link, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, HashRouter, Link, Route, Routes } from 'react-router-dom';
+
 import './index.css';
 import { AuthProvider } from './auth/AuthProvider';
 import { GuestOnly, RequireAuth, RequireRole } from './auth/guards';
@@ -14,6 +15,9 @@ import SettingsPage from './pages/SettingsPage';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminAudit from './pages/admin/AdminAudit';
 
+/** Build "standalone" (bisa dibuka dengan klik dua kali) memakai HashRouter. */
+const Router = import.meta.env.MODE === 'standalone' ? HashRouter : BrowserRouter;
+
 function NotFound() {
   return (
     <main className="mx-auto max-w-md px-4 py-24 text-center">
@@ -26,7 +30,7 @@ function NotFound() {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter>
+    <Router>
       <ToastProvider>
         <AuthProvider>
           <Routes>
@@ -45,6 +49,6 @@ createRoot(document.getElementById('root')!).render(
           </Routes>
         </AuthProvider>
       </ToastProvider>
-    </BrowserRouter>
+    </Router>
   </StrictMode>,
 );
