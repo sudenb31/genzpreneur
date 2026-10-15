@@ -136,7 +136,7 @@ export default function Home() {
               <article className="card-pop bg-ink p-6 text-paper">
                 <p className="text-xs font-extrabold uppercase tracking-wider text-lime">Bonus · Assessment Industri</p>
                 <h3 className="mt-2 font-display text-2xl font-extrabold">Bingung mau bisnis apa?</h3>
-                <p className="mt-1 text-paper/70">12 pertanyaan → 3 industri paling cocok, jalurmu, dan cara mulai modal Rp0 untuk masing-masing.</p>
+                <p className="mt-1 text-paper/70">36 pertanyaan → 3 industri paling cocok, jalurmu, cara mulai modal Rp0, plus Profil Cuan (8 tipe) dengan contoh tokoh dunia & tokoh Muslim.</p>
               </article>
               <article className="card-pop bg-amber p-6">
                 <p className="text-xs font-extrabold uppercase tracking-wider">Bonus · Outreach Studio</p>

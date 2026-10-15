@@ -153,7 +153,8 @@ describe('auditLogs', () => {
 describe('assessments, progress, savedItems', () => {
   const assessment = (uid: string) => ({
     ownerUid: uid, answers: { q1: 'a' }, industryScores: { fnb: 80 }, trackScores: { sales_partner: 90 },
-    topIndustries: ['fnb', 'retail', 'event'], track: 'sales_partner', attempts: 1, completedAt: serverTimestamp(),
+    topIndustries: ['fnb', 'retail', 'event'], track: 'sales_partner',
+    profileScores: { creator: 70, star: 40 }, topProfiles: ['creator', 'star'], attempts: 1, completedAt: serverTimestamp(),
   });
 
   it('assessment: pemilik bisa simpan; orang lain tidak bisa baca; admin bisa baca', async () => {
@@ -162,6 +163,8 @@ describe('assessments, progress, savedItems', () => {
     await assertSucceeds(getDoc(doc(ctx('adi'), 'assessments', 'alice')));
     await assertFails(setDoc(doc(ctx('bob'), 'assessments', 'alice'), assessment('alice')));
     await assertFails(setDoc(doc(ctx('alice'), 'assessments', 'alice'), { ...assessment('alice'), track: 'hacker' }));
+    await assertFails(setDoc(doc(ctx('alice'), 'assessments', 'alice'), { ...assessment('alice'), topProfiles: ['creator'] }));
+    await assertFails(setDoc(doc(ctx('alice'), 'assessments', 'alice'), { ...assessment('alice'), isPaid: true }));
   });
 
   it('progress: hanya pemilik yang menulis', async () => {

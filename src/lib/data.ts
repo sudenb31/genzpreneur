@@ -16,7 +16,8 @@ import {
   addDoc,
   where,
 } from 'firebase/firestore';
-import { isIndustryKey, isTrackKey, type AssessmentResult } from './assessment';
+import { isIndustryKey, isProfileKey, isTrackKey, type AssessmentResult } from './assessment';
+import type { ProfileKey } from '../content/wealthProfiles';
 import type { IndustryKey } from '../content/industries';
 import type { TrackKey } from '../content/assessment';
 import { dreamPactSchema, normalizeDreamPact, type DreamPact } from './dreamPact';
@@ -196,6 +197,9 @@ export interface AssessmentRecord {
   industryScores: Record<string, number>;
   trackScores: Record<string, number>;
   answers: Record<string, string>;
+  /** Kosong untuk hasil versi lama (sebelum Profil Cuan ada) — peserta diminta mengulang. */
+  profileScores: Record<string, number>;
+  topProfiles: ProfileKey[];
   attempts: number;
   completedAt: Date | null;
 }
@@ -212,6 +216,8 @@ export async function getAssessment(uid: string): Promise<AssessmentRecord | nul
     industryScores: (d.industryScores as Record<string, number>) ?? {},
     trackScores: (d.trackScores as Record<string, number>) ?? {},
     answers: (d.answers as Record<string, string>) ?? {},
+    profileScores: (d.profileScores as Record<string, number>) ?? {},
+    topProfiles: Array.isArray(d.topProfiles) ? d.topProfiles.filter(isProfileKey) : [],
     attempts: Number(d.attempts ?? 1),
     completedAt: toDate(d.completedAt),
   };
@@ -227,6 +233,8 @@ export async function saveAssessment(uid: string, r: AssessmentResult) {
       trackScores: r.trackScores,
       topIndustries: r.topIndustries,
       track: r.track,
+      profileScores: r.profileScores,
+      topProfiles: r.topProfiles,
       attempts: increment(1),
       completedAt: serverTimestamp(),
     },

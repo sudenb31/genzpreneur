@@ -10,7 +10,8 @@ Stack: React 19 · Vite · TypeScript · Tailwind v4 · Firebase Auth + Firestor
 ### Benefit Program (baru)
 | Benefit | Isi |
 |---|---|
-| 🧭 Assessment Industri | 12 pertanyaan → top 3 dari 10 industri, jalur (Sales/Marketing Partner, Business Builder), cara mulai modal Rp0 |
+| 🧭 Assessment Industri + 💰 Profil Cuan | 36 pertanyaan dalam 2 bagian → top 3 dari 10 industri, jalur (Sales/Marketing Partner, Business Builder), cara mulai modal Rp0, **+ 8 Profil Cuan** (Pencipta, Bintang, Penggerak, Pembuat Transaksi, Pedagang, Pengumpul Aset, Raja Sistem, Perakit Sistem) dengan contoh tokoh dunia & tokoh Muslim. Terinspirasi konsep Roger Hamilton, ditulis ulang — bukan tes Wealth Dynamics resmi |
+| 🪪 Rangkuman Passport | Skor kesiapan 0–100 (Starter/Builder/Runner), senjata utama vs area latihan, data ringkas, langkah berikutnya otomatis |
 | 💬 Outreach Studio | 6 skenario (mentor, sales partner komisi, jasa ke UMKM, uji coba gratis, follow-up, kolaborasi) × 4 kanal × 2 gaya bahasa + prompt AI + jawaban keberatan |
 | 🧠 Entrepreneur Mindset | 4 pelajaran + latihan tersimpan |
 | 📈 Sales & Marketing Skills | 4 pelajaran + latihan |
@@ -50,6 +51,6 @@ Panduan lengkap untuk pemula: **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
 
 ## Test
 ```bash
-npm test            # 61 unit/komponen test
+npm test            # 72 unit/komponen test
 npm run test:rules  # uji Security Rules (butuh Java 11+)
 ```

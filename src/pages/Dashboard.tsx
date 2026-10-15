@@ -43,7 +43,7 @@ export default function Dashboard() {
   // Langkah berikutnya — urutan deterministik.
   const next =
     passportPct < 100 ? { to: '/app/passport', label: 'Lengkapi Passport', why: `Baru ${passportPct}% — dipakai untuk personalisasi semua tools.` }
-    : !assessment ? { to: '/app/assessment', label: 'Ikuti Assessment Industri', why: '±3 menit untuk tahu industri dan jalur yang paling cocok.' }
+    : !assessment ? { to: '/app/assessment', label: 'Ikuti Assessment Industri', why: '±8 menit untuk tahu industri, jalur, dan Profil Cuan-mu.' }
     : currentDay ? { to: '/app/action-plan', label: `Lanjut Action Plan · Hari ${currentDay.day}`, why: currentDay.goal }
     : pactPct < 100 ? { to: '/app/dream-pact', label: 'Selesaikan Dream Pact', why: 'Tulis komitmenmu, cetak, dan tempel di tempat yang sering kamu lihat.' }
     : { to: '/app/outreach', label: 'Kirim outreach berikutnya', why: 'Action Plan selesai 🎉 Pertahankan ritme minggu ini.' };
@@ -89,7 +89,7 @@ export default function Dashboard() {
               Top: <strong>{INDUSTRIES[assessment.topIndustries[0]].emoji} {INDUSTRIES[assessment.topIndustries[0]].name}</strong><br />
               Jalur: <strong>{TRACKS[assessment.track].name}</strong>
             </p>
-          ) : <p className="mt-3 text-sm text-muted">12 pertanyaan · temukan industri yang paling cocok.</p>}
+          ) : <p className="mt-3 text-sm text-muted">36 pertanyaan · industri + Profil Cuan.</p>}
         </Link>
       </section>
 

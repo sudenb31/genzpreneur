@@ -1,14 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { QUESTIONS } from '../content/assessment';
+import { PROFILE_KEYS, WEALTH_PROFILES } from '../content/wealthProfiles';
 import { INDUSTRY_KEYS } from '../content/industries';
 import { isComplete, scoreAssessment, TRACK_KEYS, type Answers } from './assessment';
 
 const pick = (fn: (q: (typeof QUESTIONS)[number]) => string): Answers => Object.fromEntries(QUESTIONS.map((q) => [q.id, fn(q)]));
 
 describe('konten assessment', () => {
-  it('12 pertanyaan, id unik, tiap pertanyaan ≥3 opsi', () => {
-    expect(QUESTIONS).toHaveLength(12);
-    expect(new Set(QUESTIONS.map((q) => q.id)).size).toBe(12);
+  it('36 pertanyaan (20 industri + 16 Profil Cuan), id unik, tiap pertanyaan ≥3 opsi', () => {
+    expect(QUESTIONS).toHaveLength(36);
+    expect(QUESTIONS.filter((q) => q.section === 'industry')).toHaveLength(20);
+    expect(QUESTIONS.filter((q) => q.section === 'profile')).toHaveLength(16);
+    expect(new Set(QUESTIONS.map((q) => q.id)).size).toBe(36);
     for (const q of QUESTIONS) {
       expect(q.options.length).toBeGreaterThanOrEqual(3);
       expect(new Set(q.options.map((o) => o.id)).size).toBe(q.options.length);
@@ -18,6 +21,17 @@ describe('konten assessment', () => {
     for (const q of QUESTIONS) for (const o of q.options) {
       for (const k of Object.keys(o.weight.industries ?? {})) expect(INDUSTRY_KEYS).toContain(k);
       for (const k of Object.keys(o.weight.tracks ?? {})) expect(TRACK_KEYS).toContain(k);
+      for (const k of Object.keys(o.weight.profiles ?? {})) expect(PROFILE_KEYS).toContain(k);
+    }
+  });
+  it('setiap Profil Cuan bisa dicapai dan kontennya lengkap', () => {
+    for (const k of PROFILE_KEYS) {
+      expect(QUESTIONS.some((q) => q.options.some((o) => (o.weight.profiles?.[k] ?? 0) > 0))).toBe(true);
+      const p = WEALTH_PROFILES[k];
+      expect(p.key).toBe(k);
+      expect(p.globalFigures.length).toBeGreaterThanOrEqual(3);
+      expect(p.muslimFigures.length).toBeGreaterThanOrEqual(2);
+      expect(p.startHere.length).toBeGreaterThanOrEqual(2);
     }
   });
   it('setiap industri bisa dicapai (punya bobot di suatu opsi)', () => {
@@ -51,5 +65,18 @@ describe('scoreAssessment', () => {
     const r = scoreAssessment(pick((q) => q.options[q.options.length - 1].id));
     for (const v of Object.values(r.industryScores)) { expect(v).toBeGreaterThanOrEqual(0); expect(v).toBeLessThanOrEqual(100); }
     expect(new Set(r.topIndustries).size).toBe(3);
+  });
+  it('Profil Cuan: memilih jawaban Pencipta → profil utama Pencipta, top 2 unik', () => {
+    const a = pick((q) => [...q.options].sort((x, y) => (y.weight.profiles?.creator ?? 0) - (x.weight.profiles?.creator ?? 0))[0].id);
+    const r = scoreAssessment(a);
+    expect(r.topProfiles[0]).toBe('creator');
+    expect(r.profileScores.creator).toBe(100);
+    expect(new Set(r.topProfiles).size).toBe(2);
+  });
+  it('setiap profil bisa menjadi profil utama', () => {
+    for (const k of PROFILE_KEYS) {
+      const a = pick((q) => [...q.options].sort((x, y) => (y.weight.profiles?.[k] ?? 0) - (x.weight.profiles?.[k] ?? 0))[0].id);
+      expect(scoreAssessment(a).topProfiles[0]).toBe(k);
+    }
   });
 });

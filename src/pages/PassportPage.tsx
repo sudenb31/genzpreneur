@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { usePassport } from '../lib/usePassport';
-import { deletePassport, exportJson, savePassport } from '../lib/data';
+import { deletePassport, exportJson, getAssessment, savePassport, updateDisplayName } from '../lib/data';
+import { useAsync } from '../lib/useAsync';
+import PassportSummary from '../components/PassportSummary';
 import {
   AGE_RANGES, BUDGETS, BUSINESS_EXPERIENCE, CUSTOMER_EXPERIENCE, DEVICES, INTERESTS, SECTION_LABEL,
   SKILL_LEVELS, SKILLS, STATUSES, WORK_MODES, completionPercent, emptyPassport, fieldErrors,
@@ -58,7 +60,7 @@ const numOrNull = (v: string): number | null => (v.trim() === '' ? null : Number
 /* -------------------------------- Page -------------------------------- */
 
 export default function PassportPage() {
-  const { profile } = useAuth();
+  const { profile, refreshProfile } = useAuth();
   const toast = useToast();
   const location = useLocation();
   const [params, setParams] = useSearchParams();
@@ -70,11 +72,23 @@ export default function PassportPage() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  const { data: assessment } = useAsync(() => getAssessment(profile!.uid).catch(() => null), [profile?.uid]);
+  // Mode tampilan: ringkasan (default bila Passport sudah pernah disimpan) atau form edit.
+  const [editing, setEditing] = useState<boolean | null>(null);
+
   const paramSection = params.get('bagian') as PassportSection | null;
   const active: PassportSection = paramSection && SECTIONS.includes(paramSection) ? paramSection : 'personal';
   const setActive = (s: PassportSection) => setParams({ bagian: s }, { replace: true });
+  const openEditor = () => { setEditing(true); window.scrollTo({ top: 0, behavior: 'smooth' }); };
 
   useEffect(() => { if (record) setDraft(record.data); }, [record]);
+
+  // Perbaikan akun lama: nama di akun kosong padahal Passport sudah berisi nama → sinkronkan sekali.
+  useEffect(() => {
+    const name = record?.exists ? record.data.personal.fullName.trim() : '';
+    if (!profile || !name || (profile.displayName ?? '').trim()) return;
+    updateDisplayName(profile.uid, name).then(refreshProfile).catch((e) => console.error(e));
+  }, [record, profile, refreshProfile]);
 
   const dirty = useMemo(() => !!draft && !!record && JSON.stringify(draft) !== JSON.stringify(record.data), [draft, record]);
 
@@ -110,8 +124,16 @@ export default function PassportPage() {
     setSaving(true);
     try {
       await savePassport(profile.uid, parsed.data, !record.exists);
+      // Sinkronkan nama di akun (sidebar, sapaan) dengan nama di Passport.
+      const name = parsed.data.personal.fullName.trim();
+      if (name && name !== (profile.displayName ?? '').trim()) {
+        try { await updateDisplayName(profile.uid, name); await refreshProfile(); } catch (e) { console.error(e); }
+      }
       await reload();
-      toast('success', 'Passport tersimpan.');
+      setEditing(false);
+      setParams({}, { replace: true });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      toast('success', 'Passport tersimpan. Ini rangkumanmu 👇');
     } catch (e) {
       console.error(e);
       toast('error', 'Gagal menyimpan. Periksa koneksi lalu coba lagi.');
@@ -138,6 +160,29 @@ export default function PassportPage() {
   }
 
   const welcome = (location.state as { welcome?: boolean } | null)?.welcome && !record.exists;
+  // Tanpa pilihan eksplisit: tampilkan ringkasan bila sudah pernah disimpan dan tidak datang dari link "?bagian=".
+  const showSummary = editing === null ? record.exists && !paramSection : !editing;
+
+  if (showSummary) {
+    return (
+      <div className="space-y-6">
+        <header className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="eyebrow">Entrepreneur Passport</p>
+            <h1 className="h-page">Rangkuman profil entrepreneur-mu</h1>
+            <p className="mt-1 max-w-xl text-sm text-muted">Dihitung otomatis dari isian Passport-mu. Ubah isian kapan saja — rangkuman ikut berubah.</p>
+          </div>
+          <div className="w-full sm:w-64"><ProgressBar value={pct} label="Kelengkapan" /></div>
+        </header>
+        <PassportSummary
+          passport={record.data}
+          completion={completionPercent(record.data)}
+          assessment={assessment ? { topIndustries: assessment.topIndustries, topProfiles: assessment.topProfiles } : null}
+          onEdit={openEditor}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-24">
@@ -147,7 +192,14 @@ export default function PassportPage() {
           <h1 className="h-page">Profil entrepreneur-mu</h1>
           <p className="mt-1 max-w-xl text-sm text-muted">Diisi sekali, dipakai di semua tools. Hanya kamu yang bisa mengubah data ini.</p>
         </div>
-        <div className="w-full sm:w-64"><ProgressBar value={pct} label="Kelengkapan" /></div>
+        <div className="flex w-full flex-col gap-2 sm:w-64">
+          <ProgressBar value={pct} label="Kelengkapan" />
+          {record.exists && (
+            <button type="button" className="text-left text-sm font-semibold underline" onClick={() => { setEditing(false); setParams({}, { replace: true }); if (record) setDraft(record.data); }}>
+              ← Kembali ke rangkuman{dirty ? ' (batalkan perubahan)' : ''}
+            </button>
+          )}
+        </div>
       </header>
 
       {welcome && (

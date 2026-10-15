@@ -31,7 +31,7 @@ Konvensi: ID dokumen = UID user untuk data 1-per-user; ID acak untuk data banyak
 | `users/{uid}` | email, displayName, role, lastAuditId | Baca: diri sendiri, admin. Buat: diri sendiri dengan role `user` saja. Ubah: nama sendiri; role hanya oleh admin/owner **dengan audit log di batch yang sama**. Hapus: tidak dari browser |
 | `passports/{uid}` | personal, skills, resources, interests, goals, ownerUid | Baca: pemilik, admin. Tulis & hapus: pemilik saja. Field asing ditolak |
 | `auditLogs/{id}` | actorUid, action, targetId, before, after, reason | Buat: admin (actorUid harus dirinya). Baca: admin. **Tidak bisa diubah/dihapus siapa pun** |
-| `assessments/{uid}` | jawaban, skor industri & jalur, top 3, attempts | Tulis: pemilik. Baca: pemilik, admin |
+| `assessments/{uid}` | jawaban (≤60), skor industri & jalur, top 3, skor 8 Profil Cuan + top 2 profil, attempts | Tulis: pemilik. Baca: pemilik, admin |
 | `progress/{uid}` | lessons (done, reflection), plan (tasks, notes) — self-reported | Tulis: pemilik. Baca: pemilik, admin |
 | `savedItems/{id}` | ownerUid, kind (outreach/prompt/proposal/calc/problem), title, content | Buat/baca/hapus: pemilik saja (admin pun tidak). Tidak bisa diubah |
 | `dreamPacts/{uid}` | why, edge, dream, milestones, skillTree, plan (≤15), commit | Tulis/hapus: pemilik. Baca: pemilik, admin |
@@ -90,6 +90,8 @@ firestore.rules, firebase.json, vercel.json, .env.example
 | 15 Okt 2026 | Role ≠ status bayar | Master prompt: entitlement per produk, bukan hardcode paket | Role "member" |
 | 15 Okt 2026 | Audit log ditegakkan di Rules | Tidak bisa dilewati walau ada bug di UI | Audit log opsional dari klien |
 | 15 Okt 2026 | Menu hanya menampilkan modul yang sudah jadi | Aturan "no fake UI" | Menu lengkap dengan tombol non-aktif |
+| 15 Okt 2026 | Profil Cuan = versi orisinal terinspirasi Roger Hamilton, bukan Wealth Dynamics | Wealth Dynamics adalah tes & merek milik pihak lain | Menyalin soal/nama tes resmi |
+| 15 Okt 2026 | Skor kesiapan Passport deterministik (bobot tetap, total 100) | Bisa dijelaskan & diuji; tanpa biaya AI | Penilaian AI |
 
 ## 7. Production-readiness checklist (status Sprint 1)
 - [x] Login, daftar, reset password, verifikasi email terkirim

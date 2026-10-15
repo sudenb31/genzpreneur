@@ -130,12 +130,14 @@ service cloud.firestore {
     match /assessments/{uid} {
       function validAssessment() {
         let d = request.resource.data;
-        return d.keys().hasOnly(['ownerUid', 'answers', 'industryScores', 'trackScores', 'topIndustries', 'track', 'attempts', 'completedAt'])
+        return d.keys().hasOnly(['ownerUid', 'answers', 'industryScores', 'trackScores', 'topIndustries', 'track', 'profileScores', 'topProfiles', 'attempts', 'completedAt'])
           && d.ownerUid == uid
-          && d.answers is map && d.answers.size() <= 30
+          && d.answers is map && d.answers.size() <= 60
           && d.industryScores is map && d.trackScores is map
           && d.topIndustries is list && d.topIndustries.size() == 3
           && d.track in ['sales_partner', 'marketing_partner', 'business_builder']
+          && (!('profileScores' in d) || (d.profileScores is map && d.profileScores.size() <= 8))
+          && (!('topProfiles' in d) || (d.topProfiles is list && d.topProfiles.size() == 2))
           && d.attempts is int && d.attempts <= 1000
           && d.completedAt == request.time;
       }
