@@ -20,6 +20,9 @@ import ModulePage from './pages/ModulePage';
 import ToolkitPage from './pages/ToolkitPage';
 import ActionPlanPage from './pages/ActionPlanPage';
 import SavedPage from './pages/SavedPage';
+import CurriculumPage from './pages/CurriculumPage';
+import DreamPactPage from './pages/DreamPactPage';
+import DreamPactPrint from './pages/DreamPactPrint';
 
 /** Build "standalone" (bisa dibuka dengan klik dua kali) memakai HashRouter. */
 const Router = import.meta.env.MODE === 'standalone' ? HashRouter : BrowserRouter;
@@ -53,10 +56,13 @@ createRoot(document.getElementById('root')!).render(
               <Route path="toolkit" element={<ToolkitPage />} />
               <Route path="action-plan" element={<ActionPlanPage />} />
               <Route path="tersimpan" element={<SavedPage />} />
+              <Route path="kurikulum" element={<CurriculumPage />} />
+              <Route path="dream-pact" element={<DreamPactPage />} />
               <Route path="pengaturan" element={<SettingsPage />} />
               <Route path="admin/pengguna" element={<RequireRole min="admin"><AdminUsers /></RequireRole>} />
               <Route path="admin/audit" element={<RequireRole min="admin"><AdminAudit /></RequireRole>} />
             </Route>
+            <Route path="/cetak/dream-pact" element={<RequireAuth><DreamPactPrint /></RequireAuth>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

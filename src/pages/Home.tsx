@@ -132,7 +132,7 @@ export default function Home() {
                 </article>
               ))}
             </div>
-            <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div className="mt-4 grid gap-4 md:grid-cols-3">
               <article className="card-pop bg-ink p-6 text-paper">
                 <p className="text-xs font-extrabold uppercase tracking-wider text-lime">Bonus · Assessment Industri</p>
                 <h3 className="mt-2 font-display text-2xl font-extrabold">Bingung mau bisnis apa?</h3>
@@ -142,6 +142,11 @@ export default function Home() {
                 <p className="text-xs font-extrabold uppercase tracking-wider">Bonus · Outreach Studio</p>
                 <h3 className="mt-2 font-display text-2xl font-extrabold">Takut chat duluan?</h3>
                 <p className="mt-1 text-ink/80">Pesan siap kirim untuk minta waktu ke mentor, jadi sales partner, atau nawarin jasa ke UMKM.</p>
+              </article>
+              <article className="card-pop bg-lime p-6">
+                <p className="text-xs font-extrabold uppercase tracking-wider">Final Boss · Dream Pact</p>
+                <h3 className="mt-2 font-display text-2xl font-extrabold">Mimpi yang ditulis &amp; ditandatangani.</h3>
+                <p className="mt-1 text-ink/80">WHY, Edge, Dream Statement, 6 level milestone, dan rencana 12 bulan — siap dicetak dan ditempel.</p>
               </article>
             </div>
           </div>

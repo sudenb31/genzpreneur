@@ -9,6 +9,7 @@ export const ACTION_PLAN: PlanDay[] = [
       { id: 'd1-passport', label: 'Lengkapi Entrepreneur Passport', link: { to: '/app/passport', label: 'Passport' } },
       { id: 'd1-assessment', label: 'Selesaikan Assessment industri', link: { to: '/app/assessment', label: 'Assessment' } },
       { id: 'd1-mindset', label: 'Pelajari materi Mindset pelajaran 1', link: { to: '/app/belajar/mindset', label: 'Mindset' } },
+      { id: 'd1-traps', label: 'Kenali 3 Jebakan yang menahanmu', link: { to: '/app/belajar/read-the-game', label: 'Read The Game' } },
     ],
   },
   {
@@ -16,6 +17,7 @@ export const ACTION_PLAN: PlanDay[] = [
     tasks: [
       { id: 'd2-route', label: 'Pelajari "5 jalur bisnis modal Rp0" dan pilih satu', link: { to: '/app/belajar/business-partner', label: 'Business Partner' } },
       { id: 'd2-ideas', label: 'Jalankan prompt "10 ide layanan modal Rp0"', link: { to: '/app/toolkit?tab=prompts', label: 'AI Toolkit' } },
+      { id: 'd2-problem', label: 'Buat 1 Problem Map dari keresahan di sekitarmu', link: { to: '/app/toolkit?tab=problem', label: 'Problem Map' } },
       { id: 'd2-prospects', label: 'Tulis 20 calon prospek beserta alasan cocok', link: { to: '/app/belajar/sales-marketing', label: 'Materi prospek' } },
     ],
   },
@@ -57,6 +59,7 @@ export const ACTION_PLAN: PlanDay[] = [
       { id: 'd7-count', label: 'Hitung: berapa dihubungi, dibalas, dan lanjut ngobrol' },
       { id: 'd7-improve', label: 'Tulis 1 hal yang akan diperbaiki di pesanmu' },
       { id: 'd7-next', label: 'Tentukan target aktivitas minggu depan' },
+      { id: 'd7-pact', label: 'Tulis & cetak Dream Pact-mu', link: { to: '/app/dream-pact', label: 'Dream Pact' } },
     ],
   },
 ];

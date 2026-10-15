@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { PROMPTS, type PromptTemplate } from '../content/prompts';
 import { INDUSTRIES } from '../content/industries';
@@ -9,12 +9,14 @@ import { getAssessment, getPassport, saveItem } from '../lib/data';
 import { useAsync } from '../lib/useAsync';
 import { buildProposal, calculateCommission, commissionInputSchema, type ProposalInput } from '../lib/commission';
 import { formatRupiah } from '../config/site';
+import { buildProblemMap, IMPACT_ZONES, PROBLEM_STEPS, type ProblemMapInput } from '../lib/problemMap';
 import { CopyButton, PageHeader, PageSkeleton, useToast } from '../components/ui';
 
 const TABS = [
   { key: 'prompts', label: '⚡ Prompt Library' },
   { key: 'calculator', label: '🧮 Kalkulator Komisi' },
   { key: 'proposal', label: '📄 Template Proposal' },
+  { key: 'problem', label: '🧩 Problem Map' },
 ] as const;
 type Tab = (typeof TABS)[number]['key'];
 
@@ -38,6 +40,7 @@ export default function ToolkitPage() {
       {tab === 'prompts' && <PromptLibrary />}
       {tab === 'calculator' && <CommissionCalculator />}
       {tab === 'proposal' && <ProposalBuilder />}
+      {tab === 'problem' && <ProblemMapTool />}
     </div>
   );
 }
@@ -272,6 +275,65 @@ function ProposalBuilder() {
         <div className="mt-4 flex gap-2">
           <CopyButton text={text} className="btn-accent" />
           <button type="button" className="btn-ghost" onClick={() => void save()}>Simpan</button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/* ------------------------------ Problem Map ------------------------------ */
+
+function ProblemMapTool() {
+  const { profile } = useAuth();
+  const toast = useToast();
+  const [p, setP] = useState<ProblemMapInput>({
+    title: '', phenomenon: '', coreProblem: '', rootCause: '', impact: '', affected: '', firstStep: '', zone: 'economy', validation: '',
+  });
+  const text = useMemo(() => buildProblemMap(p), [p]);
+  const filled = PROBLEM_STEPS.filter((s) => p[s.key].trim()).length;
+
+  async function save() {
+    if (!profile) return;
+    try { await saveItem(profile.uid, 'problem', `Problem Map · ${p.title.trim() || p.phenomenon.trim().slice(0, 40) || 'tanpa judul'}`, text); toast('success', 'Problem Map tersimpan.'); }
+    catch { toast('error', 'Gagal menyimpan.'); }
+  }
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-2">
+      <section className="card space-y-4 p-5">
+        <p className="text-sm text-ink/70">Dari keresahan → peluang. Isi berurutan dan gali sampai akar. Pelajari dulu di modul <Link className="font-bold underline" to="/app/belajar/read-the-game">Read The Game</Link>.</p>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="pm-title" className="label">Judul</label>
+            <input id="pm-title" className="input" maxLength={80} value={p.title} placeholder="UMKM kuliner sepi di aplikasi" onChange={(e) => setP({ ...p, title: e.target.value })} />
+          </div>
+          <div>
+            <label htmlFor="pm-zone" className="label">Zona dampak</label>
+            <select id="pm-zone" className="input" value={p.zone} onChange={(e) => setP({ ...p, zone: e.target.value as ProblemMapInput['zone'] })}>
+              {IMPACT_ZONES.map((z) => <option key={z.key} value={z.key}>{z.emoji} {z.name}</option>)}
+            </select>
+          </div>
+        </div>
+        {PROBLEM_STEPS.map((s, i) => (
+          <div key={s.key}>
+            <label htmlFor={`pm-${s.key}`} className="label">{i + 1}. {s.label} <span className="font-normal text-muted">— {s.q}</span></label>
+            <textarea id={`pm-${s.key}`} rows={2} className="input" maxLength={300} placeholder={s.ph} value={p[s.key]} onChange={(e) => setP({ ...p, [s.key]: e.target.value })} />
+          </div>
+        ))}
+      </section>
+      <section className="card-pop flex flex-col p-5">
+        <div className="flex items-center justify-between">
+          <h3 className="font-display text-lg font-extrabold">Hasil</h3>
+          <span className="chip">{filled}/{PROBLEM_STEPS.length}</span>
+        </div>
+        <pre className="mt-3 flex-1 overflow-auto whitespace-pre-wrap rounded-2xl bg-paper p-4 font-sans text-sm leading-relaxed">{text}</pre>
+        {p.firstStep.trim() && (
+          <p className="mt-3 rounded-2xl bg-lime p-3 text-sm font-semibold">💡 Langkah awalmu bisa jadi penawaran pertama. Lanjutkan ke Outreach Studio untuk menawarkannya.</p>
+        )}
+        <div className="mt-4 flex flex-wrap gap-2">
+          <CopyButton text={text} className="btn-accent" />
+          <button type="button" className="btn-ghost" onClick={() => void save()}>Simpan</button>
+          <Link className="btn-ghost" to="/app/outreach?skenario=service_offer">Tawarkan →</Link>
         </div>
       </section>
     </div>

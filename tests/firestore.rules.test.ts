@@ -182,6 +182,21 @@ describe('assessments, progress, savedItems', () => {
   });
 });
 
+describe('dreamPacts', () => {
+  const pact = (uid: string) => ({
+    ownerUid: uid, why: { people: 'x' }, edge: {}, dream: { currentAge: 22, dreamAge: 40 }, milestones: {}, skillTree: {},
+    plan: [{ cat: 'cuan', program: 'x', target: '', month: 'Mei' }], commit: { signName: 'A' },
+    createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+  });
+  it('pemilik menulis, admin membaca saja, orang lain ditolak', async () => {
+    await assertSucceeds(setDoc(doc(ctx('alice'), 'dreamPacts', 'alice'), pact('alice')));
+    await assertFails(getDoc(doc(ctx('bob'), 'dreamPacts', 'alice')));
+    await assertSucceeds(getDoc(doc(ctx('adi'), 'dreamPacts', 'alice')));
+    await assertFails(updateDoc(doc(ctx('adi'), 'dreamPacts', 'alice'), { 'commit.signName': 'hack', updatedAt: serverTimestamp() }));
+    await assertFails(setDoc(doc(ctx('alice'), 'dreamPacts', 'alice'), { ...pact('alice'), plan: Array(16).fill({}) }));
+  });
+});
+
 describe('default deny', () => {
   it('koleksi yang tidak didefinisikan tertutup', async () => {
     await assertFails(setDoc(doc(ctx('owner'), 'payments', 'p1'), { amount: 99000 }));

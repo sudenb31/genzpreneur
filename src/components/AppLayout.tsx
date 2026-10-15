@@ -17,11 +17,10 @@ const NAV_GROUPS = [
   {
     label: 'Benefit Program',
     items: [
-      { to: '/app/belajar/mindset', label: 'Entrepreneur Mindset', icon: '🧠' },
-      { to: '/app/belajar/sales-marketing', label: 'Sales & Marketing', icon: '📈' },
-      { to: '/app/belajar/business-partner', label: 'Business Partner', icon: '🤝' },
+      { to: '/app/kurikulum', label: 'Kurikulum (4 Season)', icon: '📚' },
       { to: '/app/toolkit', label: 'AI Business Toolkit', icon: '⚡' },
       { to: '/app/action-plan', label: 'Action Plan 7 Hari', icon: '✅' },
+      { to: '/app/dream-pact', label: 'Dream Pact', icon: '🌟' },
     ],
   },
   {

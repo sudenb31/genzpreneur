@@ -33,7 +33,8 @@ Konvensi: ID dokumen = UID user untuk data 1-per-user; ID acak untuk data banyak
 | `auditLogs/{id}` | actorUid, action, targetId, before, after, reason | Buat: admin (actorUid harus dirinya). Baca: admin. **Tidak bisa diubah/dihapus siapa pun** |
 | `assessments/{uid}` | jawaban, skor industri & jalur, top 3, attempts | Tulis: pemilik. Baca: pemilik, admin |
 | `progress/{uid}` | lessons (done, reflection), plan (tasks, notes) — self-reported | Tulis: pemilik. Baca: pemilik, admin |
-| `savedItems/{id}` | ownerUid, kind, title, content | Buat/baca/hapus: pemilik saja (admin pun tidak). Tidak bisa diubah |
+| `savedItems/{id}` | ownerUid, kind (outreach/prompt/proposal/calc/problem), title, content | Buat/baca/hapus: pemilik saja (admin pun tidak). Tidak bisa diubah |
+| `dreamPacts/{uid}` | why, edge, dream, milestones, skillTree, plan (≤15), commit | Tulis/hapus: pemilik. Baca: pemilik, admin |
 
 ### Rencana (Sprint 2–6)
 | Koleksi | Sprint | Catatan |

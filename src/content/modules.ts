@@ -1,3 +1,5 @@
+import { EXTRA_MODULES } from './modulesExtra';
+
 /**
  * Materi modul benefit. Sementara disimpan di kode; mulai Sprint 3 dipindah
  * ke CMS agar bisa diedit dari Command Center tanpa mengubah kode.
@@ -14,9 +16,16 @@ export interface Lesson {
   tool?: { to: string; label: string };
 }
 
+export const SEASONS = [
+  { no: 1, name: 'Wake Up', desc: 'Bangun dari autopilot: kenali dirimu dan baca dunia.' },
+  { no: 2, name: 'Find Your Why & Edge', desc: 'Temukan alasan kuat dan senjata utamamu.' },
+  { no: 3, name: 'Build & Sell', desc: 'Susun penawaran, cari klien, dan closing.' },
+  { no: 4, name: 'Lead & Last', desc: 'Pimpin tim, kelola hidup, dan siap menghadapi masa depan.' },
+] as const;
+
 export interface LearningModule {
   slug: string;
-  benefitNo: number;
+  season: 1 | 2 | 3 | 4;
   emoji: string;
   color: 'lime' | 'lilac' | 'sky' | 'pink' | 'amber-soft';
   title: string;
@@ -24,10 +33,10 @@ export interface LearningModule {
   lessons: Lesson[];
 }
 
-export const MODULES: LearningModule[] = [
+const CORE_MODULES: LearningModule[] = [
   {
     slug: 'mindset',
-    benefitNo: 1,
+    season: 1,
     emoji: '🧠',
     color: 'lime',
     title: 'Entrepreneur Mindset',
@@ -115,7 +124,7 @@ export const MODULES: LearningModule[] = [
   },
   {
     slug: 'sales-marketing',
-    benefitNo: 2,
+    season: 3,
     emoji: '📈',
     color: 'sky',
     title: 'Sales & Marketing Skills',
@@ -210,7 +219,7 @@ export const MODULES: LearningModule[] = [
   },
   {
     slug: 'business-partner',
-    benefitNo: 3,
+    season: 3,
     emoji: '🤝',
     color: 'lilac',
     title: 'Business Partner Strategy',
@@ -296,6 +305,12 @@ export const MODULES: LearningModule[] = [
     ],
   },
 ];
+
+/** Semua modul, diurutkan per Season (stabil). */
+export const MODULES: LearningModule[] = [...CORE_MODULES, ...EXTRA_MODULES]
+  .map((m, i) => ({ m, i }))
+  .sort((a, b) => a.m.season - b.m.season || a.i - b.i)
+  .map(({ m }) => m);
 
 export function findModule(slug: string) {
   return MODULES.find((m) => m.slug === slug);

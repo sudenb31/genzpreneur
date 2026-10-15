@@ -1,34 +1,40 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
-import { getAssessment, getPassport, getProgress } from '../lib/data';
+import { getAssessment, getDreamPact, getPassport, getProgress } from '../lib/data';
+import { dreamPactProgress } from '../lib/dreamPact';
 import { useAsync } from '../lib/useAsync';
 import { completionPercent } from '../lib/passport';
-import { MODULES } from '../content/modules';
+import { MODULES, SEASONS } from '../content/modules';
 import { ACTION_PLAN, ALL_TASK_IDS } from '../content/actionPlan';
 import { INDUSTRIES } from '../content/industries';
 import { TRACKS } from '../content/assessment';
 import { ErrorState, PageSkeleton, ProgressBar, TILE_BG } from '../components/ui';
 
+
 export default function Dashboard() {
   const { profile, firebaseUser } = useAuth();
   const { data, loading, error, reload } = useAsync(async () => {
-    const [passport, assessment, progress] = await Promise.all([
+    const [passport, assessment, progress, pact] = await Promise.all([
       getPassport(profile!.uid, profile!.displayName),
       getAssessment(profile!.uid),
       getProgress(profile!.uid),
+      getDreamPact(profile!.uid, profile!.displayName),
     ]);
-    return { passport, assessment, progress };
+    return { passport, assessment, progress, pact };
   }, [profile?.uid]);
 
   if (loading) return <PageSkeleton />;
   if (error || !data) return <ErrorState message={error ?? 'Data tidak tersedia.'} onRetry={reload} />;
 
-  const { passport, assessment, progress } = data;
+  const { passport, assessment, progress, pact } = data;
+  const pactPct = dreamPactProgress(pact.data).pct;
   const passportPct = completionPercent(passport.data);
-  const moduleStats = MODULES.map((m) => {
-    const done = m.lessons.filter((l) => progress.lessons[l.id]?.done).length;
-    return { m, done, pct: Math.round((done / m.lessons.length) * 100) };
+  const seasonStats = SEASONS.map((se) => {
+    const lessons = MODULES.filter((m) => m.season === se.no).flatMap((m) => m.lessons);
+    const done = lessons.filter((l) => progress.lessons[l.id]?.done).length;
+    return { se, done, total: lessons.length, pct: lessons.length ? Math.round((done / lessons.length) * 100) : 0 };
   });
+  const SEASON_TILE = ['bg-lime', 'bg-pink', 'bg-sky', 'bg-lilac'];
   const tasksDone = ALL_TASK_IDS.filter((id) => progress.tasks[id]).length;
   const planPct = Math.round((tasksDone / ALL_TASK_IDS.length) * 100);
   const currentDay = ACTION_PLAN.find((d) => d.tasks.some((t) => !progress.tasks[t.id]));
@@ -39,6 +45,7 @@ export default function Dashboard() {
     passportPct < 100 ? { to: '/app/passport', label: 'Lengkapi Passport', why: `Baru ${passportPct}% — dipakai untuk personalisasi semua tools.` }
     : !assessment ? { to: '/app/assessment', label: 'Ikuti Assessment Industri', why: '±3 menit untuk tahu industri dan jalur yang paling cocok.' }
     : currentDay ? { to: '/app/action-plan', label: `Lanjut Action Plan · Hari ${currentDay.day}`, why: currentDay.goal }
+    : pactPct < 100 ? { to: '/app/dream-pact', label: 'Selesaikan Dream Pact', why: 'Tulis komitmenmu, cetak, dan tempel di tempat yang sering kamu lihat.' }
     : { to: '/app/outreach', label: 'Kirim outreach berikutnya', why: 'Action Plan selesai 🎉 Pertahankan ritme minggu ini.' };
 
   return (
@@ -87,34 +94,39 @@ export default function Dashboard() {
       </section>
 
       <section>
-        <div className="mb-3 flex items-end justify-between">
-          <h2 className="font-display text-2xl font-extrabold">5 Benefit Program</h2>
+        <div className="mb-3 flex items-end justify-between gap-3">
+          <h2 className="font-display text-2xl font-extrabold">Kurikulum · 4 Season</h2>
+          <Link to="/app/kurikulum" className="text-sm font-bold underline">Lihat semua →</Link>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {moduleStats.map(({ m, done, pct }) => (
-            <Link key={m.slug} to={`/app/belajar/${m.slug}`} className={`card-pop flex flex-col p-5 transition hover:-translate-y-0.5 ${TILE_BG[m.color]}`}>
-              <div className="flex items-start justify-between">
-                <span className="text-3xl" aria-hidden>{m.emoji}</span>
-                <span className="chip bg-white">#{m.benefitNo}</span>
-              </div>
-              <h3 className="mt-3 font-display text-lg font-extrabold leading-tight">{m.title}</h3>
-              <p className="text-sm text-ink/70">{m.tagline}</p>
-              <div className="mt-auto pt-4"><ProgressBar value={pct} label={`${done}/${m.lessons.length} pelajaran`} /></div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {seasonStats.map(({ se, done, total, pct }, i) => (
+            <Link key={se.no} to="/app/kurikulum" className={`card-pop flex flex-col p-5 transition hover:-translate-y-0.5 ${SEASON_TILE[i]}`}>
+              <span className="chip w-fit bg-white">Season {se.no}</span>
+              <h3 className="mt-3 font-display text-lg font-extrabold leading-tight">{se.name}</h3>
+              <p className="text-xs text-ink/70">{se.desc}</p>
+              <div className="mt-auto pt-4"><ProgressBar value={pct} label={`${done}/${total} pelajaran`} /></div>
             </Link>
           ))}
-          <Link to="/app/toolkit" className="card-pop flex flex-col bg-pink p-5 transition hover:-translate-y-0.5">
-            <div className="flex items-start justify-between"><span className="text-3xl" aria-hidden>⚡</span><span className="chip bg-white">#4</span></div>
-            <h3 className="mt-3 font-display text-lg font-extrabold leading-tight">AI Business Toolkit</h3>
-            <p className="text-sm text-ink/70">Template dan tools untuk mendukung eksekusi.</p>
-            <p className="mt-auto pt-4 text-xs font-bold">Prompt library · Kalkulator komisi · Proposal →</p>
-          </Link>
-          <Link to="/app/action-plan" className="card-pop flex flex-col bg-amber-soft p-5 transition hover:-translate-y-0.5">
-            <div className="flex items-start justify-between"><span className="text-3xl" aria-hidden>✅</span><span className="chip bg-white">#5</span></div>
-            <h3 className="mt-3 font-display text-lg font-extrabold leading-tight">Practical Action Plan</h3>
-            <p className="text-sm text-ink/70">Panduan langkah awal yang terstruktur.</p>
-            <div className="mt-auto pt-4"><ProgressBar value={planPct} label={`${tasksDone}/${ALL_TASK_IDS.length} misi`} /></div>
-          </Link>
         </div>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-3">
+        <Link to="/app/toolkit" className="card-pop flex flex-col bg-white p-5 transition hover:-translate-y-0.5">
+          <span className="text-3xl" aria-hidden>⚡</span>
+          <h3 className="mt-2 font-display text-lg font-extrabold">AI Business Toolkit</h3>
+          <p className="text-sm text-ink/70">Prompt library · Kalkulator komisi · Proposal · Problem Map</p>
+        </Link>
+        <Link to="/app/action-plan" className="card-pop flex flex-col bg-amber-soft p-5 transition hover:-translate-y-0.5">
+          <span className="text-3xl" aria-hidden>✅</span>
+          <h3 className="mt-2 font-display text-lg font-extrabold">Action Plan 7 Hari</h3>
+          <div className="mt-auto pt-3"><ProgressBar value={planPct} label={`${tasksDone}/${ALL_TASK_IDS.length} misi`} /></div>
+        </Link>
+        <Link to="/app/dream-pact" className="card-pop flex flex-col bg-ink p-5 text-paper transition hover:-translate-y-0.5">
+          <span className="text-3xl" aria-hidden>🌟</span>
+          <h3 className="mt-2 font-display text-lg font-extrabold">Dream Pact</h3>
+          <p className="text-sm text-paper/70">Komitmen tertulis untuk mimpi bisnismu — bisa dicetak.</p>
+          <p className="mt-auto pt-3 text-sm font-bold text-lime">{pactPct}% lengkap →</p>
+        </Link>
       </section>
 
       <section className={`card-pop flex flex-col gap-3 p-6 sm:flex-row sm:items-center sm:justify-between ${TILE_BG.lime}`}>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
-import { findModule } from '../content/modules';
+import { findModule, MODULES, SEASONS } from '../content/modules';
 import { getProgress, saveLesson } from '../lib/data';
 import { useAsync } from '../lib/useAsync';
 import { EmptyState, ErrorState, PageSkeleton, ProgressBar, TILE_BG, useToast } from '../components/ui';
@@ -47,13 +47,14 @@ export default function ModulePage() {
   }
 
   const next = mod.lessons[lessonIdx + 1];
+  const nextModule = MODULES[MODULES.findIndex((m) => m.slug === mod.slug) + 1];
 
   return (
     <div className="space-y-6">
       <header className={`card-pop flex flex-wrap items-center gap-5 p-6 ${TILE_BG[mod.color]}`}>
         <span className="grid h-16 w-16 rotate-[-4deg] place-items-center rounded-2xl border-2 border-ink bg-white text-4xl" aria-hidden>{mod.emoji}</span>
         <div className="flex-1">
-          <p className="text-xs font-extrabold uppercase tracking-[0.14em]">Benefit #{mod.benefitNo}</p>
+          <p className="text-xs font-extrabold uppercase tracking-[0.14em]"><Link to="/app/kurikulum" className="underline">Kurikulum</Link> · Season {mod.season} · {SEASONS[mod.season - 1].name}</p>
           <h1 className="font-display text-3xl font-extrabold tracking-tight">{mod.title}</h1>
           <p className="text-ink/75">{mod.tagline}</p>
         </div>
@@ -109,6 +110,8 @@ export default function ModulePage() {
             {lp?.done && <button type="button" className="btn-ghost" disabled={saving} onClick={() => void persist(false)}>Tandai belum selesai</button>}
             {lesson.tool && <Link to={lesson.tool.to} className="btn-ghost">{lesson.tool.label} →</Link>}
             {next && <button type="button" className="btn-primary ml-auto" onClick={() => open(next.id)}>Pelajaran berikutnya →</button>}
+            {!next && nextModule && <Link to={`/app/belajar/${nextModule.slug}`} className="btn-primary ml-auto">Modul berikutnya: {nextModule.title} →</Link>}
+            {!next && !nextModule && <Link to="/app/dream-pact" className="btn-primary ml-auto">Lanjut ke Dream Pact 🌟</Link>}
           </div>
         </article>
       </div>

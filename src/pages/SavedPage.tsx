@@ -10,6 +10,7 @@ const KIND: Record<SavedKind, { label: string; cls: string }> = {
   prompt: { label: '⚡ Prompt', cls: 'bg-lilac' },
   proposal: { label: '📄 Proposal', cls: 'bg-sky' },
   calc: { label: '🧮 Simulasi', cls: 'bg-pink' },
+  problem: { label: '🧩 Problem Map', cls: 'bg-amber-soft' },
 };
 
 export default function SavedPage() {
@@ -54,7 +55,7 @@ export default function SavedPage() {
             <label htmlFor="saved-q" className="sr-only">Cari</label>
             <input id="saved-q" className="input sm:max-w-xs" placeholder="Cari…" value={search} onChange={(e) => setSearch(e.target.value)} />
             <div className="flex flex-wrap gap-1.5" role="group" aria-label="Filter jenis">
-              {(['all', 'outreach', 'prompt', 'proposal', 'calc'] as const).map((k) => (
+              {(['all', 'outreach', 'prompt', 'proposal', 'calc', 'problem'] as const).map((k) => (
                 <button key={k} type="button" aria-pressed={filter === k} onClick={() => setFilter(k)}
                   className={`rounded-full border-2 px-3 py-1.5 text-xs font-bold ${filter === k ? 'border-ink bg-ink text-paper' : 'border-line bg-white'}`}>
                   {k === 'all' ? 'Semua' : KIND[k].label}

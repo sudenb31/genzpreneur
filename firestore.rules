@@ -167,11 +167,30 @@ service cloud.firestore {
       allow create: if signedIn()
         && request.resource.data.keys().hasOnly(['ownerUid', 'kind', 'title', 'content', 'createdAt'])
         && request.resource.data.ownerUid == request.auth.uid
-        && request.resource.data.kind in ['outreach', 'prompt', 'proposal', 'calc']
+        && request.resource.data.kind in ['outreach', 'prompt', 'proposal', 'calc', 'problem']
         && isShortString(request.resource.data.title, 120)
         && isShortString(request.resource.data.content, 6000)
         && request.resource.data.createdAt == request.time;
       allow update: if false;
+    }
+
+    // ---------- dreamPacts/{uid} ----------
+    // Dream Pact (Pakta Mimpi): komitmen pribadi. Pemilik menulis; admin hanya membaca.
+    match /dreamPacts/{uid} {
+      function validPact() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['ownerUid', 'why', 'edge', 'dream', 'milestones', 'skillTree', 'plan', 'commit', 'createdAt', 'updatedAt'])
+          && d.keys().hasAll(['ownerUid', 'why', 'edge', 'dream', 'milestones', 'skillTree', 'plan', 'commit'])
+          && d.ownerUid == uid
+          && d.why is map && d.edge is map && d.dream is map
+          && d.milestones is map && d.skillTree is map && d.commit is map
+          && d.plan is list && d.plan.size() <= 15
+          && d.updatedAt == request.time;
+      }
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create: if signedIn() && request.auth.uid == uid && validPact() && request.resource.data.createdAt == request.time;
+      allow update: if signedIn() && request.auth.uid == uid && validPact() && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if signedIn() && request.auth.uid == uid;
     }
 
     // Semua koleksi lain tertutup secara default.

@@ -5,16 +5,27 @@ import { PROMPTS } from './prompts';
 import { INDUSTRIES, INDUSTRY_KEYS } from './industries';
 
 describe('integritas konten', () => {
-  it('3 modul pembelajaran dengan id pelajaran unik', () => {
-    expect(MODULES.map((m) => m.benefitNo)).toEqual([1, 2, 3]);
+  it('9 modul dalam 4 season, slug & id pelajaran unik, urut per season', () => {
+    expect(MODULES).toHaveLength(9);
+    expect(new Set(MODULES.map((m) => m.slug)).size).toBe(9);
     expect(new Set(ALL_LESSON_IDS).size).toBe(ALL_LESSON_IDS.length);
+    expect(ALL_LESSON_IDS).toHaveLength(36);
+    const seasons = MODULES.map((m) => m.season);
+    expect([...seasons].sort()).toEqual(seasons);
+    for (const no of [1, 2, 3, 4]) expect(seasons).toContain(no);
+    for (const m of MODULES) for (const l of m.lessons) {
+      expect(l.body.length).toBeGreaterThanOrEqual(2);
+      expect(l.keyPoints.length).toBeGreaterThanOrEqual(3);
+      expect(l.exercise.prompt.length).toBeGreaterThan(10);
+    }
   });
   it('Action Plan 7 hari dengan id tugas unik', () => {
     expect(ACTION_PLAN.map((d) => d.day)).toEqual([1, 2, 3, 4, 5, 6, 7]);
     expect(new Set(ALL_TASK_IDS).size).toBe(ALL_TASK_IDS.length);
   });
   it('semua tautan internal menuju rute yang ada', () => {
-    const valid = /^\/app\/(passport|assessment|outreach|toolkit(\?tab=(prompts|calculator|proposal))?|action-plan|belajar\/(mindset|sales-marketing|business-partner))$/;
+    const slugs = MODULES.map((m) => m.slug).join('|');
+    const valid = new RegExp(`^/app/(passport|assessment|dream-pact|kurikulum|outreach(\\?skenario=(mentor|sales_partner|service_offer))?|toolkit(\\?tab=(prompts|calculator|proposal|problem))?|action-plan|belajar/(${slugs}))$`);
     const links = [
       ...MODULES.flatMap((m) => m.lessons.map((l) => l.tool?.to).filter(Boolean)),
       ...ACTION_PLAN.flatMap((d) => d.tasks.map((t) => t.link?.to).filter(Boolean)),

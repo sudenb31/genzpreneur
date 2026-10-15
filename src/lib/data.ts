@@ -19,6 +19,7 @@ import {
 import { isIndustryKey, isTrackKey, type AssessmentResult } from './assessment';
 import type { IndustryKey } from '../content/industries';
 import type { TrackKey } from '../content/assessment';
+import { dreamPactSchema, normalizeDreamPact, type DreamPact } from './dreamPact';
 import { db } from './firebase';
 import { isRole, type Role } from './roles';
 import { normalizePassport, passportSchema, type Passport } from './passport';
@@ -280,7 +281,7 @@ export async function setDayNote(uid: string, day: number, note: string) {
 
 /* ---------------------------- Saved items --------------------------- */
 
-export type SavedKind = 'outreach' | 'prompt' | 'proposal' | 'calc';
+export type SavedKind = 'outreach' | 'prompt' | 'proposal' | 'calc' | 'problem';
 export interface SavedItem { id: string; kind: SavedKind; title: string; content: string; createdAt: Date | null }
 
 export async function saveItem(uid: string, kind: SavedKind, title: string, content: string) {
@@ -306,4 +307,23 @@ export async function listSavedItems(uid: string): Promise<SavedItem[]> {
 
 export async function deleteSavedItem(id: string) {
   await deleteDoc(doc(db(), 'savedItems', id));
+}
+
+/* ----------------------------- Dream Pact ---------------------------- */
+
+
+export interface DreamPactRecord { data: DreamPact; exists: boolean; updatedAt: Date | null }
+
+export async function getDreamPact(uid: string, name: string): Promise<DreamPactRecord> {
+  const snap = await getDoc(doc(db(), 'dreamPacts', uid));
+  if (!snap.exists()) return { data: normalizeDreamPact(null, name), exists: false, updatedAt: null };
+  const raw = snap.data();
+  return { data: normalizeDreamPact(raw, name), exists: true, updatedAt: toDate(raw.updatedAt) };
+}
+
+export async function saveDreamPact(uid: string, pact: DreamPact, isNew: boolean) {
+  const parsed = dreamPactSchema.parse(pact);
+  const ref = doc(db(), 'dreamPacts', uid);
+  if (isNew) await setDoc(ref, { ...parsed, ownerUid: uid, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+  else await updateDoc(ref, { ...parsed, updatedAt: serverTimestamp() });
 }
