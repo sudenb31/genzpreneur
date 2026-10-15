@@ -14,6 +14,12 @@ import PassportPage from './pages/PassportPage';
 import SettingsPage from './pages/SettingsPage';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminAudit from './pages/admin/AdminAudit';
+import AssessmentPage from './pages/AssessmentPage';
+import OutreachPage from './pages/OutreachPage';
+import ModulePage from './pages/ModulePage';
+import ToolkitPage from './pages/ToolkitPage';
+import ActionPlanPage from './pages/ActionPlanPage';
+import SavedPage from './pages/SavedPage';
 
 /** Build "standalone" (bisa dibuka dengan klik dua kali) memakai HashRouter. */
 const Router = import.meta.env.MODE === 'standalone' ? HashRouter : BrowserRouter;
@@ -21,7 +27,7 @@ const Router = import.meta.env.MODE === 'standalone' ? HashRouter : BrowserRoute
 function NotFound() {
   return (
     <main className="mx-auto max-w-md px-4 py-24 text-center">
-      <p className="font-display text-6xl font-semibold text-amber">404</p>
+      <p className="font-display text-7xl font-extrabold text-amber">404</p>
       <h1 className="mt-4 text-xl font-semibold">Halaman tidak ditemukan</h1>
       <Link to="/" className="btn-primary mt-6">Kembali ke beranda</Link>
     </main>
@@ -41,6 +47,12 @@ createRoot(document.getElementById('root')!).render(
             <Route path="/app" element={<RequireAuth><AppLayout /></RequireAuth>}>
               <Route index element={<Dashboard />} />
               <Route path="passport" element={<PassportPage />} />
+              <Route path="assessment" element={<AssessmentPage />} />
+              <Route path="outreach" element={<OutreachPage />} />
+              <Route path="belajar/:slug" element={<ModulePage />} />
+              <Route path="toolkit" element={<ToolkitPage />} />
+              <Route path="action-plan" element={<ActionPlanPage />} />
+              <Route path="tersimpan" element={<SavedPage />} />
               <Route path="pengaturan" element={<SettingsPage />} />
               <Route path="admin/pengguna" element={<RequireRole min="admin"><AdminUsers /></RequireRole>} />
               <Route path="admin/audit" element={<RequireRole min="admin"><AdminAudit /></RequireRole>} />

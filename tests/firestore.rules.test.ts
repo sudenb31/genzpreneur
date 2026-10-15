@@ -150,6 +150,38 @@ describe('auditLogs', () => {
   });
 });
 
+describe('assessments, progress, savedItems', () => {
+  const assessment = (uid: string) => ({
+    ownerUid: uid, answers: { q1: 'a' }, industryScores: { fnb: 80 }, trackScores: { sales_partner: 90 },
+    topIndustries: ['fnb', 'retail', 'event'], track: 'sales_partner', attempts: 1, completedAt: serverTimestamp(),
+  });
+
+  it('assessment: pemilik bisa simpan; orang lain tidak bisa baca; admin bisa baca', async () => {
+    await assertSucceeds(setDoc(doc(ctx('alice'), 'assessments', 'alice'), assessment('alice')));
+    await assertFails(getDoc(doc(ctx('bob'), 'assessments', 'alice')));
+    await assertSucceeds(getDoc(doc(ctx('adi'), 'assessments', 'alice')));
+    await assertFails(setDoc(doc(ctx('bob'), 'assessments', 'alice'), assessment('alice')));
+    await assertFails(setDoc(doc(ctx('alice'), 'assessments', 'alice'), { ...assessment('alice'), track: 'hacker' }));
+  });
+
+  it('progress: hanya pemilik yang menulis', async () => {
+    const data = { ownerUid: 'alice', lessons: { 'mindset-1': { done: true, reflection: 'x' } }, updatedAt: serverTimestamp() };
+    await assertSucceeds(setDoc(doc(ctx('alice'), 'progress', 'alice'), data, { merge: true }));
+    await assertFails(setDoc(doc(ctx('bob'), 'progress', 'alice'), data, { merge: true }));
+    await assertFails(setDoc(doc(ctx('alice'), 'progress', 'alice'), { ...data, isPaid: true }, { merge: true }));
+  });
+
+  it('savedItems: privat per pemilik, tidak bisa diubah', async () => {
+    const ref = doc(collection(ctx('alice'), 'savedItems'));
+    await assertSucceeds(setDoc(ref, { ownerUid: 'alice', kind: 'outreach', title: 'Pesan', content: 'Halo', createdAt: serverTimestamp() }));
+    await assertFails(getDoc(doc(ctx('bob'), 'savedItems', ref.id)));
+    await assertFails(getDoc(doc(ctx('adi'), 'savedItems', ref.id)));
+    await assertFails(updateDoc(ref, { title: 'ubah' }));
+    await assertFails(setDoc(doc(collection(ctx('bob'), 'savedItems')), { ownerUid: 'alice', kind: 'outreach', title: 'x', content: 'x', createdAt: serverTimestamp() }));
+    await assertSucceeds(deleteDoc(ref));
+  });
+});
+
 describe('default deny', () => {
   it('koleksi yang tidak didefinisikan tertutup', async () => {
     await assertFails(setDoc(doc(ctx('owner'), 'payments', 'p1'), { amount: 99000 }));

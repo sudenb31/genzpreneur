@@ -17,7 +17,7 @@ const wrap = (ui: React.ReactNode, path = '/') => (
 describe('halaman publik', () => {
   it('Home tampil tanpa klaim jaminan penghasilan', () => {
     render(wrap(<Home />));
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('entrepreneur');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Mulai aja dulu');
     expect(screen.getAllByText(/Rp\s?99\.000/).length).toBeGreaterThan(0);
     expect(document.body.textContent).toMatch(/Tidak ada jaminan penghasilan/);
   });

@@ -10,7 +10,7 @@ import {
   type User,
 } from 'firebase/auth';
 import { auth, isFirebaseConfigured } from '../lib/firebase';
-import { ensureUserRecord, type UserRecord } from '../lib/data';
+import { ensureUserRecord, updateDisplayName, type UserRecord } from '../lib/data';
 
 interface AuthState {
   /** true selama status login awal belum diketahui. */
@@ -63,6 +63,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       register: async (name, email, password) => {
         const cred = await createUserWithEmailAndPassword(auth(), email, password);
         await updateProfile(cred.user, { displayName: name });
+        // onAuthStateChanged bisa sudah membuat dokumen user SEBELUM nama terpasang
+        // (displayName masih kosong). Pastikan nama tersimpan.
+        const rec = await ensureUserRecord(cred.user.uid, email, name);
+        if (rec.displayName !== name.trim().slice(0, 80)) await updateDisplayName(cred.user.uid, name);
         await loadProfile(cred.user);
         // Email verifikasi tidak memblokir pendaftaran bila gagal terkirim.
         sendEmailVerification(cred.user).catch((e) => console.warn('Verifikasi email gagal dikirim', e));

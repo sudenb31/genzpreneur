@@ -66,7 +66,7 @@ export default function AdminUsers() {
     <div className="space-y-6">
       <header>
         <p className="text-sm font-medium text-amber-ink">Command Center</p>
-        <h1 className="font-display text-3xl font-semibold tracking-tight">Pengguna & Role</h1>
+        <h1 className="h-page">Pengguna & Role</h1>
         <p className="mt-1 text-sm text-muted">Setiap perubahan role tercatat di Audit Log. Admin hanya bisa mengatur Peserta ⇄ Mentor; Super Admin bisa mengatur semua role.</p>
       </header>
 

@@ -5,7 +5,23 @@ Platform belajar-ke-eksekusi kewirausahaan berbasis AI untuk Gen Z Indonesia. Pr
 
 Stack: React 19 · Vite · TypeScript · Tailwind v4 · Firebase Auth + Firestore · Vercel.
 
-## Status: Sprint 1 — Platform Foundation ✅
+## Status: Sprint 1 + Benefit Program ✅
+
+### Benefit Program (baru)
+| Benefit | Isi |
+|---|---|
+| 🧭 Assessment Industri | 12 pertanyaan → top 3 dari 10 industri, jalur (Sales/Marketing Partner, Business Builder), cara mulai modal Rp0 |
+| 💬 Outreach Studio | 6 skenario (mentor, sales partner komisi, jasa ke UMKM, uji coba gratis, follow-up, kolaborasi) × 4 kanal × 2 gaya bahasa + prompt AI + jawaban keberatan |
+| 🧠 Entrepreneur Mindset | 4 pelajaran + latihan tersimpan |
+| 📈 Sales & Marketing Skills | 4 pelajaran + latihan |
+| 🤝 Business Partner Strategy | 4 pelajaran (5 jalur modal Rp0, skema komisi/fee) |
+| ⚡ AI Business Toolkit | 12 prompt siap salin (terisi otomatis dari Passport/Assessment), kalkulator komisi, template proposal |
+| ✅ Practical Action Plan | 7 hari × 3 misi + catatan harian |
+| 📌 Tersimpan | Semua pesan/prompt/proposal/simulasi yang disimpan |
+
+Tidak memakai API AI berbayar: generator berbasis template + prompt untuk ditempel ke ChatGPT/Claude/Gemini.
+
+### Fondasi (Sprint 1)
 | Fitur | Keterangan |
 |---|---|
 | Landing page | Hero, alur, 3 jalur, narasumber, harga perkenalan, FAQ, CTA |
@@ -31,6 +47,6 @@ Panduan lengkap untuk pemula: **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
 
 ## Test
 ```bash
-npm test            # 25 unit/komponen test
+npm test            # 50 unit/komponen test
 npm run test:rules  # uji Security Rules (butuh Java 11+)
 ```

@@ -17,6 +17,14 @@ export const SITE = {
     bio: 'Praktisi yang membangun dan menjalankan bisnis custom apparel, sales, marketing, dan relasi B2B. Di GenZ Preneur, ia membagikan cara kerja yang ia jalankan sendiri — dari mencari calon klien sampai menutup kesepakatan.',
   },
 
+  benefits: [
+    { no: 1, emoji: '🧠', title: 'Entrepreneur Mindset', desc: 'Pola pikir dan mentalitas untuk mulai.', tile: 'bg-lime' },
+    { no: 2, emoji: '📈', title: 'Sales & Marketing Skills', desc: 'Belajar mencari prospek dan membuat penawaran.', tile: 'bg-sky' },
+    { no: 3, emoji: '🤝', title: 'Business Partner Strategy', desc: 'Belajar menawarkan jasa ke bisnis yang sudah berjalan.', tile: 'bg-lilac' },
+    { no: 4, emoji: '⚡', title: 'AI Business Toolkit', desc: 'Template dan tools untuk mendukung eksekusi.', tile: 'bg-pink' },
+    { no: 5, emoji: '✅', title: 'Practical Action Plan', desc: 'Panduan langkah awal yang terstruktur.', tile: 'bg-amber-soft' },
+  ],
+
   tracks: [
     { name: 'Sales Partner', desc: 'Bantu bisnis yang sudah berjalan mendapatkan pelanggan, dengan skema komisi.' },
     { name: 'Marketing Partner', desc: 'Tawarkan jasa konten, social media, atau lead generation ke UMKM.' },

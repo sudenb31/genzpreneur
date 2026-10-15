@@ -144,7 +144,7 @@ export default function PassportPage() {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-amber-ink">Entrepreneur Passport</p>
-          <h1 className="font-display text-3xl font-semibold tracking-tight">Profil entrepreneur-mu</h1>
+          <h1 className="h-page">Profil entrepreneur-mu</h1>
           <p className="mt-1 max-w-xl text-sm text-muted">Diisi sekali, dipakai di semua tools. Hanya kamu yang bisa mengubah data ini.</p>
         </div>
         <div className="w-full sm:w-64"><ProgressBar value={pct} label="Kelengkapan" /></div>

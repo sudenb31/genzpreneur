@@ -125,6 +125,55 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    // ---------- assessments/{uid} ----------
+    // Hasil Assessment Industri. Hanya pemilik yang menulis; admin boleh membaca.
+    match /assessments/{uid} {
+      function validAssessment() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['ownerUid', 'answers', 'industryScores', 'trackScores', 'topIndustries', 'track', 'attempts', 'completedAt'])
+          && d.ownerUid == uid
+          && d.answers is map && d.answers.size() <= 30
+          && d.industryScores is map && d.trackScores is map
+          && d.topIndustries is list && d.topIndustries.size() == 3
+          && d.track in ['sales_partner', 'marketing_partner', 'business_builder']
+          && d.attempts is int && d.attempts <= 1000
+          && d.completedAt == request.time;
+      }
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create, update: if signedIn() && request.auth.uid == uid && validAssessment();
+      allow delete: if signedIn() && request.auth.uid == uid;
+    }
+
+    // ---------- progress/{uid} ----------
+    // Progres pelajaran & Action Plan (self-reported). Hanya pemilik.
+    match /progress/{uid} {
+      function validProgress() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['ownerUid', 'lessons', 'plan', 'updatedAt'])
+          && d.ownerUid == uid
+          && (!('lessons' in d) || (d.lessons is map && d.lessons.size() <= 200))
+          && (!('plan' in d) || (d.plan is map && d.plan.keys().hasOnly(['tasks', 'notes'])))
+          && d.updatedAt == request.time;
+      }
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create, update: if signedIn() && request.auth.uid == uid && validProgress();
+      allow delete: if signedIn() && request.auth.uid == uid;
+    }
+
+    // ---------- savedItems/{id} ----------
+    // Pesan, prompt, proposal, simulasi yang disimpan peserta. Privat — admin pun tidak membaca.
+    match /savedItems/{id} {
+      allow read, delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['ownerUid', 'kind', 'title', 'content', 'createdAt'])
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.kind in ['outreach', 'prompt', 'proposal', 'calc']
+        && isShortString(request.resource.data.title, 120)
+        && isShortString(request.resource.data.content, 6000)
+        && request.resource.data.createdAt == request.time;
+      allow update: if false;
+    }
+
     // Semua koleksi lain tertutup secara default.
     match /{document=**} {
       allow read, write: if false;

@@ -53,7 +53,7 @@ export default function SettingsPage() {
     <div className="space-y-6">
       <header>
         <p className="text-sm font-medium text-amber-ink">Akun</p>
-        <h1 className="font-display text-3xl font-semibold tracking-tight">Profil & Pengaturan</h1>
+        <h1 className="h-page">Profil & Pengaturan</h1>
       </header>
 
       <form onSubmit={saveName} noValidate className="card space-y-4 p-6">

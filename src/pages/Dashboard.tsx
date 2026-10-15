@@ -1,98 +1,128 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
-import { usePassport } from '../lib/usePassport';
-import { completionPercent, SECTION_LABEL, sectionCompletion, type PassportSection } from '../lib/passport';
-import { ErrorState, PageSkeleton, ProgressBar } from '../components/ui';
-
-const JOURNEY = ['Discover', 'Learn', 'Practice', 'Offer', 'Execute', 'Review', 'Grow'];
+import { getAssessment, getPassport, getProgress } from '../lib/data';
+import { useAsync } from '../lib/useAsync';
+import { completionPercent } from '../lib/passport';
+import { MODULES } from '../content/modules';
+import { ACTION_PLAN, ALL_TASK_IDS } from '../content/actionPlan';
+import { INDUSTRIES } from '../content/industries';
+import { TRACKS } from '../content/assessment';
+import { ErrorState, PageSkeleton, ProgressBar, TILE_BG } from '../components/ui';
 
 export default function Dashboard() {
   const { profile, firebaseUser } = useAuth();
-  const { loading, error, record, reload } = usePassport(profile?.uid, profile?.displayName ?? '');
+  const { data, loading, error, reload } = useAsync(async () => {
+    const [passport, assessment, progress] = await Promise.all([
+      getPassport(profile!.uid, profile!.displayName),
+      getAssessment(profile!.uid),
+      getProgress(profile!.uid),
+    ]);
+    return { passport, assessment, progress };
+  }, [profile?.uid]);
 
   if (loading) return <PageSkeleton />;
-  if (error || !record) return <ErrorState message={error ?? 'Data tidak tersedia.'} onRetry={reload} />;
+  if (error || !data) return <ErrorState message={error ?? 'Data tidak tersedia.'} onRetry={reload} />;
 
-  const sections = sectionCompletion(record.data);
-  const pct = completionPercent(record.data);
-  const missing = (Object.keys(sections) as PassportSection[]).filter((k) => !sections[k]);
+  const { passport, assessment, progress } = data;
+  const passportPct = completionPercent(passport.data);
+  const moduleStats = MODULES.map((m) => {
+    const done = m.lessons.filter((l) => progress.lessons[l.id]?.done).length;
+    return { m, done, pct: Math.round((done / m.lessons.length) * 100) };
+  });
+  const tasksDone = ALL_TASK_IDS.filter((id) => progress.tasks[id]).length;
+  const planPct = Math.round((tasksDone / ALL_TASK_IDS.length) * 100);
+  const currentDay = ACTION_PLAN.find((d) => d.tasks.some((t) => !progress.tasks[t.id]));
   const firstName = (profile?.displayName || 'Entrepreneur').split(' ')[0];
+
+  // Langkah berikutnya — urutan deterministik.
+  const next =
+    passportPct < 100 ? { to: '/app/passport', label: 'Lengkapi Passport', why: `Baru ${passportPct}% — dipakai untuk personalisasi semua tools.` }
+    : !assessment ? { to: '/app/assessment', label: 'Ikuti Assessment Industri', why: '±3 menit untuk tahu industri dan jalur yang paling cocok.' }
+    : currentDay ? { to: '/app/action-plan', label: `Lanjut Action Plan · Hari ${currentDay.day}`, why: currentDay.goal }
+    : { to: '/app/outreach', label: 'Kirim outreach berikutnya', why: 'Action Plan selesai 🎉 Pertahankan ritme minggu ini.' };
 
   return (
     <div className="space-y-8">
-      <header>
-        <p className="text-sm font-medium text-amber-ink">Dashboard</p>
-        <h1 className="font-display text-3xl font-semibold tracking-tight">Halo, {firstName}.</h1>
-        <p className="mt-1 text-muted">Satu langkah kecil yang jelas lebih berguna daripada rencana besar yang tidak dijalankan.</p>
+      <header className="relative overflow-hidden rounded-[2rem] border-2 border-ink bg-ink p-6 text-paper shadow-[5px_5px_0_0_#ff5a1f] sm:p-8">
+        <span aria-hidden className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-amber/30 blur-2xl" />
+        <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-lime">Dashboard</p>
+        <h1 className="mt-1 font-display text-4xl font-extrabold tracking-tight sm:text-5xl">Yo, {firstName}! 👋</h1>
+        <p className="mt-2 max-w-xl text-paper/75">Satu langkah kecil yang jelas lebih berguna daripada rencana besar yang nggak dijalankan.</p>
+        <div className="mt-6 flex flex-col gap-3 rounded-3xl bg-paper/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-paper/60">Langkah berikutnya</p>
+            <p className="font-display text-xl font-extrabold">{next.label}</p>
+            <p className="text-sm text-paper/70">{next.why}</p>
+          </div>
+          <Link to={next.to} className="btn-accent shrink-0">Gas →</Link>
+        </div>
       </header>
 
       {firebaseUser && !firebaseUser.emailVerified && (
-        <div role="note" className="rounded-xl border border-amber/40 bg-amber-soft px-4 py-3 text-sm text-amber-ink">
-          Email kamu belum terverifikasi. Buka tautan verifikasi yang kami kirim ke <strong>{firebaseUser.email}</strong>.
-          Verifikasi akan diwajibkan sebelum pembelian program.
+        <div role="note" className="rounded-2xl border-2 border-amber bg-amber-soft px-4 py-3 text-sm font-semibold text-amber-ink">
+          Email kamu belum terverifikasi. Cek inbox/spam {firebaseUser.email}. Verifikasi akan diwajibkan sebelum pembelian program.
         </div>
       )}
 
-      <section className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-        <div className="card p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="font-semibold">Entrepreneur Passport</h2>
-              <p className="mt-1 text-sm text-muted">Data dasar yang dipakai semua tools — cukup diisi sekali.</p>
-            </div>
-            <Link to="/app/passport" className={pct === 100 ? 'btn-ghost' : 'btn-accent'}>
-              {pct === 0 ? 'Mulai isi' : pct === 100 ? 'Lihat' : 'Lanjutkan'}
-            </Link>
+      <section className="grid gap-4 md:grid-cols-2">
+        <Link to="/app/passport" className="card-pop block p-5 transition hover:-translate-y-0.5">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-lg font-extrabold">🪪 Entrepreneur Passport</h2>
+            <span className="chip">{passportPct}%</span>
           </div>
-          <div className="mt-5"><ProgressBar value={pct} label="Kelengkapan" /></div>
-          <ul className="mt-5 grid gap-2 sm:grid-cols-2">
-            {(Object.keys(SECTION_LABEL) as PassportSection[]).map((k) => (
-              <li key={k} className="flex items-center gap-2 text-sm">
-                <span aria-hidden className={`grid h-5 w-5 place-items-center rounded-full text-xs ${sections[k] ? 'bg-ok text-white' : 'border border-line text-muted'}`}>
-                  {sections[k] ? '✓' : ''}
-                </span>
-                <span className={sections[k] ? '' : 'text-muted'}>{SECTION_LABEL[k]}</span>
-                <span className="sr-only">{sections[k] ? '(lengkap)' : '(belum lengkap)'}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="card p-6">
-          <h2 className="font-semibold">Langkah berikutnya</h2>
-          {missing.length > 0 ? (
-            <>
-              <p className="mt-1 text-sm text-muted">Lengkapi bagian berikut agar rekomendasi jalur belajar bisa dibuat.</p>
-              <ol className="mt-4 space-y-2 text-sm">
-                {missing.map((k, i) => (
-                  <li key={k}>
-                    <Link to={`/app/passport?bagian=${k}`} className="flex items-center gap-3 rounded-lg border border-line px-3 py-2 hover:bg-paper-2">
-                      <span className="grid h-6 w-6 place-items-center rounded-full bg-ink text-xs font-semibold text-paper">{i + 1}</span>
-                      Isi {SECTION_LABEL[k].toLowerCase()}
-                    </Link>
-                  </li>
-                ))}
-              </ol>
-            </>
-          ) : (
-            <p className="mt-2 text-sm text-muted">
-              Passport kamu sudah lengkap. Entrepreneur DNA assessment dan rekomendasi jalur belajar akan memakai data ini begitu modulnya dirilis.
+          <div className="mt-4"><ProgressBar value={passportPct} label="Kelengkapan" /></div>
+        </Link>
+        <Link to="/app/assessment" className={`card-pop block p-5 transition hover:-translate-y-0.5 ${assessment ? 'bg-sky' : ''}`}>
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-lg font-extrabold">🧭 Assessment Industri</h2>
+            <span className="chip bg-white">{assessment ? 'Selesai' : 'Belum'}</span>
+          </div>
+          {assessment ? (
+            <p className="mt-3 text-sm">
+              Top: <strong>{INDUSTRIES[assessment.topIndustries[0]].emoji} {INDUSTRIES[assessment.topIndustries[0]].name}</strong><br />
+              Jalur: <strong>{TRACKS[assessment.track].name}</strong>
             </p>
-          )}
+          ) : <p className="mt-3 text-sm text-muted">12 pertanyaan · temukan industri yang paling cocok.</p>}
+        </Link>
+      </section>
+
+      <section>
+        <div className="mb-3 flex items-end justify-between">
+          <h2 className="font-display text-2xl font-extrabold">5 Benefit Program</h2>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {moduleStats.map(({ m, done, pct }) => (
+            <Link key={m.slug} to={`/app/belajar/${m.slug}`} className={`card-pop flex flex-col p-5 transition hover:-translate-y-0.5 ${TILE_BG[m.color]}`}>
+              <div className="flex items-start justify-between">
+                <span className="text-3xl" aria-hidden>{m.emoji}</span>
+                <span className="chip bg-white">#{m.benefitNo}</span>
+              </div>
+              <h3 className="mt-3 font-display text-lg font-extrabold leading-tight">{m.title}</h3>
+              <p className="text-sm text-ink/70">{m.tagline}</p>
+              <div className="mt-auto pt-4"><ProgressBar value={pct} label={`${done}/${m.lessons.length} pelajaran`} /></div>
+            </Link>
+          ))}
+          <Link to="/app/toolkit" className="card-pop flex flex-col bg-pink p-5 transition hover:-translate-y-0.5">
+            <div className="flex items-start justify-between"><span className="text-3xl" aria-hidden>⚡</span><span className="chip bg-white">#4</span></div>
+            <h3 className="mt-3 font-display text-lg font-extrabold leading-tight">AI Business Toolkit</h3>
+            <p className="text-sm text-ink/70">Template dan tools untuk mendukung eksekusi.</p>
+            <p className="mt-auto pt-4 text-xs font-bold">Prompt library · Kalkulator komisi · Proposal →</p>
+          </Link>
+          <Link to="/app/action-plan" className="card-pop flex flex-col bg-amber-soft p-5 transition hover:-translate-y-0.5">
+            <div className="flex items-start justify-between"><span className="text-3xl" aria-hidden>✅</span><span className="chip bg-white">#5</span></div>
+            <h3 className="mt-3 font-display text-lg font-extrabold leading-tight">Practical Action Plan</h3>
+            <p className="text-sm text-ink/70">Panduan langkah awal yang terstruktur.</p>
+            <div className="mt-auto pt-4"><ProgressBar value={planPct} label={`${tasksDone}/${ALL_TASK_IDS.length} misi`} /></div>
+          </Link>
         </div>
       </section>
 
-      <section className="card p-6">
-        <h2 className="font-semibold">Perjalananmu</h2>
-        <p className="mt-1 text-sm text-muted">Setiap tahap menghasilkan output yang dipakai tahap berikutnya.</p>
-        <ol className="mt-5 flex flex-wrap gap-2">
-          {JOURNEY.map((step, i) => (
-            <li key={step} className={`rounded-full px-3 py-1.5 text-sm font-medium ${i === 0 ? 'bg-ink text-paper' : 'border border-line text-muted'}`}>
-              {i + 1}. {step}
-            </li>
-          ))}
-        </ol>
-        <p className="mt-4 text-xs text-muted">Tahap aktif: <strong>Discover</strong>. Tahap lainnya terbuka bertahap sesuai program yang kamu ikuti.</p>
+      <section className={`card-pop flex flex-col gap-3 p-6 sm:flex-row sm:items-center sm:justify-between ${TILE_BG.lime}`}>
+        <div>
+          <h2 className="font-display text-xl font-extrabold">💬 Outreach Studio — modal Rp0</h2>
+          <p className="text-sm">Pesan siap kirim untuk mentor, jadi sales partner, atau menawarkan jasa ke UMKM.</p>
+        </div>
+        <Link to="/app/outreach" className="btn-primary shrink-0">Buka studio →</Link>
       </section>
     </div>
   );

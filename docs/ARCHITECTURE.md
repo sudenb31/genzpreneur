@@ -31,6 +31,9 @@ Konvensi: ID dokumen = UID user untuk data 1-per-user; ID acak untuk data banyak
 | `users/{uid}` | email, displayName, role, lastAuditId | Baca: diri sendiri, admin. Buat: diri sendiri dengan role `user` saja. Ubah: nama sendiri; role hanya oleh admin/owner **dengan audit log di batch yang sama**. Hapus: tidak dari browser |
 | `passports/{uid}` | personal, skills, resources, interests, goals, ownerUid | Baca: pemilik, admin. Tulis & hapus: pemilik saja. Field asing ditolak |
 | `auditLogs/{id}` | actorUid, action, targetId, before, after, reason | Buat: admin (actorUid harus dirinya). Baca: admin. **Tidak bisa diubah/dihapus siapa pun** |
+| `assessments/{uid}` | jawaban, skor industri & jalur, top 3, attempts | Tulis: pemilik. Baca: pemilik, admin |
+| `progress/{uid}` | lessons (done, reflection), plan (tasks, notes) — self-reported | Tulis: pemilik. Baca: pemilik, admin |
+| `savedItems/{id}` | ownerUid, kind, title, content | Buat/baca/hapus: pemilik saja (admin pun tidak). Tidak bisa diubah |
 
 ### Rencana (Sprint 2–6)
 | Koleksi | Sprint | Catatan |

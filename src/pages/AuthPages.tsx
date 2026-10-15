@@ -11,7 +11,7 @@ function AuthShell({ title, subtitle, children, footer }: { title: string; subti
       <section className="hidden flex-col justify-between bg-ink p-10 text-paper lg:flex">
         <Link to="/" className="text-paper"><Logo /></Link>
         <div>
-          <p className="font-display text-4xl leading-tight">Learn. Execute. Build.</p>
+          <p className="font-display text-5xl font-extrabold leading-[0.95]">Learn.<br />Execute.<br /><span className="text-amber">Build.</span></p>
           <p className="mt-4 max-w-md text-paper/70">Kamu tidak harus punya bisnis untuk mulai menjadi entrepreneur. Mulai dari skill yang kamu punya hari ini.</p>
         </div>
         <p className="text-xs text-paper/50">© {new Date().getFullYear()} GenZ Preneur</p>
