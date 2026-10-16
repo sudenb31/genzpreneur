@@ -1,4 +1,5 @@
 import { EXTRA_MODULES } from './modulesExtra';
+import { BUSINESS_101 } from './business101';
 
 /**
  * Materi modul benefit. Sementara disimpan di kode; mulai Sprint 3 dipindah
@@ -14,6 +15,10 @@ export interface Lesson {
   exercise: { prompt: string; placeholder: string };
   /** Tautan ke tool yang relevan di dalam aplikasi. */
   tool?: { to: string; label: string };
+  /** Mitos yang sering dipercaya + faktanya. */
+  mythFact?: { myth: string; fact: string };
+  /** Kamus kilat: istilah bisnis + arti versi bahasa tongkrongan. */
+  glossary?: { term: string; meaning: string }[];
 }
 
 export const SEASONS = [
@@ -307,7 +312,7 @@ const CORE_MODULES: LearningModule[] = [
 ];
 
 /** Semua modul, diurutkan per Season (stabil). */
-export const MODULES: LearningModule[] = [...CORE_MODULES, ...EXTRA_MODULES]
+export const MODULES: LearningModule[] = [BUSINESS_101, ...CORE_MODULES, ...EXTRA_MODULES]
   .map((m, i) => ({ m, i }))
   .sort((a, b) => a.m.season - b.m.season || a.i - b.i)
   .map(({ m }) => m);

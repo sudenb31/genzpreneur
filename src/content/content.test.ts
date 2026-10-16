@@ -5,11 +5,11 @@ import { PROMPTS } from './prompts';
 import { INDUSTRIES, INDUSTRY_KEYS } from './industries';
 
 describe('integritas konten', () => {
-  it('9 modul dalam 4 season, slug & id pelajaran unik, urut per season', () => {
-    expect(MODULES).toHaveLength(9);
-    expect(new Set(MODULES.map((m) => m.slug)).size).toBe(9);
+  it('10 modul dalam 4 season, slug & id pelajaran unik, urut per season', () => {
+    expect(MODULES).toHaveLength(10);
+    expect(new Set(MODULES.map((m) => m.slug)).size).toBe(10);
     expect(new Set(ALL_LESSON_IDS).size).toBe(ALL_LESSON_IDS.length);
-    expect(ALL_LESSON_IDS).toHaveLength(36);
+    expect(ALL_LESSON_IDS).toHaveLength(46);
     const seasons = MODULES.map((m) => m.season);
     expect([...seasons].sort()).toEqual(seasons);
     for (const no of [1, 2, 3, 4]) expect(seasons).toContain(no);
@@ -17,6 +17,15 @@ describe('integritas konten', () => {
       expect(l.body.length).toBeGreaterThanOrEqual(2);
       expect(l.keyPoints.length).toBeGreaterThanOrEqual(3);
       expect(l.exercise.prompt.length).toBeGreaterThan(10);
+    }
+  });
+  it('Business 101: modul pertama, 10 pelajaran lengkap dengan mitos-fakta & kamus kilat', () => {
+    expect(MODULES[0].slug).toBe('business-101');
+    expect(MODULES[0].lessons).toHaveLength(10);
+    for (const l of MODULES[0].lessons) {
+      expect(l.mythFact?.myth.length).toBeGreaterThan(10);
+      expect(l.glossary?.length).toBeGreaterThanOrEqual(3);
+      expect(l.example).toBeTruthy();
     }
   });
   it('Action Plan 7 hari dengan id tugas unik', () => {

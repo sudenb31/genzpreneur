@@ -88,6 +88,33 @@ export default function ModulePage() {
             <ul className="mt-2 space-y-1.5 text-sm">{lesson.keyPoints.map((k) => <li key={k}>✦ {k}</li>)}</ul>
           </div>
 
+          {lesson.mythFact && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-3xl border-2 border-ink bg-pink/50 p-5">
+                <h3 className="text-xs font-extrabold uppercase tracking-wider">🙅 Mitos</h3>
+                <p className="mt-2 text-sm font-semibold">{lesson.mythFact.myth}</p>
+              </div>
+              <div className="rounded-3xl border-2 border-ink bg-sky/50 p-5">
+                <h3 className="text-xs font-extrabold uppercase tracking-wider">✅ Fakta</h3>
+                <p className="mt-2 text-sm font-semibold">{lesson.mythFact.fact}</p>
+              </div>
+            </div>
+          )}
+
+          {lesson.glossary && lesson.glossary.length > 0 && (
+            <div className="rounded-3xl border-2 border-dashed border-ink p-5">
+              <h3 className="font-extrabold">📖 Kamus kilat</h3>
+              <dl className="mt-3 grid gap-3 sm:grid-cols-2">
+                {lesson.glossary.map((g) => (
+                  <div key={g.term}>
+                    <dt className="text-sm font-extrabold">{g.term}</dt>
+                    <dd className="text-sm text-ink/75">{g.meaning}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          )}
+
           {lesson.example && (
             <div className="rounded-3xl bg-paper p-5">
               <h3 className="font-extrabold">💡 {lesson.example.title}</h3>

@@ -19,7 +19,8 @@ Stack: React 19 · Vite · TypeScript · Tailwind v4 · Firebase Auth + Firestor
 | ⚡ AI Business Toolkit | 12 prompt siap salin (terisi otomatis dari Passport/Assessment), kalkulator komisi, template proposal |
 | ✅ Practical Action Plan | 7 hari × 3 misi + catatan harian |
 | 📌 Tersimpan | Semua pesan/prompt/proposal/simulasi/problem map yang disimpan |
-| 📚 Kurikulum 4 Season | 9 modul · 36 pelajaran: Wake Up (Mindset, Read The Game), Find Your Why & Edge (Why Engine, Find Your Edge), Build & Sell (Sales & Marketing, Business Partner), Lead & Last (Lead The Squad, Life Ops, Future Proof) |
+| 🗺️ Business 101 | 10 pelajaran peta dunia bisnis: 5 organ bisnis, value, marketing vs sales vs branding, STP, closing & penolakan, brand = janji × bukti × konsistensi, delivery & bottleneck, omzet/untung/cash + BEP, strategi (5 tekanan, SWOT), eksperimen & negosiasi. Tiap pelajaran ada Mitos vs Fakta + Kamus Kilat. Terinspirasi The Personal MBA & The Visual MBA, ditulis ulang orisinal |
+| 📚 Kurikulum 4 Season | 10 modul · 46 pelajaran: Wake Up (Business 101, Mindset, Read The Game), Find Your Why & Edge (Why Engine, Find Your Edge), Build & Sell (Sales & Marketing, Business Partner), Lead & Last (Lead The Squad, Life Ops, Future Proof) |
 | 🧩 Problem Map | Fenomena → masalah inti → akar → dampak → terdampak → langkah awal → validasi, dengan 6 Zona Dampak |
 | 🌟 Dream Pact | Pakta Mimpi: Personal WHY, Edge, Dream Statement, 6 level milestone (Launch Pad → Dream Unlocked) dengan usia/tahun otomatis, Skill Tree 4 cabang, Plan 12 bulan (Level Up/Cuan/Impact), komitmen + tanda tangan, **versi cetak A4** |
 
@@ -51,6 +52,6 @@ Panduan lengkap untuk pemula: **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
 
 ## Test
 ```bash
-npm test            # 72 unit/komponen test
+npm test            # 73 unit/komponen test
 npm run test:rules  # uji Security Rules (butuh Java 11+)
 ```
