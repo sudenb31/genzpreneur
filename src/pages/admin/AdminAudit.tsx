@@ -3,7 +3,21 @@ import { listAuditLogs, listUsers, type AuditLog } from '../../lib/data';
 import { isRole, ROLE_LABEL } from '../../lib/roles';
 import { EmptyState, ErrorState, PageSkeleton } from '../../components/ui';
 
-const ACTION_LABEL: Record<string, string> = { 'user.role_changed': 'Perubahan role' };
+/** Ringkas isi before/after non-role (paket, trial, mode akses). */
+const summarize = (o: Record<string, unknown>) => {
+  const parts = Object.entries(o).map(([k, v]) => `${k}: ${v === null || v === undefined ? '—' : String(v)}`);
+  return parts.length ? parts.join(', ') : '(baru)';
+};
+
+const ACTION_LABEL: Record<string, string> = {
+  'user.role_changed': 'Perubahan role',
+  'member.invited': 'Undang peserta',
+  'member.reinvited': 'Undang ulang peserta',
+  'member.plan_changed': 'Ubah paket',
+  'member.trial_started': 'Mulai trial',
+  'member.trial_ended': 'Akhiri trial',
+  'config.access_mode': 'Ubah mode akses',
+};
 
 const roleText = (v: unknown) => (isRole(v) ? ROLE_LABEL[v] : String(v ?? '—'));
 
@@ -47,7 +61,9 @@ export default function AdminAudit() {
                 <p className="font-medium">{ACTION_LABEL[l.action] ?? l.action}</p>
                 <p className="text-muted">
                   {emails[l.actorUid] ?? l.actorUid} → {emails[l.targetId] ?? l.targetId}:{' '}
-                  {roleText(l.before.role)} → <strong className="text-ink">{roleText(l.after.role)}</strong>
+                  {l.action === 'user.role_changed'
+                    ? <>{roleText(l.before.role)} → <strong className="text-ink">{roleText(l.after.role)}</strong></>
+                    : <>{summarize(l.before)} → <strong className="text-ink">{summarize(l.after)}</strong></>}
                 </p>
                 {l.reason && <p className="mt-1 text-xs text-muted">Alasan: {l.reason}</p>}
               </div>

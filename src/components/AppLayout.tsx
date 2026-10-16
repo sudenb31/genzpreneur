@@ -3,6 +3,8 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { isAdminRole, ROLE_LABEL } from '../lib/roles';
 import { Logo, useToast } from './ui';
+import { TrialBanner, useAccess } from '../auth/AccessProvider';
+import { PLAN_INFO, type FeatureKey } from '../lib/membership';
 
 /** Hanya menu yang SUDAH berfungsi yang ditampilkan. */
 const NAV_GROUPS = [
@@ -18,15 +20,15 @@ const NAV_GROUPS = [
     label: 'Benefit Program',
     items: [
       { to: '/app/kurikulum', label: 'Kurikulum (4 Season)', icon: '📚' },
-      { to: '/app/toolkit', label: 'AI Business Toolkit', icon: '⚡' },
-      { to: '/app/action-plan', label: 'Action Plan 7 Hari', icon: '✅' },
-      { to: '/app/dream-pact', label: 'Dream Pact', icon: '🌟' },
+      { to: '/app/toolkit', label: 'AI Business Toolkit', icon: '⚡', feature: 'toolkit' as FeatureKey },
+      { to: '/app/action-plan', label: 'Action Plan 7 Hari', icon: '✅', feature: 'actionPlan' as FeatureKey },
+      { to: '/app/dream-pact', label: 'Dream Pact', icon: '🌟', feature: 'dreamPact' as FeatureKey },
     ],
   },
   {
     label: 'Workspace',
     items: [
-      { to: '/app/outreach', label: 'Outreach Studio', icon: '💬' },
+      { to: '/app/outreach', label: 'Outreach Studio', icon: '💬', feature: 'outreach' as FeatureKey },
       { to: '/app/tersimpan', label: 'Tersimpan', icon: '📌' },
       { to: '/app/pengaturan', label: 'Pengaturan', icon: '⚙️' },
     ],
@@ -34,12 +36,15 @@ const NAV_GROUPS = [
 ];
 
 const ADMIN_NAV = [
+  { to: '/app/admin/peserta', label: 'Peserta & Paket', icon: '🎟️' },
+  { to: '/app/admin/daftar-tunggu', label: 'Daftar Tunggu', icon: '📝' },
   { to: '/app/admin/pengguna', label: 'Pengguna & Role', icon: '👥' },
   { to: '/app/admin/audit', label: 'Audit Log', icon: '🧾' },
 ];
 
 export default function AppLayout() {
   const { profile, logout } = useAuth();
+  const access = useAccess();
   const nav = useNavigate();
   const toast = useToast();
   const [open, setOpen] = useState(false);
@@ -67,6 +72,7 @@ export default function AppLayout() {
           {g.items.map((n) => (
             <NavLink key={n.to} to={n.to} end={'end' in n ? n.end : undefined} className={linkCls} onClick={() => setOpen(false)}>
               <span aria-hidden className="w-5 text-center">{n.icon}</span>{n.label}
+              {'feature' in n && n.feature && !access.loading && !access.can(n.feature) && <span className="ml-auto text-xs" aria-label="terkunci">🔒</span>}
             </NavLink>
           ))}
         </div>
@@ -84,7 +90,10 @@ export default function AppLayout() {
       <div className="mt-auto rounded-3xl border-2 border-ink bg-white p-3 shadow-[3px_3px_0_0_#111112]">
         <p className="truncate text-sm font-bold">{profile?.displayName || 'Entrepreneur'}</p>
         <p className="truncate text-xs text-muted">{profile?.email}</p>
-        <span className="mt-2 inline-block rounded-full bg-amber px-2.5 py-0.5 text-xs font-extrabold text-ink">{profile ? ROLE_LABEL[profile.role] : ''}</span>
+        <div className="mt-2 flex flex-wrap gap-1">
+          <span className="inline-block rounded-full bg-amber px-2.5 py-0.5 text-xs font-extrabold text-ink">{profile ? ROLE_LABEL[profile.role] : ''}</span>
+          {!access.loading && <span className={`inline-block rounded-full border border-ink px-2.5 py-0.5 text-xs font-extrabold ${PLAN_INFO[access.plan].tile}`}>{PLAN_INFO[access.plan].emoji} {PLAN_INFO[access.plan].name}{access.trial === 'active' || access.trial === 'ending' ? ' (trial)' : ''}</span>}
+        </div>
         <button type="button" onClick={doLogout} className="btn-ghost mt-3 w-full py-2">Keluar</button>
       </div>
     </nav>
@@ -108,6 +117,7 @@ export default function AppLayout() {
       )}
 
       <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-8">
+        <TrialBanner />
         <Outlet />
       </main>
     </div>

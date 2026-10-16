@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
+import { LockedFeature, useAccess } from '../auth/AccessProvider';
+import { moduleFeature } from '../lib/membership';
 import { findModule, MODULES, SEASONS } from '../content/modules';
 import { getProgress, saveLesson } from '../lib/data';
 import { useAsync } from '../lib/useAsync';
@@ -10,6 +12,7 @@ export default function ModulePage() {
   const { slug = '' } = useParams();
   const mod = findModule(slug);
   const { profile } = useAuth();
+  const access = useAccess();
   const toast = useToast();
   const [params, setParams] = useSearchParams();
   const { data: progress, setData: setProgress, loading, error, reload } = useAsync(() => getProgress(profile!.uid), [profile?.uid]);
@@ -24,6 +27,7 @@ export default function ModulePage() {
   useEffect(() => { setReflection(lp?.reflection ?? ''); }, [lesson?.id, lp?.reflection]);
 
   if (!mod) return <EmptyState title="Modul tidak ditemukan" description="Periksa kembali tautannya." action={<Link to="/app" className="btn-primary">Ke Dashboard</Link>} />;
+  if (!access.loading && !access.can(moduleFeature(mod))) return <LockedFeature feature={moduleFeature(mod)} />;
   if (loading) return <PageSkeleton />;
   if (error || !progress || !lesson) return <ErrorState message={error ?? 'Data tidak tersedia.'} onRetry={reload} />;
 

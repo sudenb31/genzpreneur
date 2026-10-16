@@ -5,8 +5,7 @@ import { AuthProvider } from '../auth/AuthProvider';
 import { RequireAuth } from '../auth/guards';
 import { ToastProvider } from '../components/ui';
 import Home from './Home';
-import { RegisterPage } from './AuthPages';
-import { registerSchema } from './AuthPages';
+import { LoginPage, WaitlistPage, waitlistSchema } from './AuthPages';
 
 const wrap = (ui: React.ReactNode, path = '/') => (
   <MemoryRouter initialEntries={[path]}>
@@ -35,16 +34,27 @@ describe('halaman publik', () => {
     expect(screen.queryByText('rahasia')).not.toBeInTheDocument();
   });
 
-  it('form daftar dirender', () => {
-    render(wrap(<RegisterPage />));
+  it('tidak ada pendaftaran mandiri: /daftar adalah daftar tunggu tanpa password', () => {
+    render(wrap(<WaitlistPage />));
     expect(screen.getByLabelText('Email')).toBeInTheDocument();
+    expect(screen.getByLabelText('Nomor WhatsApp')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
   });
 });
 
-describe('validasi pendaftaran', () => {
-  const ok = { name: 'Rani', email: 'rani@mail.com', password: 'abcd1234', confirm: 'abcd1234', consent: true };
-  it('valid', () => expect(registerSchema.safeParse(ok).success).toBe(true));
-  it('password tanpa angka ditolak', () => expect(registerSchema.safeParse({ ...ok, password: 'abcdefgh', confirm: 'abcdefgh' }).success).toBe(false));
-  it('konfirmasi tidak sama ditolak', () => expect(registerSchema.safeParse({ ...ok, confirm: 'x' }).success).toBe(false));
-  it('tanpa persetujuan ditolak', () => expect(registerSchema.safeParse({ ...ok, consent: false }).success).toBe(false));
+describe('login tanpa password', () => {
+  it('halaman masuk default: hanya email + kirim link, tanpa password', () => {
+    render(wrap(<LoginPage />));
+    expect(screen.getByRole('button', { name: 'Kirim link masuk' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
+    expect(screen.getByText('Gabung daftar tunggu')).toBeInTheDocument();
+  });
+});
+
+describe('validasi daftar tunggu', () => {
+  const ok = { name: 'Rani', email: 'rani@mail.com', whatsapp: '081234567890', interest: 'boost' as const, message: '', consent: true as const };
+  it('valid', () => expect(waitlistSchema.safeParse(ok).success).toBe(true));
+  it('nomor WA tidak valid ditolak', () => expect(waitlistSchema.safeParse({ ...ok, whatsapp: '12345' }).success).toBe(false));
+  it('email tidak valid ditolak', () => expect(waitlistSchema.safeParse({ ...ok, email: 'rani' }).success).toBe(false));
+  it('tanpa persetujuan ditolak', () => expect(waitlistSchema.safeParse({ ...ok, consent: false }).success).toBe(false));
 });

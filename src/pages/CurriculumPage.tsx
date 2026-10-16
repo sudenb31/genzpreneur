@@ -1,12 +1,15 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { MODULES, SEASONS } from '../content/modules';
+import { useAccess } from '../auth/AccessProvider';
+import { FEATURE_MIN, moduleFeature, PLAN_INFO } from '../lib/membership';
 import { getDreamPact, getProgress } from '../lib/data';
 import { dreamPactProgress } from '../lib/dreamPact';
 import { useAsync } from '../lib/useAsync';
 import { ErrorState, PageHeader, PageSkeleton, ProgressBar, TILE_BG } from '../components/ui';
 
 export default function CurriculumPage() {
+  const access = useAccess();
   const { profile } = useAuth();
   const { data, loading, error, reload } = useAsync(async () => {
     const [progress, pact] = await Promise.all([getProgress(profile!.uid), getDreamPact(profile!.uid, profile!.displayName)]);
@@ -40,11 +43,13 @@ export default function CurriculumPage() {
               {mods.map((m) => {
                 const done = m.lessons.filter((l) => progress.lessons[l.id]?.done).length;
                 const pct = Math.round((done / m.lessons.length) * 100);
+                const locked = !access.loading && !access.can(moduleFeature(m));
+                const need = PLAN_INFO[FEATURE_MIN[moduleFeature(m)]];
                 return (
-                  <Link key={m.slug} to={`/app/belajar/${m.slug}`} className={`card-pop flex flex-col p-5 transition hover:-translate-y-0.5 ${TILE_BG[m.color]}`}>
+                  <Link key={m.slug} to={`/app/belajar/${m.slug}`} className={`card-pop flex flex-col p-5 transition hover:-translate-y-0.5 ${locked ? 'bg-paper-2 opacity-80' : TILE_BG[m.color]}`}>
                     <div className="flex items-start justify-between">
                       <span className="text-3xl" aria-hidden>{m.emoji}</span>
-                      {pct === 100 && <span className="chip bg-white">✓ Selesai</span>}
+                      {locked ? <span className="chip bg-white">🔒 {need.name}</span> : pct === 100 && <span className="chip bg-white">✓ Selesai</span>}
                     </div>
                     <h3 className="mt-3 font-display text-xl font-extrabold leading-tight">{m.title}</h3>
                     <p className="text-sm text-ink/70">{m.tagline}</p>

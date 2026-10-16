@@ -22,7 +22,7 @@ const STEPS = [
 export default function Home() {
   const { firebaseUser } = useAuth();
   const loggedIn = isFirebaseConfigured && !!firebaseUser;
-  const cta = loggedIn ? { to: '/app', label: 'Buka dashboard' } : { to: '/daftar', label: 'Mulai gratis' };
+  const cta = loggedIn ? { to: '/app', label: 'Buka dashboard' } : { to: '/daftar', label: 'Gabung daftar tunggu' };
 
   return (
     <div className="overflow-x-hidden bg-paper text-ink">
@@ -36,7 +36,7 @@ export default function Home() {
             <a href="#harga" className="hidden rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2 md:block">Harga</a>
             <a href="#faq" className="hidden rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2 md:block">FAQ</a>
             {!loggedIn && <Link to="/masuk" className="rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2">Masuk</Link>}
-            <Link to={cta.to} className="btn-primary py-2">{loggedIn ? 'Dashboard' : 'Daftar'}</Link>
+            <Link to={cta.to} className="btn-primary py-2">{loggedIn ? 'Dashboard' : 'Gabung'}</Link>
           </nav>
         </div>
       </header>
@@ -65,7 +65,7 @@ export default function Home() {
               <Link to={cta.to} className="btn-accent px-7 py-3.5 text-base">{cta.label} →</Link>
               <a href="#benefit" className="btn-ghost px-7 py-3.5 text-base">Lihat isinya</a>
             </div>
-            <p className="mt-4 text-xs text-muted">Daftar akun gratis. Tidak ada jaminan penghasilan — yang ada sistem untuk mulai bergerak.</p>
+            <p className="mt-4 text-xs text-muted">Akses lewat undangan — gabung daftar tunggu, link masuk dikirim ke emailmu. Tidak ada jaminan penghasilan.</p>
           </div>
 
           {/* Visual: contoh kartu hasil (ilustrasi produk, bukan data pengguna) */}
@@ -206,7 +206,7 @@ export default function Home() {
 
             <div className="mt-10 flex flex-col gap-3 rounded-3xl border-2 border-lime p-6 sm:flex-row sm:items-center sm:justify-between">
               <p className="font-display text-xl font-extrabold">Bingung pilih yang mana? <span className="text-lime">36 soal Assessment</span> bantu mengarahkan.</p>
-              <Link to={cta.to} className="btn-accent shrink-0">{loggedIn ? 'Buka Assessment' : 'Coba Assessment gratis'} →</Link>
+              <Link to={cta.to} className="btn-accent shrink-0">{loggedIn ? 'Buka Assessment' : 'Gabung daftar tunggu'} →</Link>
             </div>
           </div>
         </section>
@@ -254,7 +254,7 @@ export default function Home() {
                         🎁 Bonus: coba <strong>{p.trial.to}</strong> gratis {p.trial.days} hari
                       </p>
                     )}
-                    <Link to={cta.to} className={`mt-6 ${hot ? 'btn-accent' : 'btn-primary'}`}>{loggedIn ? 'Buka dashboard' : 'Buat akun dulu'}</Link>
+                    <Link to={cta.to} className={`mt-6 ${hot ? 'btn-accent' : 'btn-primary'}`}>{loggedIn ? 'Buka dashboard' : `Minta akses ${p.name}`}</Link>
                   </div>
                 );
               })}
@@ -283,7 +283,7 @@ export default function Home() {
         <section className="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
           <div className="card-pop bg-amber px-8 py-14 text-center">
             <h2 className="font-display text-4xl font-extrabold tracking-tight sm:text-6xl">Mulai dari yang kamu punya hari ini.</h2>
-            <p className="mx-auto mt-3 max-w-xl text-ink/80">Bikin akun, ikuti Assessment, dan kirim outreach pertamamu minggu ini.</p>
+            <p className="mx-auto mt-3 max-w-xl text-ink/80">Gabung daftar tunggu, terima link masuk, lalu ikuti Assessment dan kirim outreach pertamamu.</p>
             <Link to={cta.to} className="btn-primary mt-8 px-8 py-3.5 text-base">{cta.label} →</Link>
           </div>
         </section>

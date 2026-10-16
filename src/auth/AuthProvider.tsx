@@ -1,16 +1,24 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
-  createUserWithEmailAndPassword,
+  isSignInWithEmailLink,
   onAuthStateChanged,
-  sendEmailVerification,
   sendPasswordResetEmail,
+  sendSignInLinkToEmail,
   signInWithEmailAndPassword,
+  signInWithEmailLink,
   signOut,
-  updateProfile,
   type User,
 } from 'firebase/auth';
-import { auth, isFirebaseConfigured } from '../lib/firebase';
-import { ensureUserRecord, updateDisplayName, type UserRecord } from '../lib/data';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db, isFirebaseConfigured } from '../lib/firebase';
+import { acceptInvite, ensureUserRecord, getUserRecord, loginLinkUrl, type UserRecord } from '../lib/data';
+import { normalizeEmail } from '../lib/membership';
+
+const EMAIL_KEY = 'gzp.emailForSignIn';
+const readStoredEmail = () => { try { return localStorage.getItem(EMAIL_KEY) ?? ''; } catch { return ''; } };
+const storeEmail = (e: string | null) => {
+  try { if (e) localStorage.setItem(EMAIL_KEY, e); else localStorage.removeItem(EMAIL_KEY); } catch { /* storage tidak tersedia */ }
+};
 
 interface AuthState {
   /** true selama status login awal belum diketahui. */
@@ -18,7 +26,15 @@ interface AuthState {
   firebaseUser: User | null;
   profile: UserRecord | null;
   error: string | null;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  /** true bila sudah login tapi emailnya tidak punya undangan → akses ditolak. */
+  notInvited: boolean;
+  /** Kirim link masuk ke email (login tanpa password). */
+  sendLoginLink: (email: string) => Promise<void>;
+  /** Selesaikan login dari link email. */
+  completeLinkSignIn: (href: string, email: string) => Promise<void>;
+  isLoginLink: (href: string) => boolean;
+  storedEmail: () => string;
+  /** Login password — hanya untuk akun lama yang sudah punya password. */
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -32,15 +48,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notInvited, setNotInvited] = useState(false);
 
   const loadProfile = useCallback(async (u: User) => {
+    setNotInvited(false);
     try {
-      const rec = await ensureUserRecord(u.uid, u.email ?? '', u.displayName ?? '');
+      const existing = await getUserRecord(u.uid);
+      if (existing) {
+        setProfile(existing);
+        setError(null);
+        return;
+      }
+      // Akun baru: hanya bisa dibuat bila emailnya diundang admin (ditegakkan Security Rules).
+      const email = normalizeEmail(u.email ?? '');
+      let inviteName = '';
+      try {
+        const inv = await getDoc(doc(db(), 'invites', email));
+        if (!inv.exists() || inv.data().status === 'revoked') {
+          setProfile(null);
+          setNotInvited(true);
+          return;
+        }
+        inviteName = String(inv.data().name ?? '');
+      } catch {
+        setProfile(null);
+        setNotInvited(true);
+        return;
+      }
+      const rec = await ensureUserRecord(u.uid, u.email ?? '', u.displayName || inviteName);
+      await acceptInvite(email);
       setProfile(rec);
       setError(null);
     } catch (e) {
       console.error(e);
-      setError('Profil akun gagal dimuat. Periksa koneksi lalu muat ulang halaman.');
+      const code = (e as { code?: string }).code;
+      if (code === 'permission-denied') {
+        setProfile(null);
+        setNotInvited(true);
+      } else {
+        setError('Profil akun gagal dimuat. Periksa koneksi lalu muat ulang halaman.');
+      }
     }
   }, []);
 
@@ -60,17 +107,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       firebaseUser,
       profile,
       error,
-      register: async (name, email, password) => {
-        const cred = await createUserWithEmailAndPassword(auth(), email, password);
-        await updateProfile(cred.user, { displayName: name });
-        // onAuthStateChanged bisa sudah membuat dokumen user SEBELUM nama terpasang
-        // (displayName masih kosong). Pastikan nama tersimpan.
-        const rec = await ensureUserRecord(cred.user.uid, email, name);
-        if (rec.displayName !== name.trim().slice(0, 80)) await updateDisplayName(cred.user.uid, name);
-        await loadProfile(cred.user);
-        // Email verifikasi tidak memblokir pendaftaran bila gagal terkirim.
-        sendEmailVerification(cred.user).catch((e) => console.warn('Verifikasi email gagal dikirim', e));
+      notInvited,
+      sendLoginLink: async (email) => {
+        await sendSignInLinkToEmail(auth(), email.trim(), { url: loginLinkUrl(), handleCodeInApp: true });
+        storeEmail(email.trim());
       },
+      completeLinkSignIn: async (href, email) => {
+        await signInWithEmailLink(auth(), email.trim(), href);
+        storeEmail(null);
+      },
+      isLoginLink: (href) => isFirebaseConfigured && isSignInWithEmailLink(auth(), href),
+      storedEmail: readStoredEmail,
       login: async (email, password) => {
         await signInWithEmailAndPassword(auth(), email, password);
       },
@@ -84,7 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (firebaseUser) await loadProfile(firebaseUser);
       },
     }),
-    [loading, firebaseUser, profile, error, loadProfile],
+    [loading, firebaseUser, profile, error, notInvited, loadProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -109,7 +156,11 @@ export function authErrorMessage(e: unknown): string {
     'auth/too-many-requests': 'Terlalu banyak percobaan. Tunggu beberapa menit lalu coba lagi.',
     'auth/network-request-failed': 'Koneksi internet bermasalah. Coba lagi.',
     'auth/user-disabled': 'Akun ini dinonaktifkan. Hubungi admin.',
-    'auth/operation-not-allowed': 'Metode login Email/Password belum diaktifkan di Firebase Console.',
+    'auth/operation-not-allowed': 'Metode login ini belum diaktifkan di Firebase Console (Authentication → Sign-in method → Email/Password → Email link).',
+    'auth/invalid-action-code': 'Link masuk sudah kedaluwarsa atau sudah dipakai. Minta link baru.',
+    'auth/expired-action-code': 'Link masuk sudah kedaluwarsa. Minta link baru.',
+    'auth/unauthorized-continue-uri': 'Domain website belum didaftarkan di Firebase (Authentication → Settings → Authorized domains).',
+    'auth/quota-exceeded': 'Batas pengiriman email hari ini tercapai. Coba lagi besok.',
   };
   return map[code] ?? 'Terjadi kesalahan. Coba lagi beberapa saat lagi.';
 }

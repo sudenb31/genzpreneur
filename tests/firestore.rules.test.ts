@@ -22,7 +22,13 @@ const passport = (uid: string) => ({
   updatedAt: serverTimestamp(),
 });
 
-const ctx = (uid: string) => env.authenticatedContext(uid, { email: `${uid}@test.id` }).firestore();
+const ctx = (uid: string, verified = true) => env.authenticatedContext(uid, { email: `${uid}@test.id`, email_verified: verified }).firestore();
+
+async function seedInvite(email: string, status = 'pending') {
+  await env.withSecurityRulesDisabled(async (c) => {
+    await setDoc(doc(c.firestore(), 'invites', email), { email, name: 'X', status, invitedBy: 'owner', createdAt: new Date(), updatedAt: new Date() });
+  });
+}
 
 async function seedUser(uid: string, role: string) {
   await env.withSecurityRulesDisabled(async (c) => {
@@ -47,10 +53,23 @@ beforeEach(async () => {
 });
 
 describe('users', () => {
-  it('pendaftaran baru hanya boleh role user', async () => {
+  it('TANPA undangan tidak bisa membuat akun; dengan undangan hanya role user', async () => {
     const db = ctx('newbie');
-    await assertFails(setDoc(doc(db, 'users', 'newbie'), { email: 'newbie@test.id', displayName: 'N', role: 'admin', createdAt: serverTimestamp(), updatedAt: serverTimestamp() }));
-    await assertSucceeds(setDoc(doc(db, 'users', 'newbie'), { email: 'newbie@test.id', displayName: 'N', role: 'user', createdAt: serverTimestamp(), updatedAt: serverTimestamp() }));
+    const u = (role: string) => ({ email: 'newbie@test.id', displayName: 'N', role, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+    await assertFails(setDoc(doc(db, 'users', 'newbie'), u('user'))); // belum diundang
+    await seedInvite('newbie@test.id');
+    await assertFails(setDoc(doc(db, 'users', 'newbie'), u('admin')));
+    await assertFails(setDoc(doc(ctx('newbie', false), 'users', 'newbie'), u('user'))); // email belum terverifikasi
+    await assertSucceeds(setDoc(doc(db, 'users', 'newbie'), u('user')));
+  });
+
+  it('undangan yang dicabut tidak bisa dipakai', async () => {
+    await seedInvite('newbie@test.id', 'revoked');
+    await assertFails(setDoc(doc(ctx('newbie'), 'users', 'newbie'), { email: 'newbie@test.id', displayName: 'N', role: 'user', createdAt: serverTimestamp(), updatedAt: serverTimestamp() }));
+  });
+
+  it('akun Auth tanpa dokumen user (tidak diundang) tidak bisa menulis data apa pun', async () => {
+    await assertFails(setDoc(doc(ctx('stranger'), 'passports', 'stranger'), passport('stranger')));
   });
 
   it('tidak bisa membuat dokumen user untuk orang lain', async () => {
@@ -203,5 +222,77 @@ describe('dreamPacts', () => {
 describe('default deny', () => {
   it('koleksi yang tidak didefinisikan tertutup', async () => {
     await assertFails(setDoc(doc(ctx('owner'), 'payments', 'p1'), { amount: 99000 }));
+  });
+});
+
+describe('undangan, paket & trial', () => {
+  const membership = (actor: string, auditId: string, plan = 'spark') => ({
+    email: 'newbie@test.id', name: 'N', plan, trial: null, trialsUsed: { boost: false, impact: false }, note: '',
+    updatedAt: serverTimestamp(), updatedBy: actor, lastAuditId: auditId,
+  });
+  const audit = (actor: string) => ({
+    actorUid: actor, action: 'member.invited', targetType: 'membership', targetId: 'newbie@test.id',
+    before: {}, after: { plan: 'spark' }, reason: 'tes', createdAt: serverTimestamp(),
+  });
+
+  it('admin bisa mengatur paket HANYA bersama audit log di batch yang sama', async () => {
+    const db = ctx('adi');
+    await assertFails(setDoc(doc(db, 'memberships', 'newbie@test.id'), membership('adi', 'tidak-ada')));
+    const b = writeBatch(db);
+    const a = doc(collection(db, 'auditLogs'));
+    b.set(a, audit('adi'));
+    b.set(doc(db, 'memberships', 'newbie@test.id'), membership('adi', a.id));
+    await assertSucceeds(b.commit());
+  });
+
+  it('peserta tidak bisa mengubah paketnya sendiri, tapi bisa membacanya', async () => {
+    const admin = ctx('adi');
+    const b = writeBatch(admin);
+    const a = doc(collection(admin, 'auditLogs'));
+    b.set(a, { ...audit('adi'), targetId: 'alice@test.id' });
+    b.set(doc(admin, 'memberships', 'alice@test.id'), { ...membership('adi', a.id), email: 'alice@test.id' });
+    await b.commit();
+    await assertSucceeds(getDoc(doc(ctx('alice'), 'memberships', 'alice@test.id')));
+    await assertFails(getDoc(doc(ctx('bob'), 'memberships', 'alice@test.id')));
+    await assertFails(updateDoc(doc(ctx('alice'), 'memberships', 'alice@test.id'), { plan: 'impact' }));
+  });
+
+  it('trial hanya boost/impact 3 atau 7 hari', async () => {
+    const db = ctx('adi');
+    const b = writeBatch(db);
+    const a = doc(collection(db, 'auditLogs'));
+    b.set(a, audit('adi'));
+    b.set(doc(db, 'memberships', 'newbie@test.id'), { ...membership('adi', a.id), trial: { plan: 'impact', days: 30, startedAt: new Date(), endsAt: new Date() } });
+    await assertFails(b.commit());
+  });
+
+  it('hanya admin yang bisa membuat undangan; peserta hanya bisa menandai undangannya diterima', async () => {
+    const inv = { email: 'newbie@test.id', name: 'N', status: 'pending', invitedBy: 'adi', createdAt: serverTimestamp(), updatedAt: serverTimestamp() };
+    await assertFails(setDoc(doc(ctx('alice'), 'invites', 'newbie@test.id'), { ...inv, invitedBy: 'alice' }));
+    await assertSucceeds(setDoc(doc(ctx('adi'), 'invites', 'newbie@test.id'), inv));
+    await assertFails(updateDoc(doc(ctx('newbie'), 'invites', 'newbie@test.id'), { status: 'revoked', updatedAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(doc(ctx('newbie'), 'invites', 'newbie@test.id'), { status: 'accepted', acceptedAt: serverTimestamp(), updatedAt: serverTimestamp() }));
+  });
+
+  it('mode akses hanya bisa diubah Super Admin (dengan audit)', async () => {
+    for (const who of ['adi', 'owner']) {
+      const db = ctx(who);
+      const b = writeBatch(db);
+      const a = doc(collection(db, 'auditLogs'));
+      b.set(a, { actorUid: who, action: 'config.access_mode', targetType: 'config', targetId: 'config/access', before: {}, after: { gatingEnabled: true }, reason: '', createdAt: serverTimestamp() });
+      b.set(doc(db, 'config', 'access'), { gatingEnabled: true, updatedAt: serverTimestamp(), updatedBy: who, lastAuditId: a.id });
+      if (who === 'adi') await assertFails(b.commit()); else await assertSucceeds(b.commit());
+    }
+  });
+
+  it('daftar tunggu: siapa pun bisa mendaftar dengan isian valid; hanya admin yang membaca', async () => {
+    const anon = env.unauthenticatedContext().firestore();
+    const entry = { name: 'Rani', email: 'rani@mail.com', whatsapp: '081234567890', interest: 'boost', message: '', status: 'new', createdAt: serverTimestamp() };
+    await assertSucceeds(setDoc(doc(anon, 'waitlist', 'w1'), entry));
+    await assertFails(setDoc(doc(anon, 'waitlist', 'w2'), { ...entry, status: 'invited' }));
+    await assertFails(setDoc(doc(anon, 'waitlist', 'w3'), { ...entry, email: 'bukan-email' }));
+    await assertFails(getDoc(doc(anon, 'waitlist', 'w1')));
+    await assertFails(getDoc(doc(ctx('alice'), 'waitlist', 'w1')));
+    await assertSucceeds(getDoc(doc(ctx('adi'), 'waitlist', 'w1')));
   });
 });

@@ -5,11 +5,14 @@ import { useAuth } from '../auth/AuthProvider';
 import { updateDisplayName } from '../lib/data';
 import { ROLE_LABEL } from '../lib/roles';
 import { useToast } from '../components/ui';
+import { useAccess } from '../auth/AccessProvider';
+import { formatRemaining, PLAN_INFO } from '../lib/membership';
 
 const nameSchema = z.string().trim().min(2, 'Nama minimal 2 karakter').max(80, 'Maksimal 80 karakter');
 
 export default function SettingsPage() {
   const { profile, firebaseUser, refreshProfile } = useAuth();
+  const access = useAccess();
   const toast = useToast();
   const [name, setName] = useState(profile?.displayName ?? '');
   const [error, setError] = useState('');
@@ -65,6 +68,20 @@ export default function SettingsPage() {
         </div>
         <button type="submit" className="btn-primary" disabled={busy || name.trim() === profile?.displayName}>{busy ? 'Menyimpan…' : 'Simpan nama'}</button>
       </form>
+
+      <section className="card p-6">
+        <h2 className="font-semibold">Paket & akses</h2>
+        {access.loading ? <p className="mt-2 text-sm text-muted">Memuat…</p> : (
+          <div className="mt-3 space-y-2 text-sm">
+            <p>Paket: <strong>{PLAN_INFO[access.membership?.plan ?? 'none'].emoji} {PLAN_INFO[access.membership?.plan ?? 'none'].name}</strong></p>
+            {access.membership?.trial && (access.trial === 'active' || access.trial === 'ending') && (
+              <p>Trial: <strong>{PLAN_INFO[access.membership.trial.plan].name}</strong> — sisa {formatRemaining(access.trialLeftMs)} (berakhir {access.membership.trial.endsAt.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })})</p>
+            )}
+            {access.membership?.trial && access.trial === 'expired' && <p className="text-muted">Trial {PLAN_INFO[access.membership.trial.plan].name} sudah berakhir.</p>}
+            <p className="text-xs text-muted">{access.gatingEnabled ? 'Fitur dibuka sesuai paket.' : 'Masa pra-launch: semua fitur sedang dibuka untuk semua peserta.'} Untuk upgrade, hubungi tim GenZ Preneur.</p>
+          </div>
+        )}
+      </section>
 
       <section className="card p-6">
         <h2 className="font-semibold">Informasi akun</h2>

@@ -80,7 +80,7 @@ export const SITE = {
     { q: 'Aku introvert / nggak jago jualan. Bisa?', a: 'Bisa. Sales di sini diajarkan sebagai skill: mendengar, bertanya, dan menjelaskan dengan jujur. Outreach Studio memberi draf pesan yang tinggal kamu sesuaikan, dan banyak jalur (freelance, produk digital) tidak menuntut banyak bicara.' },
     { q: 'Apakah aku harus punya modal?', a: 'Tidak wajib. Sebagian besar dari 10 jalur bisa dimulai dengan modal Rp0 — memakai skill, waktu, dan HP yang kamu punya. Jalur produk fisik diajarkan dengan sistem pre-order supaya tidak menumpuk stok.' },
     { q: 'Apakah ada jaminan penghasilan?', a: 'Tidak ada. GenZ Preneur membantu kamu belajar dan berlatih secara terstruktur. Hasil bergantung pada eksekusi, pasar, dan banyak faktor lain. Hati-hati dengan program apa pun yang menjanjikan angka pasti.' },
-    { q: 'Kapan bisa beli? Ada free trial?', a: 'Pembelian dibuka bersamaan dengan batch pertama; jadwal dan cara pembayaran diumumkan saat itu. Setiap pembeli GenZ Spark bisa mencoba GenZ Boost gratis 3 hari, dan pembeli GenZ Boost bisa mencoba GenZ Impact gratis 7 hari — tanpa tagihan otomatis.' },
+    { q: 'Gimana cara dapat akses? Ada free trial?', a: 'Akses dibuka lewat undangan: gabung daftar tunggu, tim kami menghubungimu, lalu link masuk dikirim ke emailmu — tanpa password. Setiap pembeli GenZ Spark bisa mencoba GenZ Boost gratis 3 hari, dan pembeli GenZ Boost bisa mencoba GenZ Impact gratis 7 hari — tanpa tagihan otomatis.' },
     { q: 'Data pribadiku aman?', a: 'Data Passport hanya bisa dilihat olehmu dan admin untuk keperluan layanan, tidak dibagikan ke peserta lain, dan bisa kamu ekspor atau hapus kapan saja dari halaman Passport.' },
   ],
 } as const;

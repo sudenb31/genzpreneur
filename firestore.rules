@@ -1,7 +1,7 @@
 rules_version = '2';
 
 // =====================================================================
-//  GenZ Preneur OS — Firestore Security Rules (Sprint 1)
+//  GenZ Preneur OS — Firestore Security Rules (Sprint 1 + akses undangan & paket)
 //  Ini adalah "satpam" database. Semua aturan akses ditegakkan DI SERVER
 //  Google, sehingga tidak bisa dibypass dengan mengutak-atik browser.
 // =====================================================================
@@ -35,6 +35,23 @@ service cloud.firestore {
       return v is string && v.size() <= max;
     }
 
+    // Email login (huruf kecil) — dipakai sebagai ID undangan & membership.
+    function myEmail() {
+      return signedIn() && request.auth.token.email != null ? request.auth.token.email.lower() : '';
+    }
+
+    // Peserta resmi = sudah punya dokumen users (hanya bisa dibuat lewat undangan).
+    function isMember() {
+      return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function auditOk(targetId) {
+      let a = getAfter(/databases/$(database)/documents/auditLogs/$(request.resource.data.lastAuditId));
+      return existsAfter(/databases/$(database)/documents/auditLogs/$(request.resource.data.lastAuditId))
+        && a.data.actorUid == request.auth.uid
+        && a.data.targetId == targetId;
+    }
+
     // Sama persis dengan canChangeRole() di src/lib/roles.ts
     function roleChangeAllowed(uid) {
       let from = resource.data.role;
@@ -52,9 +69,13 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
 
-      // Pendaftaran: hanya untuk dirinya sendiri, role WAJIB 'user'.
+      // Pendaftaran: TIDAK BISA daftar sendiri. Hanya email yang punya undangan aktif,
+      // sudah terverifikasi (login lewat link email), untuk dirinya sendiri, role WAJIB 'user'.
       allow create: if signedIn()
         && request.auth.uid == uid
+        && request.auth.token.email_verified == true
+        && exists(/databases/$(database)/documents/invites/$(myEmail()))
+        && get(/databases/$(database)/documents/invites/$(myEmail())).data.status != 'revoked'
         && request.resource.data.keys().hasOnly(['email', 'displayName', 'role', 'createdAt', 'updatedAt'])
         && request.resource.data.role == 'user'
         && request.resource.data.email == request.auth.token.email
@@ -105,9 +126,9 @@ service cloud.firestore {
       }
 
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
-      allow create: if signedIn() && request.auth.uid == uid && validPassport()
+      allow create: if isMember() && request.auth.uid == uid && validPassport()
         && request.resource.data.createdAt == request.time;
-      allow update: if signedIn() && request.auth.uid == uid && validPassport()
+      allow update: if isMember() && request.auth.uid == uid && validPassport()
         && request.resource.data.createdAt == resource.data.createdAt;
       allow delete: if signedIn() && request.auth.uid == uid;
     }
@@ -142,7 +163,7 @@ service cloud.firestore {
           && d.completedAt == request.time;
       }
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
-      allow create, update: if signedIn() && request.auth.uid == uid && validAssessment();
+      allow create, update: if isMember() && request.auth.uid == uid && validAssessment();
       allow delete: if signedIn() && request.auth.uid == uid;
     }
 
@@ -158,7 +179,7 @@ service cloud.firestore {
           && d.updatedAt == request.time;
       }
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
-      allow create, update: if signedIn() && request.auth.uid == uid && validProgress();
+      allow create, update: if isMember() && request.auth.uid == uid && validProgress();
       allow delete: if signedIn() && request.auth.uid == uid;
     }
 
@@ -166,7 +187,7 @@ service cloud.firestore {
     // Pesan, prompt, proposal, simulasi yang disimpan peserta. Privat — admin pun tidak membaca.
     match /savedItems/{id} {
       allow read, delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
-      allow create: if signedIn()
+      allow create: if isMember()
         && request.resource.data.keys().hasOnly(['ownerUid', 'kind', 'title', 'content', 'createdAt'])
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.kind in ['outreach', 'prompt', 'proposal', 'calc', 'problem']
@@ -190,9 +211,94 @@ service cloud.firestore {
           && d.updatedAt == request.time;
       }
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
-      allow create: if signedIn() && request.auth.uid == uid && validPact() && request.resource.data.createdAt == request.time;
-      allow update: if signedIn() && request.auth.uid == uid && validPact() && request.resource.data.createdAt == resource.data.createdAt;
+      allow create: if isMember() && request.auth.uid == uid && validPact() && request.resource.data.createdAt == request.time;
+      allow update: if isMember() && request.auth.uid == uid && validPact() && request.resource.data.createdAt == resource.data.createdAt;
       allow delete: if signedIn() && request.auth.uid == uid;
+    }
+
+    // ---------- invites/{email} ----------
+    // Undangan dari admin. ID dokumen = email huruf kecil. Tanpa undangan, akun tidak bisa dibuat.
+    match /invites/{email} {
+      function validInvite() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['email', 'name', 'status', 'invitedBy', 'createdAt', 'updatedAt', 'acceptedAt'])
+          && d.email == email
+          && isShortString(d.name, 80)
+          && d.status in ['pending', 'accepted', 'revoked']
+          && d.updatedAt == request.time;
+      }
+      allow read: if isAdmin() || myEmail() == email;
+      allow create: if isAdmin() && validInvite()
+        && request.resource.data.invitedBy == request.auth.uid
+        && request.resource.data.createdAt == request.time;
+      allow update: if (isAdmin() && validInvite())
+        // Peserta hanya boleh menandai undangannya sendiri "accepted" saat pertama login.
+        || (myEmail() == email
+            && resource.data.status == 'pending'
+            && request.resource.data.status == 'accepted'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'acceptedAt', 'updatedAt'])
+            && request.resource.data.acceptedAt == request.time
+            && request.resource.data.updatedAt == request.time);
+      allow delete: if false;
+    }
+
+    // ---------- memberships/{email} ----------
+    // Paket & trial peserta. Hanya admin yang mengubah, WAJIB disertai audit log di batch yang sama.
+    match /memberships/{email} {
+      function validTrial(t) {
+        return t == null || (
+          t is map && t.keys().hasOnly(['plan', 'days', 'startedAt', 'endsAt'])
+          && t.plan in ['boost', 'impact'] && t.days in [3, 7]
+          && t.startedAt is timestamp && t.endsAt is timestamp
+        );
+      }
+      function validMembership() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['email', 'name', 'plan', 'trial', 'trialsUsed', 'note', 'updatedAt', 'updatedBy', 'lastAuditId'])
+          && d.email == email
+          && isShortString(d.name, 80)
+          && d.plan in ['none', 'spark', 'boost', 'impact']
+          && validTrial(d.trial)
+          && d.trialsUsed is map && d.trialsUsed.keys().hasOnly(['boost', 'impact'])
+          && isShortString(d.note, 300)
+          && d.updatedBy == request.auth.uid
+          && d.updatedAt == request.time;
+      }
+      allow read: if isAdmin() || myEmail() == email;
+      allow create, update: if isAdmin() && validMembership() && auditOk(email);
+      allow delete: if false;
+    }
+
+    // ---------- config/access ----------
+    // Saklar mode akses: terbuka (pra-launch) atau sesuai paket. Hanya Super Admin.
+    match /config/{key} {
+      allow read: if signedIn();
+      allow create, update: if isOwnerRole()
+        && key == 'access'
+        && request.resource.data.keys().hasOnly(['gatingEnabled', 'updatedAt', 'updatedBy', 'lastAuditId'])
+        && request.resource.data.gatingEnabled is bool
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.updatedAt == request.time
+        && auditOk('config/access');
+      allow delete: if false;
+    }
+
+    // ---------- waitlist/{id} ----------
+    // Daftar tunggu dari landing page. Siapa pun boleh MENAMBAH (tanpa login) dengan isian terbatas;
+    // hanya admin yang boleh membaca & mengubah status.
+    match /waitlist/{id} {
+      allow create: if request.resource.data.keys().hasOnly(['name', 'email', 'whatsapp', 'interest', 'message', 'status', 'createdAt'])
+        && isShortString(request.resource.data.name, 80) && request.resource.data.name.size() >= 2
+        && isShortString(request.resource.data.email, 120) && request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$')
+        && isShortString(request.resource.data.whatsapp, 20)
+        && request.resource.data.interest in ['spark', 'boost', 'impact', 'unsure']
+        && isShortString(request.resource.data.message, 300)
+        && request.resource.data.status == 'new'
+        && request.resource.data.createdAt == request.time;
+      allow read, delete: if isAdmin();
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status in ['new', 'invited', 'skipped'];
     }
 
     // Semua koleksi lain tertutup secara default.
