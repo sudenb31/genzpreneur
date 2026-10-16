@@ -25,12 +25,6 @@ export const SITE = {
     { no: 5, emoji: '✅', title: 'Practical Action Plan', desc: 'Panduan langkah awal yang terstruktur.', tile: 'bg-amber-soft' },
   ],
 
-  tracks: [
-    { name: 'Sales Partner', desc: 'Bantu bisnis yang sudah berjalan mendapatkan pelanggan, dengan skema komisi.' },
-    { name: 'Marketing Partner', desc: 'Tawarkan jasa konten, social media, atau lead generation ke UMKM.' },
-    { name: 'Business Builder', desc: 'Rancang dan uji layanan atau produkmu sendiri dari nol.' },
-  ],
-
   /** Harga perkenalan — final dikonfigurasi admin di Sprint 2. */
   plans: [
     { name: 'Starter', price: 99_000, features: ['Live webinar + replay', 'Materi & worksheet dasar', 'Tools AI terpilih', 'Execution Challenge 7 hari'] },
@@ -39,10 +33,14 @@ export const SITE = {
   ],
 
   faq: [
-    { q: 'Apakah saya harus punya bisnis atau modal?', a: 'Tidak. Program ini dirancang agar kamu bisa mulai dari skill yang kamu punya, misalnya membantu bisnis lain di bidang sales atau marketing.' },
-    { q: 'Apakah ada jaminan penghasilan?', a: 'Tidak ada. GenZ Preneur membantu kamu belajar dan berlatih secara terstruktur. Hasil bergantung pada eksekusi, pasar, dan banyak faktor lain.' },
-    { q: 'Apakah data saya aman?', a: 'Data Passport hanya bisa dilihat oleh kamu dan admin untuk keperluan layanan. Data tidak dibagikan ke peserta lain, dan kamu bisa mengekspor atau menghapusnya kapan saja.' },
-    { q: 'Apakah AI Coach menggantikan mentor?', a: 'Tidak. AI Coach adalah alat bantu belajar. Ia bukan mentor manusia dan tidak mengambil keputusan atas namamu.' },
+    { q: 'Aku belum punya ide bisnis sama sekali. Cocok nggak?', a: 'Cocok — justru dibuat untuk itu. Assessment (36 soal) memetakan industri, jalur, dan Profil Cuan-mu, lalu kamu pilih satu dari 10 jalur mulai. Problem Map membantu mengubah keresahan di sekitarmu jadi ide yang bisa dicoba.' },
+    { q: 'Aku masih kuliah/kerja. Butuh waktu berapa?', a: 'Satu pelajaran 6–9 menit, dan Action Plan berisi 3 misi kecil per hari. Supaya ada kemajuan nyata, siapkan sekitar 5 jam per minggu — lebih penting rutin daripada lama.' },
+    { q: 'Bedanya apa sama nonton konten bisnis gratis di TikTok/YouTube?', a: 'Konten gratis memberi informasi yang tercecer. Di sini kamu ikut alur yang berurutan dan langsung memakai alatnya: hitung HPP & harga, bikin pesan outreach, susun proposal, dan tulis Dream Pact. Hasil kerjamu tersimpan — bukan cuma ditonton.' },
+    { q: 'Aku introvert / nggak jago jualan. Bisa?', a: 'Bisa. Sales di sini diajarkan sebagai skill: mendengar, bertanya, dan menjelaskan dengan jujur. Outreach Studio memberi draf pesan yang tinggal kamu sesuaikan, dan banyak jalur (freelance, produk digital) tidak menuntut banyak bicara.' },
+    { q: 'Apakah aku harus punya modal?', a: 'Tidak wajib. Sebagian besar dari 10 jalur bisa dimulai dengan modal Rp0 — memakai skill, waktu, dan HP yang kamu punya. Jalur produk fisik diajarkan dengan sistem pre-order supaya tidak menumpuk stok.' },
+    { q: 'Apakah ada jaminan penghasilan?', a: 'Tidak ada. GenZ Preneur membantu kamu belajar dan berlatih secara terstruktur. Hasil bergantung pada eksekusi, pasar, dan banyak faktor lain. Hati-hati dengan program apa pun yang menjanjikan angka pasti.' },
+    { q: 'Kapan bisa beli dan bagaimana cara bayarnya?', a: 'Pembelian dibuka bersamaan dengan batch pertama. Detail paket, jadwal, dan cara pembayaran diumumkan saat itu. Bikin akun sekarang supaya Passport & Assessment-mu sudah siap.' },
+    { q: 'Data pribadiku aman?', a: 'Data Passport hanya bisa dilihat olehmu dan admin untuk keperluan layanan, tidak dibagikan ke peserta lain, dan bisa kamu ekspor atau hapus kapan saja dari halaman Passport.' },
   ],
 } as const;
 

@@ -20,6 +20,10 @@ describe('halaman publik', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Mulai aja dulu');
     expect(screen.getAllByText(/Rp\s?99\.000/).length).toBeGreaterThan(0);
     expect(document.body.textContent).toMatch(/Tidak ada jaminan penghasilan/);
+    // 10 jalur mulai & FAQ tanpa fitur yang belum ada
+    expect(screen.getByText('Banyak jalan ke cuan pertama.')).toBeInTheDocument();
+    expect(screen.getByText('Digitalisasi UMKM')).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/AI Coach/);
   });
 
   it('rute /app tanpa konfigurasi Firebase menampilkan layar setup, bukan crash', () => {

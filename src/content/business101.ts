@@ -310,7 +310,7 @@ const BASE: LearningModule = {
         prompt: 'Hitung untuk ide bisnismu: harga jual per unit, biaya variabel per unit, margin kontribusi, biaya tetap per bulan, dan BEP (unit per bulan dan per hari). Realistis nggak angkanya?',
         placeholder: 'Harga: Rp… | Biaya variabel: Rp… | Margin: Rp… | Biaya tetap: Rp…/bln | BEP: … unit/bln = … unit/hari',
       },
-      tool: { to: '/app/toolkit?tab=pricing', label: 'Hitung BEP di Kalkulator Harga' },
+      tool: { to: '/app/toolkit?tab=hpp', label: 'Hitung HPP & BEP di Kalkulator HPP' },
     },
     /* ------------------------------------------------------------------ */
     {
@@ -429,7 +429,7 @@ const EXTRA_LESSONS: Lesson[] = [
       prompt: 'Hitung harga untuk penawaranmu: lantai (biaya + jam × harga per jam dirimu), harga pasar (3 pembanding), dan langit-langit (nilai bagi pelanggan). Lalu susun 3 paket: dasar, utama, lengkap.',
       placeholder: 'Lantai: Rp… | Pasar: Rp…–Rp… | Nilai bagi pelanggan: … | Dasar: … Rp… | Utama: … Rp… | Lengkap: … Rp…',
     },
-    tool: { to: '/app/toolkit?tab=pricing', label: 'Hitung harga & 3 paket di Kalkulator Harga' },
+    tool: { to: '/app/toolkit?tab=hpp', label: 'Hitung harga di Kalkulator HPP & Harga' },
   },
   {
     id: 'b101-12',

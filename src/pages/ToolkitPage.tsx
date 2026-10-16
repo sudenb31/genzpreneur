@@ -9,13 +9,14 @@ import { getAssessment, getPassport, saveItem } from '../lib/data';
 import { useAsync } from '../lib/useAsync';
 import { buildProposal, calculateCommission, commissionInputSchema, type ProposalInput } from '../lib/commission';
 import { formatRupiah } from '../config/site';
-import { calculatePricing, pricingInputSchema } from '../lib/pricing';
+import HppCalculator from '../components/HppCalculator';
+import ToolIntro from '../components/ToolIntro';
 import { buildProblemMap, IMPACT_ZONES, PROBLEM_STEPS, type ProblemMapInput } from '../lib/problemMap';
 import { CopyButton, PageHeader, PageSkeleton, useToast } from '../components/ui';
 
 const TABS = [
   { key: 'prompts', label: '⚡ Prompt Library' },
-  { key: 'pricing', label: '🏷️ Harga & BEP' },
+  { key: 'hpp', label: '🧾 Kalkulator HPP & Harga' },
   { key: 'calculator', label: '🧮 Kalkulator Komisi' },
   { key: 'proposal', label: '📄 Template Proposal' },
   { key: 'problem', label: '🧩 Problem Map' },
@@ -30,7 +31,7 @@ export default function ToolkitPage() {
   return (
     <div className="space-y-6">
       <PageHeader eyebrow="Benefit #4 · AI Business Toolkit" title={<>Kerja lebih cepat, <span className="text-amber">tetap jujur</span>.</>}
-        desc="Prompt siap pakai untuk ChatGPT/Claude/Gemini, kalkulator komisi yang akurat, dan template proposal — semuanya gratis dipakai." />
+        desc="5 alat untuk eksekusi: prompt AI siap pakai, kalkulator HPP & harga jual, kalkulator komisi, template proposal, dan Problem Map. Setiap alat punya panduan singkat — baca dulu, lalu praktik." />
       <div role="tablist" aria-label="Alat" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
         {TABS.map((t) => (
           <button key={t.key} role="tab" type="button" aria-selected={tab === t.key} onClick={() => setParams({ tab: t.key }, { replace: true })}
@@ -39,8 +40,9 @@ export default function ToolkitPage() {
           </button>
         ))}
       </div>
+      <ToolIntro key={tab} tool={tab} />
       {tab === 'prompts' && <PromptLibrary />}
-      {tab === 'pricing' && <PricingCalculator />}
+      {tab === 'hpp' && <HppCalculator />}
       {tab === 'calculator' && <CommissionCalculator />}
       {tab === 'proposal' && <ProposalBuilder />}
       {tab === 'problem' && <ProblemMapTool />}
@@ -121,136 +123,6 @@ function PromptLibrary() {
         ))}
       </div>
       <p className="text-xs text-muted">AI bisa salah. Selalu cek ulang fakta, angka, dan nada pesan sebelum dikirim ke orang lain.</p>
-    </div>
-  );
-}
-
-/* ---------------------------- Pricing & BEP calculator ---------------------------- */
-
-type PricingKey = 'price' | 'variableCost' | 'fixedCost' | 'hoursPerUnit' | 'targetIncome' | 'hoursPerMonth' | 'discountPct';
-
-function PricingCalculator() {
-  const { profile } = useAuth();
-  const toast = useToast();
-  const [f, setF] = useState<Record<PricingKey, string>>({
-    price: '5000', variableCost: '2000', fixedCost: '900000', hoursPerUnit: '0', targetIncome: '2000000', hoursPerMonth: '40', discountPct: '0',
-  });
-  const num = (s: string) => (s.trim() === '' ? NaN : Number(s));
-  const parsed = pricingInputSchema.safeParse(Object.fromEntries(Object.entries(f).map(([k, v]) => [k, num(v)])));
-  const r = parsed.success ? calculatePricing(parsed.data) : null;
-  const errs: Record<string, string> = {};
-  if (!parsed.success) for (const i of parsed.error.issues) errs[String(i.path[0])] ??= i.message;
-
-  const field = (k: PricingKey, label: string, hint: string, suffix?: string) => (
-    <div>
-      <label htmlFor={`pr-${k}`} className="label">{label}</label>
-      <div className="relative">
-        <input id={`pr-${k}`} type="number" inputMode="decimal" min={0} className="input pr-14" value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} aria-invalid={!!errs[k]} />
-        {suffix && <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm font-bold text-muted">{suffix}</span>}
-      </div>
-      {errs[k] ? <p className="err">{errs[k]}</p> : <p className="hint">{hint}</p>}
-    </div>
-  );
-
-  const summary = r && parsed.success
-    ? [
-        `Simulasi Harga & BEP`,
-        `Harga ${formatRupiah(parsed.data.price)} · biaya variabel ${formatRupiah(parsed.data.variableCost)} · biaya tetap ${formatRupiah(parsed.data.fixedCost)}/bulan`,
-        `Margin kontribusi ${formatRupiah(r.margin)}/unit (${r.marginPct}%)`,
-        r.bepUnits !== null ? `BEP: ${r.bepUnits} unit/bulan ≈ ${r.bepPerDay} unit/hari` : 'BEP: tidak tercapai — harga di bawah biaya variabel',
-        r.hourlyRate !== null ? `Nilai waktuku ${formatRupiah(r.hourlyRate)}/jam · harga lantai ${formatRupiah(r.floorPrice)}` : '',
-        parsed.data.discountPct > 0 ? `Diskon ${parsed.data.discountPct}% → harga ${formatRupiah(r.discountedPrice)}, ${r.discountVolumeMultiplier !== null ? `perlu jual ${r.discountVolumeMultiplier}x lipat untuk laba yang sama` : 'margin habis (rugi per unit)'}` : '',
-        `Paket: ${r.packages.map((p) => `${p.tier} ${formatRupiah(p.price)}`).join(' · ')}`,
-      ].filter(Boolean).join('\n')
-    : '';
-
-  async function save() {
-    if (!profile || !summary) return;
-    try { await saveItem(profile.uid, 'calc', 'Simulasi harga & BEP', summary); toast('success', 'Simulasi tersimpan.'); }
-    catch { toast('error', 'Gagal menyimpan.'); }
-  }
-
-  return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      <section className="card space-y-5 p-5">
-        <div>
-          <h3 className="font-display text-lg font-extrabold">1. Harga & biaya</h3>
-          <div className="mt-3 grid gap-4 sm:grid-cols-2">
-            {field('price', 'Harga jual per unit', 'Harga yang dibayar pembeli', 'Rp')}
-            {field('variableCost', 'Biaya variabel per unit', 'Bahan, kemasan, ongkir, fee platform', 'Rp')}
-            {field('fixedCost', 'Biaya tetap per bulan', 'Sewa, langganan aplikasi, gaji tetap', 'Rp')}
-            {field('discountPct', 'Rencana diskon', 'Isi 0 bila tidak ada', '%')}
-          </div>
-        </div>
-        <div>
-          <h3 className="font-display text-lg font-extrabold">2. Nilai waktumu</h3>
-          <div className="mt-3 grid gap-4 sm:grid-cols-3">
-            {field('targetIncome', 'Target penghasilan', 'Per bulan', 'Rp')}
-            {field('hoursPerMonth', 'Jam kerja', 'Per bulan', 'jam')}
-            {field('hoursPerUnit', 'Jam per unit', '0 untuk produk', 'jam')}
-          </div>
-        </div>
-        <p className="text-xs text-muted">Pelajari dasarnya di <Link to="/app/belajar/business-101" className="font-bold underline">Business 101</Link> (pelajaran Harga & Duit).</p>
-      </section>
-
-      <section className="card-pop p-5" aria-live="polite">
-        <h3 className="font-display text-lg font-extrabold">Hasil</h3>
-        {r ? (
-          <>
-            <dl className="mt-4 grid grid-cols-2 gap-3">
-              <div className="rounded-2xl bg-paper p-3">
-                <dt className="text-xs font-bold text-muted">Margin kontribusi</dt>
-                <dd className="font-display text-xl font-extrabold">{formatRupiah(r.margin)}</dd>
-                <dd className="text-[11px] text-muted">{r.marginPct}% dari harga</dd>
-              </div>
-              <div className="rounded-2xl bg-lime p-3">
-                <dt className="text-xs font-bold text-muted">Titik impas (BEP)</dt>
-                <dd className="font-display text-xl font-extrabold">{r.bepUnits !== null ? `${r.bepUnits} unit/bln` : '—'}</dd>
-                <dd className="text-[11px] text-muted">{r.bepPerDay !== null ? `≈ ${r.bepPerDay} unit per hari` : 'Tidak tercapai'}</dd>
-              </div>
-              <div className="rounded-2xl bg-paper p-3">
-                <dt className="text-xs font-bold text-muted">Nilai waktumu</dt>
-                <dd className="font-display text-xl font-extrabold">{r.hourlyRate !== null ? `${formatRupiah(r.hourlyRate)}/jam` : '—'}</dd>
-                <dd className="text-[11px] text-muted">Target ÷ jam kerja</dd>
-              </div>
-              <div className={`rounded-2xl p-3 ${r.belowFloor ? 'bg-pink' : 'bg-paper'}`}>
-                <dt className="text-xs font-bold text-muted">Harga lantai</dt>
-                <dd className="font-display text-xl font-extrabold">{formatRupiah(r.floorPrice)}</dd>
-                <dd className="text-[11px] text-muted">Biaya variabel + waktumu</dd>
-              </div>
-            </dl>
-
-            {r.margin <= 0 && <p className="mt-4 rounded-2xl bg-pink p-3 text-sm font-bold">⚠️ Harga di bawah biaya variabel — makin laku makin rugi.</p>}
-            {r.margin > 0 && r.belowFloor && <p className="mt-4 rounded-2xl bg-pink p-3 text-sm font-bold">⚠️ Harga di bawah harga lantai — kamu "membayar" pelanggan dengan waktumu.</p>}
-            {parsed.success && parsed.data.discountPct > 0 && (
-              <p className="mt-4 rounded-2xl bg-amber-soft p-3 text-sm font-semibold">
-                🏷️ Diskon {parsed.data.discountPct}% → harga {formatRupiah(r.discountedPrice)}, margin {formatRupiah(r.discountedMargin)}.{' '}
-                {r.discountVolumeMultiplier !== null
-                  ? <>Kamu perlu menjual <strong>{r.discountVolumeMultiplier}x lipat</strong> hanya untuk laba yang sama.</>
-                  : <strong>Margin habis — setiap penjualan rugi.</strong>}
-              </p>
-            )}
-
-            <h4 className="mt-5 text-sm font-extrabold">Ide 3 paket</h4>
-            <ul className="mt-2 grid grid-cols-3 gap-2">
-              {r.packages.map((p) => (
-                <li key={p.tier} className={`rounded-2xl border-2 p-3 text-center ${p.tier === 'Utama' ? 'border-ink bg-lime' : 'border-line bg-white'}`}>
-                  <p className="text-xs font-extrabold uppercase">{p.tier}</p>
-                  <p className="font-display text-lg font-extrabold">{formatRupiah(p.price)}</p>
-                  {p.belowFloor && <p className="text-[11px] font-bold text-danger">di bawah lantai</p>}
-                </li>
-              ))}
-            </ul>
-            <p className="mt-2 text-xs text-muted">Isi paket Dasar dikurangi, paket Lengkap ditambah — bukan sekadar harga beda. Kebanyakan orang memilih yang tengah.</p>
-
-            <div className="mt-4 flex gap-2">
-              <CopyButton text={summary} className="btn-accent py-2" />
-              <button type="button" className="btn-ghost py-2" onClick={() => void save()}>Simpan</button>
-            </div>
-            <p className="mt-3 text-xs text-muted">Simulasi matematis dengan asumsi 30 hari per bulan, bukan prediksi penjualan.</p>
-          </>
-        ) : <p className="mt-4 text-sm text-muted">Lengkapi isian yang ditandai untuk melihat hasil.</p>}
-      </section>
     </div>
   );
 }

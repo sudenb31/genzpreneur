@@ -3,6 +3,8 @@ import { useAuth } from '../auth/AuthProvider';
 import { Logo } from '../components/ui';
 import { formatRupiah, SITE } from '../config/site';
 import { isFirebaseConfigured } from '../lib/firebase';
+import { PATH_FAMILIES, pathsByFamily } from '../content/paths';
+import type { TrackKey } from '../content/assessment';
 
 const PATHS = [
   'Sales partner komisi', 'Jasa konten UMKM', 'Admin online', 'Affiliate', 'Lead generation',
@@ -10,9 +12,9 @@ const PATHS = [
 ];
 
 const STEPS = [
-  { k: 'Kenali diri', d: 'Isi Passport + Assessment → tahu industri & jalur yang paling cocok.' },
-  { k: 'Belajar cepat', d: 'Materi singkat Mindset, Sales & Marketing, dan Business Partner.' },
-  { k: 'Susun penawaran', d: 'Pakai kalkulator harga & BEP, template proposal, dan kalkulator komisi.' },
+  { k: 'Kenali diri', d: 'Isi Passport + Assessment → tahu industri, jalur, dan Profil Cuan-mu.' },
+  { k: 'Belajar cepat', d: 'Mulai dari Business 101, lanjut Mindset, Sales & Marketing, sampai Business Partner.' },
+  { k: 'Susun penawaran', d: 'Hitung HPP & harga jual, susun proposal, dan simulasikan komisi.' },
   { k: 'Chat duluan', d: 'Outreach Studio bikin pesan personal ke mentor & calon klien.' },
   { k: 'Eksekusi 7 hari', d: 'Action Plan harian sampai kamu benar-benar bergerak.' },
 ];
@@ -30,6 +32,7 @@ export default function Home() {
           <Logo />
           <nav aria-label="Navigasi publik" className="flex items-center gap-1 sm:gap-2">
             <a href="#benefit" className="hidden rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2 md:block">Benefit</a>
+            <a href="#jalur" className="hidden rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2 md:block">Jalur</a>
             <a href="#harga" className="hidden rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2 md:block">Harga</a>
             <a href="#faq" className="hidden rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2 md:block">FAQ</a>
             {!loggedIn && <Link to="/masuk" className="rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2">Masuk</Link>}
@@ -166,17 +169,44 @@ export default function Home() {
           </ol>
         </section>
 
-        {/* Tracks */}
-        <section className="bg-ink py-20 text-paper">
+        {/* Jalur mulai */}
+        <section id="jalur" className="scroll-mt-20 bg-ink py-20 text-paper">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <h2 className="font-display text-4xl font-extrabold tracking-tight sm:text-5xl">Pilih jalurmu.</h2>
-            <div className="mt-10 grid gap-4 md:grid-cols-3">
-              {SITE.tracks.map((t, i) => (
-                <div key={t.name} className={`rounded-3xl border-2 border-paper/20 p-6 ${i === 0 ? 'bg-paper/5' : ''}`}>
-                  <h3 className="font-display text-2xl font-extrabold text-lime">{t.name}</h3>
-                  <p className="mt-2 text-paper/70">{t.desc}</p>
-                </div>
-              ))}
+            <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-lime">10 jalur · 3 gaya main</p>
+            <h2 className="mt-2 font-display text-4xl font-extrabold tracking-tight sm:text-5xl">Banyak jalan ke cuan pertama.</h2>
+            <p className="mt-3 max-w-2xl text-paper/70">Nggak harus langsung punya brand sendiri. Pilih gaya main yang paling pas sama kondisimu sekarang — Assessment bantu kamu memilih.</p>
+
+            <div className="mt-10 space-y-10">
+              {(Object.keys(PATH_FAMILIES) as TrackKey[]).map((fam) => {
+                const F = PATH_FAMILIES[fam];
+                return (
+                  <div key={fam}>
+                    <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                      <h3 className="font-display text-2xl font-extrabold text-lime">{F.emoji} {F.title}</h3>
+                      <p className="text-sm text-paper/60">{F.desc}</p>
+                    </div>
+                    <div className={`mt-4 grid gap-4 sm:grid-cols-2 ${pathsByFamily(fam).length === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-4'}`}>
+                      {pathsByFamily(fam).map((p) => (
+                        <article key={p.key} className="flex flex-col rounded-3xl border-2 border-paper/20 bg-paper/5 p-5">
+                          <p className="text-3xl" aria-hidden>{p.emoji}</p>
+                          <h4 className="mt-2 font-display text-lg font-extrabold">{p.name}</h4>
+                          <p className="mt-1 flex-1 text-sm text-paper/70">{p.oneLiner}</p>
+                          <dl className="mt-4 space-y-1.5 text-xs">
+                            <div className="flex gap-2"><dt className="w-14 shrink-0 font-bold text-lime">Cuan</dt><dd className="text-paper/80">{p.howMoney}</dd></div>
+                            <div className="flex gap-2"><dt className="w-14 shrink-0 font-bold text-lime">Modal</dt><dd className="text-paper/80">{p.capital}</dd></div>
+                            <div className="flex gap-2"><dt className="w-14 shrink-0 font-bold text-lime">Skill</dt><dd className="text-paper/80">{p.skills}</dd></div>
+                          </dl>
+                        </article>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-10 flex flex-col gap-3 rounded-3xl border-2 border-lime p-6 sm:flex-row sm:items-center sm:justify-between">
+              <p className="font-display text-xl font-extrabold">Bingung pilih yang mana? <span className="text-lime">36 soal Assessment</span> bantu mengarahkan.</p>
+              <Link to={cta.to} className="btn-accent shrink-0">{loggedIn ? 'Buka Assessment' : 'Coba Assessment gratis'} →</Link>
             </div>
           </div>
         </section>
@@ -222,7 +252,8 @@ export default function Home() {
 
         {/* FAQ */}
         <section id="faq" className="mx-auto max-w-3xl scroll-mt-20 px-4 py-20 sm:px-6">
-          <h2 className="font-display text-4xl font-extrabold tracking-tight">FAQ</h2>
+          <p className="eyebrow">Sebelum kamu daftar</p>
+          <h2 className="mt-1 font-display text-4xl font-extrabold tracking-tight">Yang paling sering ditanya.</h2>
           <div className="mt-8 space-y-3">
             {SITE.faq.map((f) => (
               <details key={f.q} className="group rounded-3xl border-2 border-ink bg-white p-5 open:shadow-[4px_4px_0_0_#111112]">

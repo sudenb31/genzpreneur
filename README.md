@@ -16,7 +16,7 @@ Stack: React 19 · Vite · TypeScript · Tailwind v4 · Firebase Auth + Firestor
 | 🧠 Entrepreneur Mindset | 4 pelajaran + latihan tersimpan |
 | 📈 Sales & Marketing Skills | 4 pelajaran + latihan |
 | 🤝 Business Partner Strategy | 4 pelajaran (5 jalur modal Rp0, skema komisi/fee) |
-| ⚡ AI Business Toolkit | 38 prompt siap salin dalam 10 kategori (riset, strategi, audit, outreach, harga, konten, branding, pelanggan, keuangan, belajar) — terisi otomatis dari Passport/Assessment; Kalkulator Harga & BEP (margin, titik impas, nilai waktu, efek diskon, 3 paket); kalkulator komisi; template proposal; Problem Map |
+| ⚡ AI Business Toolkit | 38 prompt siap salin dalam 10 kategori (riset, strategi, audit, outreach, harga, konten, branding, pelanggan, keuangan, belajar) — terisi otomatis dari Passport/Assessment; Kalkulator HPP & Harga lengkap (bahan per batch, kemasan, tenaga kerja, overhead, potongan platform, target laba → HPP, harga rekomendasi, BEP, proyeksi; mode produk & jasa; contoh siap pakai); panduan "apa ini & cara pakai" di setiap alat; kalkulator komisi; template proposal; Problem Map |
 | ✅ Practical Action Plan | 7 hari × 3 misi + catatan harian |
 | 📌 Tersimpan | Semua pesan/prompt/proposal/simulasi/problem map yang disimpan |
 | 🗺️ Business 101 | 13 pelajaran peta dunia bisnis: 5 organ bisnis, value, marketing vs sales vs branding, STP, closing & penolakan, harga (lantai–pasar–langit-langit, 3 paket), brand = janji × bukti × konsistensi, delivery & bottleneck, retensi pelanggan (LTV vs CAC), omzet/untung/cash + BEP, pencatatan duit, strategi (5 tekanan, SWOT), eksperimen & negosiasi. Tiap pelajaran ada Mitos vs Fakta + Kamus Kilat. Terinspirasi The Personal MBA & The Visual MBA, ditulis ulang orisinal |
@@ -29,7 +29,7 @@ Tidak memakai API AI berbayar: generator berbasis template + prompt untuk ditemp
 ### Fondasi (Sprint 1)
 | Fitur | Keterangan |
 |---|---|
-| Landing page | Hero, alur, 3 jalur, narasumber, harga perkenalan, FAQ, CTA |
+| Landing page | Hero, alur, 10 jalur mulai dalam 3 gaya main (Bantu Jualin · Jual Skill · Bangun Sendiri), narasumber, harga perkenalan, 8 FAQ yang menjawab keraguan calon peserta, CTA |
 | Akun | Daftar (dengan consent data), masuk, lupa password, verifikasi email |
 | RBAC | Peserta · Mentor · Admin · Super Admin, ditegakkan di Firestore Security Rules |
 | Entrepreneur Passport | 5 bagian (profil, skill, sumber daya, minat, target), validasi, simpan, kelengkapan %, ekspor JSON, hapus |
@@ -52,6 +52,6 @@ Panduan lengkap untuk pemula: **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
 
 ## Test
 ```bash
-npm test            # 80 unit/komponen test
+npm test            # 88 unit/komponen test
 npm run test:rules  # uji Security Rules (butuh Java 11+)
 ```

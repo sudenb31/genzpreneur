@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { QUESTIONS, SECTION_INFO, TRACKS } from '../content/assessment';
 import { PROFILE_DISCLAIMER, PROFILE_KEYS, WEALTH_PROFILES, type ProfileKey } from '../content/wealthProfiles';
 import { INDUSTRIES } from '../content/industries';
+import { PATH_FAMILIES, pathsByFamily } from '../content/paths';
 import { getAssessment, saveAssessment, type AssessmentRecord } from '../lib/data';
 import { isComplete, scoreAssessment, type Answers } from '../lib/assessment';
 import { useAsync } from '../lib/useAsync';
@@ -148,9 +149,32 @@ export default function AssessmentPage() {
       <section className="card-pop flex flex-col gap-4 bg-ink p-6 text-paper sm:flex-row sm:items-center">
         <span className="text-5xl" aria-hidden>{track.emoji}</span>
         <div className="flex-1">
-          <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-lime">Jalur yang cocok</p>
+          <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-lime">Gaya main yang cocok · {PATH_FAMILIES[r.track].emoji} {PATH_FAMILIES[r.track].title}</p>
           <h2 className="font-display text-3xl font-extrabold">{track.name}</h2>
           <p className="mt-1 text-paper/75">{track.desc}</p>
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <div>
+          <h2 className="font-display text-2xl font-extrabold">Jalur mulai yang bisa kamu coba</h2>
+          <p className="text-sm text-muted">Turunan konkret dari gaya main {PATH_FAMILIES[r.track].title}. Pilih satu, jalankan 7 hari, lalu evaluasi.</p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {pathsByFamily(r.track).map((p) => (
+            <article key={p.key} className="card flex flex-col p-5">
+              <p className="text-3xl" aria-hidden>{p.emoji}</p>
+              <h3 className="mt-1 font-display text-lg font-extrabold">{p.name}</h3>
+              <p className="text-sm text-ink/75">{p.oneLiner}</p>
+              <dl className="mt-3 space-y-1 text-xs">
+                <div><dt className="inline font-bold">💸 Cuan: </dt><dd className="inline text-ink/75">{p.howMoney}</dd></div>
+                <div><dt className="inline font-bold">🪙 Modal: </dt><dd className="inline text-ink/75">{p.capital}</dd></div>
+                <div><dt className="inline font-bold">🧰 Skill: </dt><dd className="inline text-ink/75">{p.skills}</dd></div>
+              </dl>
+              <p className="mt-3 rounded-2xl bg-lime/60 p-3 text-xs"><strong>Langkah pertama:</strong> {p.firstStep}</p>
+              <p className="mt-2 flex-1 text-xs text-amber-ink"><strong>⚠️ Hati-hati:</strong> {p.watchOut}</p>
+            </article>
+          ))}
         </div>
       </section>
 

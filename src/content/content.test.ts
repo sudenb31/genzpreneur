@@ -34,7 +34,7 @@ describe('integritas konten', () => {
   });
   it('semua tautan internal menuju rute yang ada', () => {
     const slugs = MODULES.map((m) => m.slug).join('|');
-    const valid = new RegExp(`^/app/(passport|assessment|dream-pact|kurikulum|outreach(\\?skenario=(mentor|sales_partner|service_offer))?|toolkit(\\?tab=(prompts|pricing|calculator|proposal|problem))?|action-plan|belajar/(${slugs}))$`);
+    const valid = new RegExp(`^/app/(passport|assessment|dream-pact|kurikulum|outreach(\\?skenario=(mentor|sales_partner|service_offer))?|toolkit(\\?tab=(prompts|hpp|calculator|proposal|problem))?|action-plan|belajar/(${slugs}))$`);
     const links = [
       ...MODULES.flatMap((m) => m.lessons.map((l) => l.tool?.to).filter(Boolean)),
       ...ACTION_PLAN.flatMap((d) => d.tasks.map((t) => t.link?.to).filter(Boolean)),
@@ -50,5 +50,15 @@ describe('integritas konten', () => {
   it('10 industri lengkap', () => {
     expect(INDUSTRY_KEYS).toHaveLength(10);
     for (const k of INDUSTRY_KEYS) expect(INDUSTRIES[k].zeroCapitalRoutes.length).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe('10 jalur mulai', () => {
+  it('10 jalur, key unik, tiap gaya main punya ≥3 jalur dan isi lengkap', async () => {
+    const { START_PATHS, PATH_FAMILIES, pathsByFamily } = await import('./paths');
+    expect(START_PATHS).toHaveLength(10);
+    expect(new Set(START_PATHS.map((p) => p.key)).size).toBe(10);
+    for (const fam of Object.keys(PATH_FAMILIES)) expect(pathsByFamily(fam as never).length).toBeGreaterThanOrEqual(3);
+    for (const p of START_PATHS) for (const v of [p.oneLiner, p.howMoney, p.capital, p.skills, p.firstStep, p.watchOut]) expect(v.trim().length).toBeGreaterThanOrEqual(3);
   });
 });
