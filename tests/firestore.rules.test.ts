@@ -296,3 +296,54 @@ describe('undangan, paket & trial', () => {
     await assertSucceeds(getDoc(doc(ctx('adi'), 'waitlist', 'w1')));
   });
 });
+
+describe('voucher', () => {
+  const voucher = (over: Record<string, unknown> = {}) => ({
+    code: 'BOOST-ABCD2345', plan: 'boost', maxUses: 1, uses: 0, active: true, expiresAt: null, batch: 'b1', note: '',
+    createdBy: 'adi', createdAt: new Date(), updatedAt: new Date(), ...over,
+  });
+  async function seedVoucher(over: Record<string, unknown> = {}) {
+    await env.withSecurityRulesDisabled(async (c) => { await setDoc(doc(c.firestore(), 'vouchers', 'BOOST-ABCD2345'), voucher(over)); });
+  }
+  function redeemBatch(uid: string, plan = 'boost') {
+    const db = ctx(uid);
+    const b = writeBatch(db);
+    const rid = `BOOST-ABCD2345_${uid}`;
+    b.update(doc(db, 'vouchers', 'BOOST-ABCD2345'), { uses: 1, updatedAt: serverTimestamp() });
+    b.set(doc(db, 'redemptions', rid), { code: 'BOOST-ABCD2345', uid, email: `${uid}@test.id`, plan, createdAt: serverTimestamp() });
+    b.set(doc(db, 'users', uid), { email: `${uid}@test.id`, displayName: uid, role: 'user', viaVoucher: 'BOOST-ABCD2345', createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+    b.set(doc(db, 'memberships', `${uid}@test.id`), {
+      email: `${uid}@test.id`, name: uid, plan, trial: null, trialsUsed: { boost: false, impact: false }, note: '',
+      updatedAt: serverTimestamp(), updatedBy: uid, lastRedemptionId: rid,
+    });
+    return b.commit();
+  }
+
+  it('pembeli tanpa undangan bisa menukar voucher valid → akun + paket aktif', async () => {
+    await seedVoucher();
+    await assertSucceeds(redeemBatch('buyer'));
+  });
+  it('paket di membership harus sama dengan isi voucher', async () => {
+    await seedVoucher();
+    await assertFails(redeemBatch('buyer', 'impact'));
+  });
+  it('voucher nonaktif / kedaluwarsa / kuota habis ditolak', async () => {
+    await seedVoucher({ active: false });
+    await assertFails(redeemBatch('buyer'));
+    await seedVoucher({ expiresAt: new Date('2020-01-01') });
+    await assertFails(redeemBatch('buyer'));
+    await seedVoucher({ uses: 1 });
+    await assertFails(redeemBatch('buyer'));
+  });
+  it('peserta tidak bisa mengubah paket tanpa penukaran baru', async () => {
+    await seedVoucher();
+    await redeemBatch('buyer');
+    await assertFails(updateDoc(doc(ctx('buyer'), 'memberships', 'buyer@test.id'), { plan: 'impact', updatedAt: serverTimestamp(), updatedBy: 'buyer' }));
+  });
+  it('daftar voucher hanya untuk admin; peserta hanya bisa membaca satu kode', async () => {
+    await seedVoucher();
+    await assertFails(getDocs(collection(ctx('alice'), 'vouchers')));
+    await assertSucceeds(getDoc(doc(ctx('alice'), 'vouchers', 'BOOST-ABCD2345')));
+    await assertSucceeds(getDocs(collection(ctx('adi'), 'vouchers')));
+  });
+});

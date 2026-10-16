@@ -27,6 +27,7 @@ import { normalizePassport, passportSchema, type Passport } from './passport';
 import {
   buildTrial, isPlanKey, normalizeEmail, type Membership, type PlanKey, type Trial, type TrialPlan,
 } from './membership';
+import { normalizeCode, type Voucher } from './voucher';
 
 /* ------------------------------ Users ------------------------------ */
 
@@ -581,4 +582,109 @@ export async function sendInviteLink(email: string) {
   const { sendSignInLinkToEmail } = await import('firebase/auth');
   const { auth } = await import('./firebase');
   await sendSignInLinkToEmail(auth(), normalizeEmail(email), { url: loginLinkUrl(), handleCodeInApp: true });
+}
+
+/* ------------------------------ Voucher ------------------------------ */
+
+
+function toVoucher(id: string, x: Record<string, unknown>): Voucher {
+  return {
+    code: id,
+    plan: (x.plan === 'boost' || x.plan === 'impact' ? x.plan : 'spark'),
+    maxUses: Number(x.maxUses ?? 1),
+    uses: Number(x.uses ?? 0),
+    active: x.active === true,
+    expiresAt: toDate(x.expiresAt),
+    batch: String(x.batch ?? ''),
+    note: String(x.note ?? ''),
+    createdAt: toDate(x.createdAt),
+  };
+}
+
+export async function getVoucher(code: string): Promise<Voucher | null> {
+  const id = normalizeCode(code);
+  if (!id) return null;
+  try {
+    const snap = await getDoc(doc(db(), 'vouchers', id));
+    return snap.exists() ? toVoucher(id, snap.data()) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Menukar voucher dalam SATU batch:
+ *  1) pemakaian voucher +1, 2) catatan penukaran, 3) akun peserta (bila belum ada),
+ *  4) paket naik sesuai voucher. Security Rules memeriksa ulang semuanya di server.
+ */
+export async function redeemVoucher(params: {
+  uid: string;
+  authEmail: string;
+  name: string;
+  voucher: Voucher;
+  hasUserDoc: boolean;
+  membership: Membership | null;
+}) {
+  const { uid, authEmail, name, voucher, hasUserDoc, membership } = params;
+  const email = normalizeEmail(authEmail);
+  const rid = `${voucher.code}_${uid}`;
+  const batch = writeBatch(db());
+  batch.update(doc(db(), 'vouchers', voucher.code), { uses: increment(1), updatedAt: serverTimestamp() });
+  batch.set(doc(db(), 'redemptions', rid), { code: voucher.code, uid, email, plan: voucher.plan, createdAt: serverTimestamp() });
+  if (!hasUserDoc) {
+    batch.set(doc(db(), 'users', uid), {
+      email: authEmail,
+      displayName: name.trim().slice(0, 80),
+      role: 'user',
+      viaVoucher: voucher.code,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  }
+  const mRef = doc(db(), 'memberships', email);
+  if (membership) {
+    batch.update(mRef, { plan: voucher.plan, updatedAt: serverTimestamp(), updatedBy: uid, lastRedemptionId: rid });
+  } else {
+    batch.set(mRef, {
+      email, name: name.trim().slice(0, 80), plan: voucher.plan, trial: null, trialsUsed: { boost: false, impact: false },
+      note: '', updatedAt: serverTimestamp(), updatedBy: uid, lastRedemptionId: rid,
+    });
+  }
+  await batch.commit();
+}
+
+export async function listVouchers(max = 2000): Promise<Voucher[]> {
+  const snap = await getDocs(query(collection(db(), 'vouchers'), limit(max)));
+  return snap.docs.map((d) => toVoucher(d.id, d.data())).sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0));
+}
+
+export async function createVouchers(params: {
+  actorUid: string; codes: string[]; plan: Voucher['plan']; maxUses: number; expiresAt: Date | null; batch: string; note: string;
+}) {
+  const { codes } = params;
+  for (let i = 0; i < codes.length; i += 400) {
+    const b = writeBatch(db());
+    for (const code of codes.slice(i, i + 400)) {
+      b.set(doc(db(), 'vouchers', code), {
+        code, plan: params.plan, maxUses: params.maxUses, uses: 0, active: true,
+        expiresAt: params.expiresAt, batch: params.batch.trim().slice(0, 60), note: params.note.trim().slice(0, 300),
+        createdBy: params.actorUid, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+      });
+    }
+    await b.commit();
+  }
+}
+
+export async function setVoucherActive(code: string, active: boolean) {
+  await updateDoc(doc(db(), 'vouchers', code), { active, updatedAt: serverTimestamp() });
+}
+
+export interface Redemption { id: string; code: string; uid: string; email: string; plan: string; createdAt: Date | null }
+
+export async function listRedemptions(max = 2000): Promise<Redemption[]> {
+  const snap = await getDocs(query(collection(db(), 'redemptions'), limit(max)));
+  return snap.docs.map((d) => {
+    const x = d.data();
+    return { id: d.id, code: String(x.code ?? ''), uid: String(x.uid ?? ''), email: String(x.email ?? ''), plan: String(x.plan ?? ''), createdAt: toDate(x.createdAt) };
+  }).sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0));
 }

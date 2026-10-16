@@ -94,9 +94,10 @@ export function LockedFeature({ feature }: { feature: FeatureKey }) {
         Paketmu sekarang: <strong>{PLAN_INFO[plan].emoji} {PLAN_INFO[plan].name}</strong>.
         {membership?.trial && trialState(membership, new Date()) === 'expired' && <> Trial {PLAN_INFO[membership.trial.plan].name}-mu sudah berakhir.</>}
       </p>
-      <p className="text-sm text-muted">Mau naik level atau mencoba trial? Hubungi tim GenZ Preneur — progres dan data kamu tetap aman.</p>
+      <p className="text-sm text-muted">Sudah beli paket? Tukarkan kode vouchermu. Mau mencoba trial? Hubungi tim GenZ Preneur — progres dan data kamu tetap aman.</p>
       <div className="flex flex-wrap justify-center gap-2">
-        <Link to="/#harga" className="btn-accent">Lihat paket</Link>
+        <Link to="/voucher" className="btn-accent">🎟️ Tukar voucher</Link>
+        <Link to="/#harga" className="btn-ghost">Lihat paket</Link>
         <Link to="/app" className="btn-ghost">Ke dashboard</Link>
       </div>
     </div>

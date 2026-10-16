@@ -82,3 +82,31 @@ Setiap kali kamu push ke GitHub, Vercel otomatis deploy ulang.
 | "Metode login Email/Password belum diaktifkan" | Langkah B2 terlewat |
 | Gagal menyimpan Passport / "Missing or insufficient permissions" | Rules belum di-deploy (langkah D) |
 | Login gagal di domain Vercel | Domain belum ditambahkan di Authorized domains |
+
+## I. Akses undangan, login link email, paket, trial & voucher
+
+### Sekali setup (Firebase Console)
+1. **Aktifkan login link email:** Authentication → Sign-in method → Email/Password → nyalakan **Email link (passwordless sign-in)** → Save.
+2. **Authorized domains:** Authentication → Settings → Authorized domains → pastikan domain website (mis. `genzpreneur-id.vercel.app`, nanti `genzpreneur.id`) ada di daftar. Tanpa ini, link masuk ditolak.
+3. **Publish rules terbaru** (`firestore.rules`) setiap kali file ini berubah.
+4. Opsional: Authentication → Templates → ubah nama pengirim & bahasa email link masuk.
+
+### Cara orang mendapat akses
+| Jalur | Siapa | Langkah |
+|---|---|---|
+| **Undangan admin** | Peserta yang dihubungi langsung (daftar tunggu, transfer manual) | Command Center → Peserta & Paket → + Undang → pilih paket (opsional trial) → link masuk terkirim otomatis |
+| **Voucher** | Pembeli dari platform checkout (mis. GoAkal) | Command Center → Voucher → buat kode → tempel ke produk di platform checkout → pembeli buka `/voucher`, isi kode + email, klik link di email → akun & paket aktif otomatis |
+| **Daftar tunggu** | Calon peserta dari landing | Mengisi `/daftar` → muncul di Command Center → Daftar Tunggu → hubungi via WA → Undang |
+
+Tidak ada pendaftaran mandiri. Email tanpa undangan/voucher valid ditolak oleh Security Rules.
+
+### Voucher
+- **Kode unik** (disarankan): 1 kode = 1 pembeli. Pakai bila platform checkout bisa mengirim kode berbeda ke tiap pembeli.
+- **Kode bersama**: 1 kode untuk banyak orang dengan kuota (mis. peserta seminar). Bisa tersebar — pantau tab Penukaran dan nonaktifkan bila perlu.
+- Voucher hanya bisa **menaikkan** paket; satu kode hanya bisa dipakai sekali per akun.
+
+### Paket & trial
+- Trial: Spark → Boost 3 hari, Boost → Impact 7 hari, sekali per akun, berakhir otomatis sesuai jam.
+- **Mode akses** (Super Admin): *Terbuka* = semua fitur terbuka (pra-launch); *Sesuai paket* = fitur dikunci per paket. Beri paket ke semua peserta berbayar SEBELUM menyalakan "Sesuai paket".
+- Admin & Super Admin selalu punya akses penuh.
+- Catatan: materi masih dikirim bersama kode website; penguncian materi di server direncanakan Sprint 3.

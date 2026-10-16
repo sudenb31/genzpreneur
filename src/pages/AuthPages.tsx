@@ -5,8 +5,9 @@ import { authErrorMessage, useAuth } from '../auth/AuthProvider';
 import { Logo } from '../components/ui';
 import { fieldErrors } from '../lib/passport';
 import { joinWaitlist } from '../lib/data';
+import { readPendingVoucher, RedeemVoucherForm } from './VoucherPage';
 
-function AuthShell({ title, subtitle, children, footer }: { title: string; subtitle: string; children: ReactNode; footer: ReactNode }) {
+export function AuthShell({ title, subtitle, children, footer }: { title: string; subtitle: string; children: ReactNode; footer: ReactNode }) {
   return (
     <main className="grid min-h-screen lg:grid-cols-2">
       <section className="hidden flex-col justify-between bg-ink p-10 text-paper lg:flex">
@@ -87,7 +88,7 @@ export function LoginPage() {
     <AuthShell
       title="Masuk"
       subtitle="Akses khusus peserta yang sudah diundang. Tanpa password — kami kirim link masuk ke emailmu."
-      footer={<>Belum punya akses? <Link to="/daftar" className="font-semibold text-ink underline">Gabung daftar tunggu</Link></>}
+      footer={<>Sudah beli paket? <Link to="/voucher" className="font-semibold text-ink underline">Tukar voucher</Link> · Belum punya akses? <Link to="/daftar" className="font-semibold text-ink underline">Gabung daftar tunggu</Link></>}
     >
       {sentTo ? (
         <div role="status" className="space-y-3 rounded-3xl border-2 border-ink bg-lime/60 p-5 text-sm">
@@ -158,7 +159,7 @@ export function EmailLinkPage() {
     setBusy(true);
     try {
       await completeLinkSignIn(href, parsed.data);
-      nav('/app', { replace: true });
+      nav(readPendingVoucher() ? '/voucher' : '/app', { replace: true });
     } catch (err) {
       setError(authErrorMessage(err));
     } finally {
@@ -172,7 +173,7 @@ export function EmailLinkPage() {
       setTried(true);
       void finish();
     }
-    if (firebaseUser) nav('/app', { replace: true });
+    if (firebaseUser) nav(readPendingVoucher() ? '/voucher' : '/app', { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [valid, firebaseUser]);
 
@@ -304,8 +305,12 @@ export function NotInvitedPage() {
     <AuthShell title="Akses belum aktif" subtitle="Email ini belum terdaftar sebagai peserta."
       footer={<Link to="/" className="font-semibold text-ink underline">← Kembali ke beranda</Link>}>
       <div className="space-y-4 text-sm">
-        <p>Kamu masuk sebagai <strong>{firebaseUser?.email}</strong>, tapi email ini belum mendapat undangan dari tim GenZ Preneur.</p>
-        <p className="text-muted">Gabung daftar tunggu dulu. Setelah aksesmu aktif, kamu bisa masuk dengan email yang sama.</p>
+        <p>Kamu masuk sebagai <strong>{firebaseUser?.email}</strong>, tapi email ini belum punya akses.</p>
+        <div className="rounded-3xl border-2 border-ink p-4">
+          <p className="mb-3 font-display text-lg font-extrabold">🎟️ Punya kode voucher dari pembelian?</p>
+          <RedeemVoucherForm onDone={() => window.setTimeout(() => window.location.assign('/app'), 1500)} />
+        </div>
+        <p className="text-muted">Belum punya voucher? Gabung daftar tunggu, atau beli paket dulu.</p>
         <div className="flex flex-col gap-2">
           <Link to="/daftar" className="btn-primary" onClick={() => void logout()}>Gabung daftar tunggu</Link>
           <button type="button" className="btn-ghost" onClick={() => void logout()}>Keluar</button>

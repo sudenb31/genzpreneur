@@ -1,4 +1,5 @@
-import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { Logo } from '../components/ui';
 import { formatRupiah, SITE } from '../config/site';
@@ -23,6 +24,15 @@ export default function Home() {
   const { firebaseUser } = useAuth();
   const loggedIn = isFirebaseConfigured && !!firebaseUser;
   const cta = loggedIn ? { to: '/app', label: 'Buka dashboard' } : { to: '/daftar', label: 'Gabung daftar tunggu' };
+  const { hash } = useLocation();
+
+  // Link seperti "/#harga" dari dalam aplikasi: gulir otomatis ke bagian yang dituju.
+  useEffect(() => {
+    if (!hash) return;
+    const id = decodeURIComponent(hash.slice(1));
+    const t = window.setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+    return () => window.clearTimeout(t);
+  }, [hash]);
 
   return (
     <div className="overflow-x-hidden bg-paper text-ink">
@@ -34,6 +44,7 @@ export default function Home() {
             <a href="#benefit" className="hidden rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2 md:block">Benefit</a>
             <a href="#jalur" className="hidden rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2 md:block">Jalur</a>
             <a href="#harga" className="hidden rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2 md:block">Harga</a>
+            <Link to="/voucher" className="hidden rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2 md:block">Tukar voucher</Link>
             <a href="#faq" className="hidden rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2 md:block">FAQ</a>
             {!loggedIn && <Link to="/masuk" className="rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2">Masuk</Link>}
             <Link to={cta.to} className="btn-primary py-2">{loggedIn ? 'Dashboard' : 'Gabung'}</Link>
@@ -259,7 +270,7 @@ export default function Home() {
                 );
               })}
             </div>
-            <p className="mt-6 text-xs text-muted">Pembelian dibuka bersamaan dengan batch pertama. Setelah masa perkenalan, harga kembali ke harga normal. Free trial berlaku sekali per akun dan berakhir otomatis tanpa tagihan.</p>
+            <p className="mt-6 text-xs text-muted">Pembelian dibuka bersamaan dengan batch pertama. Setelah masa perkenalan, harga kembali ke harga normal. Free trial berlaku sekali per akun dan berakhir otomatis tanpa tagihan. Sudah membeli? <Link to="/voucher" className="font-semibold text-ink underline">Tukarkan kode vouchermu</Link>.</p>
           </div>
         </section>
 

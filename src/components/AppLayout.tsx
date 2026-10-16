@@ -30,6 +30,7 @@ const NAV_GROUPS = [
     items: [
       { to: '/app/outreach', label: 'Outreach Studio', icon: '💬', feature: 'outreach' as FeatureKey },
       { to: '/app/tersimpan', label: 'Tersimpan', icon: '📌' },
+      { to: '/voucher', label: 'Tukar Voucher', icon: '🎟️' },
       { to: '/app/pengaturan', label: 'Pengaturan', icon: '⚙️' },
     ],
   },
@@ -37,6 +38,7 @@ const NAV_GROUPS = [
 
 const ADMIN_NAV = [
   { to: '/app/admin/peserta', label: 'Peserta & Paket', icon: '🎟️' },
+  { to: '/app/admin/voucher', label: 'Voucher', icon: '🎟️' },
   { to: '/app/admin/daftar-tunggu', label: 'Daftar Tunggu', icon: '📝' },
   { to: '/app/admin/pengguna', label: 'Pengguna & Role', icon: '👥' },
   { to: '/app/admin/audit', label: 'Audit Log', icon: '🧾' },

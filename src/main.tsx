@@ -20,6 +20,8 @@ import AdminWaitlist from './pages/admin/AdminWaitlist';
 import AssessmentPage from './pages/AssessmentPage';
 import OutreachPage from './pages/OutreachPage';
 import ModulePage from './pages/ModulePage';
+import VoucherPage from './pages/VoucherPage';
+import AdminVouchers from './pages/admin/AdminVouchers';
 import ToolkitPage from './pages/ToolkitPage';
 import ActionPlanPage from './pages/ActionPlanPage';
 import SavedPage from './pages/SavedPage';
@@ -51,6 +53,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path="/masuk" element={<GuestOnly><LoginPage /></GuestOnly>} />
             <Route path="/masuk/link" element={<EmailLinkPage />} />
             <Route path="/daftar" element={<WaitlistPage />} />
+            <Route path="/voucher" element={<VoucherPage />} />
             <Route path="/lupa-password" element={<GuestOnly><ForgotPasswordPage /></GuestOnly>} />
             <Route path="/app" element={<RequireAuth><AppLayout /></RequireAuth>}>
               <Route index element={<Dashboard />} />
@@ -65,6 +68,7 @@ createRoot(document.getElementById('root')!).render(
               <Route path="dream-pact" element={<RequireFeature feature="dreamPact"><DreamPactPage /></RequireFeature>} />
               <Route path="pengaturan" element={<SettingsPage />} />
               <Route path="admin/peserta" element={<RequireRole min="admin"><AdminMembers /></RequireRole>} />
+              <Route path="admin/voucher" element={<RequireRole min="admin"><AdminVouchers /></RequireRole>} />
               <Route path="admin/daftar-tunggu" element={<RequireRole min="admin"><AdminWaitlist /></RequireRole>} />
               <Route path="admin/pengguna" element={<RequireRole min="admin"><AdminUsers /></RequireRole>} />
               <Route path="admin/audit" element={<RequireRole min="admin"><AdminAudit /></RequireRole>} />

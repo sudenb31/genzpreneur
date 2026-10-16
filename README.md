@@ -29,7 +29,9 @@ Tidak memakai API AI berbayar: generator berbasis template + prompt untuk ditemp
 ### Fondasi (Sprint 1)
 | Fitur | Keterangan |
 |---|---|
-| Paket | GenZ Spark Rp49rb (Level 01 · Start) · GenZ Boost Rp149rb (Level 02 · Execute) · GenZ Impact Rp299rb (Level 03 · Accelerate) — harga perkenalan; bonus trial: Spark → Boost 3 hari, Boost → Impact 7 hari. **Pembatasan akses per paket & trial dibangun di Sprint 2 (entitlement + pembayaran)** |
+| Akses & login | **Tanpa daftar mandiri.** Akses lewat undangan admin, voucher (`/voucher`, untuk pembeli dari GoAkal dll.), atau daftar tunggu → undangan. Login tanpa password lewat link email. Detail: docs/DEPLOYMENT.md bagian I |
+| Command Center | Peserta & Paket (undang, ubah paket, trial 3/7 hari, pantau trial ≤24 jam/habis, mode akses), Voucher (kode unik/bersama, kuota, kedaluwarsa, penukaran), Daftar Tunggu, Pengguna & Role, Audit Log |
+| Paket | GenZ Spark Rp49rb (Level 01 · Start) · GenZ Boost Rp149rb (Level 02 · Execute) · GenZ Impact Rp299rb (Level 03 · Accelerate) — harga perkenalan; bonus trial: Spark → Boost 3 hari, Boost → Impact 7 hari. penguncian fitur per paket + trial sudah aktif (saklar Mode akses); checkout otomatis di Sprint 2 |
 | Landing page | Hero, alur, 10 jalur mulai dalam 3 gaya main (Bantu Jualin · Jual Skill · Bangun Sendiri), narasumber, harga perkenalan, 8 FAQ yang menjawab keraguan calon peserta, CTA |
 | Akun | Daftar (dengan consent data), masuk, lupa password, verifikasi email |
 | RBAC | Peserta · Mentor · Admin · Super Admin, ditegakkan di Firestore Security Rules |
@@ -53,6 +55,6 @@ Panduan lengkap untuk pemula: **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
 
 ## Test
 ```bash
-npm test            # 88 unit/komponen test
+npm test            # 102 unit/komponen test
 npm run test:rules  # uji Security Rules (butuh Java 11+)
 ```

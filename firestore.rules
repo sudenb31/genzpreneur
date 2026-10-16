@@ -45,6 +45,19 @@ service cloud.firestore {
       return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
+    function planRank(p) {
+      return {'none': 0, 'spark': 1, 'boost': 2, 'impact': 3}[p];
+    }
+
+    // Penukaran voucher yang DIBUAT DI BATCH YANG SAMA oleh user ini (tidak bisa memakai penukaran lama).
+    function freshRedemption(rid) {
+      let path = /databases/$(database)/documents/redemptions/$(rid);
+      return rid is string
+        && existsAfter(path)
+        && !exists(path)
+        && getAfter(path).data.uid == request.auth.uid;
+    }
+
     function auditOk(targetId) {
       let a = getAfter(/databases/$(database)/documents/auditLogs/$(request.resource.data.lastAuditId));
       return existsAfter(/databases/$(database)/documents/auditLogs/$(request.resource.data.lastAuditId))
@@ -69,14 +82,19 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
 
-      // Pendaftaran: TIDAK BISA daftar sendiri. Hanya email yang punya undangan aktif,
-      // sudah terverifikasi (login lewat link email), untuk dirinya sendiri, role WAJIB 'user'.
+      // Pendaftaran: TIDAK BISA daftar sendiri. Hanya untuk email yang punya undangan aktif
+      // ATAU yang menukar voucher valid di batch yang sama. Email wajib terverifikasi
+      // (login lewat link email), untuk dirinya sendiri, role WAJIB 'user'.
       allow create: if signedIn()
         && request.auth.uid == uid
         && request.auth.token.email_verified == true
-        && exists(/databases/$(database)/documents/invites/$(myEmail()))
-        && get(/databases/$(database)/documents/invites/$(myEmail())).data.status != 'revoked'
-        && request.resource.data.keys().hasOnly(['email', 'displayName', 'role', 'createdAt', 'updatedAt'])
+        && (
+          (exists(/databases/$(database)/documents/invites/$(myEmail()))
+            && get(/databases/$(database)/documents/invites/$(myEmail())).data.status != 'revoked')
+          || ('viaVoucher' in request.resource.data
+            && freshRedemption(request.resource.data.viaVoucher + '_' + uid))
+        )
+        && request.resource.data.keys().hasOnly(['email', 'displayName', 'role', 'viaVoucher', 'createdAt', 'updatedAt'])
         && request.resource.data.role == 'user'
         && request.resource.data.email == request.auth.token.email
         && isShortString(request.resource.data.displayName, 80)
@@ -254,7 +272,7 @@ service cloud.firestore {
       }
       function validMembership() {
         let d = request.resource.data;
-        return d.keys().hasOnly(['email', 'name', 'plan', 'trial', 'trialsUsed', 'note', 'updatedAt', 'updatedBy', 'lastAuditId'])
+        return d.keys().hasOnly(['email', 'name', 'plan', 'trial', 'trialsUsed', 'note', 'updatedAt', 'updatedBy', 'lastAuditId', 'lastRedemptionId'])
           && d.email == email
           && isShortString(d.name, 80)
           && d.plan in ['none', 'spark', 'boost', 'impact']
@@ -264,9 +282,82 @@ service cloud.firestore {
           && d.updatedBy == request.auth.uid
           && d.updatedAt == request.time;
       }
+      // Peserta menukar voucher: paket = paket voucher, hanya NAIK, trial & catatan tidak boleh diubah.
+      function voucherUpgrade() {
+        let d = request.resource.data;
+        return myEmail() == email
+          && validMembership()
+          && freshRedemption(d.lastRedemptionId)
+          && getAfter(/databases/$(database)/documents/redemptions/$(d.lastRedemptionId)).data.plan == d.plan;
+      }
       allow read: if isAdmin() || myEmail() == email;
-      allow create, update: if isAdmin() && validMembership() && auditOk(email);
+      allow create: if (isAdmin() && validMembership() && auditOk(email))
+        || (voucherUpgrade()
+            && request.resource.data.trial == null
+            && request.resource.data.trialsUsed == {'boost': false, 'impact': false}
+            && request.resource.data.note == '');
+      allow update: if (isAdmin() && validMembership() && auditOk(email))
+        || (voucherUpgrade()
+            && planRank(request.resource.data.plan) > planRank(resource.data.plan)
+            && request.resource.data.trial == resource.data.trial
+            && request.resource.data.trialsUsed == resource.data.trialsUsed
+            && request.resource.data.note == resource.data.note);
       allow delete: if false;
+    }
+
+    // ---------- vouchers/{code} ----------
+    // Kode voucher (mis. dari pembelian di GoAkal). Dibuat & dikelola admin.
+    // Peserta yang login hanya bisa MEMBACA satu kode yang ia ketik (bukan melihat daftar),
+    // dan menambah pemakaian +1 bersamaan dengan membuat catatan penukaran.
+    match /vouchers/{code} {
+      function validVoucher() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['code', 'plan', 'maxUses', 'uses', 'active', 'expiresAt', 'batch', 'note', 'createdBy', 'createdAt', 'updatedAt'])
+          && d.code == code
+          && code.matches('^[A-Z0-9-]{4,32}$')
+          && d.plan in ['spark', 'boost', 'impact']
+          && d.maxUses is int && d.maxUses >= 1 && d.maxUses <= 100000
+          && d.uses is int && d.uses >= 0 && d.uses <= d.maxUses
+          && d.active is bool
+          && (d.expiresAt == null || d.expiresAt is timestamp)
+          && isShortString(d.batch, 60)
+          && isShortString(d.note, 300)
+          && d.updatedAt == request.time;
+      }
+      allow get: if signedIn();
+      allow list: if isAdmin();
+      allow create: if isAdmin() && validVoucher()
+        && request.resource.data.uses == 0
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdAt == request.time;
+      allow update: if (isAdmin() && validVoucher())
+        || (signedIn()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uses', 'updatedAt'])
+            && request.resource.data.uses == resource.data.uses + 1
+            && request.resource.data.uses <= resource.data.maxUses
+            && resource.data.active == true
+            && (resource.data.expiresAt == null || request.time < resource.data.expiresAt)
+            && request.resource.data.updatedAt == request.time
+            && existsAfter(/databases/$(database)/documents/redemptions/$(code + '_' + request.auth.uid)));
+      allow delete: if isAdmin() && resource.data.uses == 0;
+    }
+
+    // ---------- redemptions/{code_uid} ----------
+    // Catatan penukaran voucher. Satu kode hanya bisa ditukar sekali per akun. Tidak bisa diubah/dihapus.
+    match /redemptions/{rid} {
+      allow read: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['code', 'uid', 'email', 'plan', 'createdAt'])
+        && rid == request.resource.data.code + '_' + request.auth.uid
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == myEmail()
+        && request.auth.token.email_verified == true
+        && exists(/databases/$(database)/documents/vouchers/$(request.resource.data.code))
+        && request.resource.data.plan == get(/databases/$(database)/documents/vouchers/$(request.resource.data.code)).data.plan
+        && getAfter(/databases/$(database)/documents/vouchers/$(request.resource.data.code)).data.uses
+            == get(/databases/$(database)/documents/vouchers/$(request.resource.data.code)).data.uses + 1
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
     }
 
     // ---------- config/access ----------
