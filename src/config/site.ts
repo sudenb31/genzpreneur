@@ -25,11 +25,52 @@ export const SITE = {
     { no: 5, emoji: '✅', title: 'Practical Action Plan', desc: 'Panduan langkah awal yang terstruktur.', tile: 'bg-amber-soft' },
   ],
 
-  /** Harga perkenalan — final dikonfigurasi admin di Sprint 2. */
+  /**
+   * Paket — harga perkenalan batch pertama. Final dikonfigurasi admin di Sprint 2.
+   * ATURAN: fitur yang ditulis harus SUDAH ADA di aplikasi (atau jelas "sesuai jadwal program").
+   * Harga normal (refPrice) hanya boleh ditampilkan bila benar-benar berlaku setelah masa perkenalan.
+   */
   plans: [
-    { name: 'Starter', price: 99_000, features: ['Live webinar + replay', 'Materi & worksheet dasar', 'Tools AI terpilih', 'Execution Challenge 7 hari'] },
-    { name: 'Core', price: 249_000, features: ['Semua isi Starter', 'Materi lanjutan & bootcamp praktik', 'Tools tambahan & akses AI lebih panjang', 'Review tugas sesuai ketentuan program'], highlight: true },
-    { name: 'Advanced', price: 499_000, features: ['Semua isi Core', 'Tools lanjutan', 'Challenge lanjutan', 'Sesi mentoring bila dijadwalkan & progress review'] },
+    {
+      key: 'spark', level: 'Level 01 · Start', name: 'GenZ Spark', emoji: '⚡', price: 49_000, refPrice: 99_000,
+      tagline: 'Find Your Spark.',
+      desc: 'Temukan potensi, kenali peluang cuan, dan mulai langkah pertamamu.',
+      features: [
+        'Entrepreneur Passport + rangkuman kesiapan',
+        'Assessment 36 soal: industri, jalur & Profil Cuan',
+        'Business 101: 13 pelajaran peta dunia bisnis',
+        'Season 1 — Wake Up',
+        'Action Plan 7 Hari',
+        'Dream Pact + versi cetak',
+      ],
+      trial: { to: 'GenZ Boost', days: 3 },
+    },
+    {
+      key: 'boost', level: 'Level 02 · Execute', name: 'GenZ Boost', emoji: '🚀', price: 149_000, refPrice: 249_000,
+      tagline: 'Turn Skills Into Action.',
+      desc: 'Bangun skill, gunakan AI business tools, dan mulai eksekusi bisnis secara nyata.',
+      features: [
+        'Semua isi GenZ Spark',
+        'Season 2 — Find Your Why & Edge',
+        'Season 3 — Build & Sell',
+        'AI Business Toolkit lengkap: 38 prompt, Kalkulator HPP & Harga, Kalkulator Komisi, Template Proposal, Problem Map',
+        'Outreach Studio: pesan ke mentor, klien & partner',
+      ],
+      trial: { to: 'GenZ Impact', days: 7 },
+      badge: 'Paling Pas',
+    },
+    {
+      key: 'impact', level: 'Level 03 · Accelerate', name: 'GenZ Impact', emoji: '🎯', price: 299_000, refPrice: 499_000,
+      tagline: 'Build Something That Matters.',
+      desc: 'Percepat perkembangan lewat challenge lanjutan, evaluasi, dan mentoring sesuai program.',
+      features: [
+        'Semua isi GenZ Boost',
+        'Season 4 — Lead & Last (tim, life ops, future proof)',
+        'Challenge lanjutan sesuai jadwal program',
+        'Evaluasi progres & mentoring sesuai jadwal program',
+      ],
+      badge: 'Premium',
+    },
   ],
 
   faq: [
@@ -39,7 +80,7 @@ export const SITE = {
     { q: 'Aku introvert / nggak jago jualan. Bisa?', a: 'Bisa. Sales di sini diajarkan sebagai skill: mendengar, bertanya, dan menjelaskan dengan jujur. Outreach Studio memberi draf pesan yang tinggal kamu sesuaikan, dan banyak jalur (freelance, produk digital) tidak menuntut banyak bicara.' },
     { q: 'Apakah aku harus punya modal?', a: 'Tidak wajib. Sebagian besar dari 10 jalur bisa dimulai dengan modal Rp0 — memakai skill, waktu, dan HP yang kamu punya. Jalur produk fisik diajarkan dengan sistem pre-order supaya tidak menumpuk stok.' },
     { q: 'Apakah ada jaminan penghasilan?', a: 'Tidak ada. GenZ Preneur membantu kamu belajar dan berlatih secara terstruktur. Hasil bergantung pada eksekusi, pasar, dan banyak faktor lain. Hati-hati dengan program apa pun yang menjanjikan angka pasti.' },
-    { q: 'Kapan bisa beli dan bagaimana cara bayarnya?', a: 'Pembelian dibuka bersamaan dengan batch pertama. Detail paket, jadwal, dan cara pembayaran diumumkan saat itu. Bikin akun sekarang supaya Passport & Assessment-mu sudah siap.' },
+    { q: 'Kapan bisa beli? Ada free trial?', a: 'Pembelian dibuka bersamaan dengan batch pertama; jadwal dan cara pembayaran diumumkan saat itu. Setiap pembeli GenZ Spark bisa mencoba GenZ Boost gratis 3 hari, dan pembeli GenZ Boost bisa mencoba GenZ Impact gratis 7 hari — tanpa tagihan otomatis.' },
     { q: 'Data pribadiku aman?', a: 'Data Passport hanya bisa dilihat olehmu dan admin untuk keperluan layanan, tidak dibagikan ke peserta lain, dan bisa kamu ekspor atau hapus kapan saja dari halaman Passport.' },
   ],
 } as const;

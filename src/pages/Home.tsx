@@ -229,24 +229,37 @@ export default function Home() {
         {/* Pricing */}
         <section id="harga" className="scroll-mt-20 border-y-2 border-ink/10 bg-white py-20">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <h2 className="font-display text-4xl font-extrabold tracking-tight sm:text-5xl">Harga perkenalan.</h2>
-            <p className="mt-3 text-muted">Pembelian dibuka bersamaan dengan batch pertama. Bikin akun sekarang biar Passport & Assessment-mu udah siap.</p>
+            <p className="eyebrow">3 level · naik kapan pun siap</p>
+            <h2 className="mt-1 font-display text-4xl font-extrabold tracking-tight sm:text-5xl">Pilih levelmu.</h2>
+            <p className="mt-3 max-w-2xl text-muted">Harga perkenalan untuk batch pertama. Ragu mau naik level? Coba dulu level berikutnya gratis — tanpa tagihan otomatis.</p>
             <div className="mt-10 grid gap-5 md:grid-cols-3">
               {SITE.plans.map((p) => {
-                const hot = 'highlight' in p && p.highlight;
+                const hot = p.key === 'boost';
                 return (
-                  <div key={p.name} className={`relative flex flex-col rounded-3xl border-2 border-ink p-6 ${hot ? 'bg-ink text-paper shadow-[6px_6px_0_0_#ff5a1f]' : 'bg-paper shadow-[4px_4px_0_0_#111112]'}`}>
-                    {hot && <span className="chip absolute -top-3 right-5 bg-lime text-ink">Paling pas</span>}
-                    <h3 className="font-display text-xl font-extrabold">{p.name}</h3>
+                  <div key={p.key} className={`relative flex flex-col rounded-3xl border-2 border-ink p-6 ${hot ? 'bg-ink text-paper shadow-[6px_6px_0_0_#ff5a1f]' : 'bg-paper shadow-[4px_4px_0_0_#111112]'}`}>
+                    <div className="flex items-center min-h-8 justify-between gap-2">
+                      <p className={`text-xs font-extrabold uppercase tracking-[0.14em] ${hot ? 'text-lime' : 'text-amber-ink'}`}>{p.level}</p>
+                      {'badge' in p && p.badge && <span className={`chip ${hot ? 'border-lime bg-lime text-ink' : 'bg-paper-2'}`}>{p.badge}</span>}
+                    </div>
+                    <h3 className="mt-3 font-display text-2xl font-extrabold">{p.name} <span aria-hidden>{p.emoji}</span></h3>
                     <p className="mt-3 font-display text-4xl font-extrabold">{formatRupiah(p.price)}</p>
+                    <p className={`text-xs ${hot ? 'text-paper/60' : 'text-muted'}`}>Harga normal <s>{formatRupiah(p.refPrice)}</s> · harga perkenalan batch pertama</p>
+                    <p className="mt-4 font-display text-lg font-extrabold">{p.tagline}</p>
+                    <p className={`text-sm ${hot ? 'text-paper/75' : 'text-ink/75'}`}>{p.desc}</p>
                     <ul className="mt-5 flex-1 space-y-2 text-sm">
                       {p.features.map((f) => <li key={f} className="flex gap-2"><span className={hot ? 'text-lime' : 'text-amber'} aria-hidden>✦</span>{f}</li>)}
                     </ul>
+                    {'trial' in p && p.trial && (
+                      <p className={`mt-5 rounded-2xl border-2 border-dashed p-3 text-sm font-semibold ${hot ? 'border-lime text-lime' : 'border-ink bg-lime/50'}`}>
+                        🎁 Bonus: coba <strong>{p.trial.to}</strong> gratis {p.trial.days} hari
+                      </p>
+                    )}
                     <Link to={cta.to} className={`mt-6 ${hot ? 'btn-accent' : 'btn-primary'}`}>{loggedIn ? 'Buka dashboard' : 'Buat akun dulu'}</Link>
                   </div>
                 );
               })}
             </div>
+            <p className="mt-6 text-xs text-muted">Pembelian dibuka bersamaan dengan batch pertama. Setelah masa perkenalan, harga kembali ke harga normal. Free trial berlaku sekali per akun dan berakhir otomatis tanpa tagihan.</p>
           </div>
         </section>
 

@@ -29,6 +29,7 @@ Tidak memakai API AI berbayar: generator berbasis template + prompt untuk ditemp
 ### Fondasi (Sprint 1)
 | Fitur | Keterangan |
 |---|---|
+| Paket | GenZ Spark Rp49rb (Level 01 · Start) · GenZ Boost Rp149rb (Level 02 · Execute) · GenZ Impact Rp299rb (Level 03 · Accelerate) — harga perkenalan; bonus trial: Spark → Boost 3 hari, Boost → Impact 7 hari. **Pembatasan akses per paket & trial dibangun di Sprint 2 (entitlement + pembayaran)** |
 | Landing page | Hero, alur, 10 jalur mulai dalam 3 gaya main (Bantu Jualin · Jual Skill · Bangun Sendiri), narasumber, harga perkenalan, 8 FAQ yang menjawab keraguan calon peserta, CTA |
 | Akun | Daftar (dengan consent data), masuk, lupa password, verifikasi email |
 | RBAC | Peserta · Mentor · Admin · Super Admin, ditegakkan di Firestore Security Rules |
