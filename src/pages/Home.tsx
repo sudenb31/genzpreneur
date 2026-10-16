@@ -12,7 +12,7 @@ const PATHS = [
 const STEPS = [
   { k: 'Kenali diri', d: 'Isi Passport + Assessment → tahu industri & jalur yang paling cocok.' },
   { k: 'Belajar cepat', d: 'Materi singkat Mindset, Sales & Marketing, dan Business Partner.' },
-  { k: 'Susun penawaran', d: 'Pakai template proposal & kalkulator komisi.' },
+  { k: 'Susun penawaran', d: 'Pakai kalkulator harga & BEP, template proposal, dan kalkulator komisi.' },
   { k: 'Chat duluan', d: 'Outreach Studio bikin pesan personal ke mentor & calon klien.' },
   { k: 'Eksekusi 7 hari', d: 'Action Plan harian sampai kamu benar-benar bergerak.' },
 ];

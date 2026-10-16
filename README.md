@@ -16,11 +16,11 @@ Stack: React 19 · Vite · TypeScript · Tailwind v4 · Firebase Auth + Firestor
 | 🧠 Entrepreneur Mindset | 4 pelajaran + latihan tersimpan |
 | 📈 Sales & Marketing Skills | 4 pelajaran + latihan |
 | 🤝 Business Partner Strategy | 4 pelajaran (5 jalur modal Rp0, skema komisi/fee) |
-| ⚡ AI Business Toolkit | 12 prompt siap salin (terisi otomatis dari Passport/Assessment), kalkulator komisi, template proposal |
+| ⚡ AI Business Toolkit | 38 prompt siap salin dalam 10 kategori (riset, strategi, audit, outreach, harga, konten, branding, pelanggan, keuangan, belajar) — terisi otomatis dari Passport/Assessment; Kalkulator Harga & BEP (margin, titik impas, nilai waktu, efek diskon, 3 paket); kalkulator komisi; template proposal; Problem Map |
 | ✅ Practical Action Plan | 7 hari × 3 misi + catatan harian |
 | 📌 Tersimpan | Semua pesan/prompt/proposal/simulasi/problem map yang disimpan |
-| 🗺️ Business 101 | 10 pelajaran peta dunia bisnis: 5 organ bisnis, value, marketing vs sales vs branding, STP, closing & penolakan, brand = janji × bukti × konsistensi, delivery & bottleneck, omzet/untung/cash + BEP, strategi (5 tekanan, SWOT), eksperimen & negosiasi. Tiap pelajaran ada Mitos vs Fakta + Kamus Kilat. Terinspirasi The Personal MBA & The Visual MBA, ditulis ulang orisinal |
-| 📚 Kurikulum 4 Season | 10 modul · 46 pelajaran: Wake Up (Business 101, Mindset, Read The Game), Find Your Why & Edge (Why Engine, Find Your Edge), Build & Sell (Sales & Marketing, Business Partner), Lead & Last (Lead The Squad, Life Ops, Future Proof) |
+| 🗺️ Business 101 | 13 pelajaran peta dunia bisnis: 5 organ bisnis, value, marketing vs sales vs branding, STP, closing & penolakan, harga (lantai–pasar–langit-langit, 3 paket), brand = janji × bukti × konsistensi, delivery & bottleneck, retensi pelanggan (LTV vs CAC), omzet/untung/cash + BEP, pencatatan duit, strategi (5 tekanan, SWOT), eksperimen & negosiasi. Tiap pelajaran ada Mitos vs Fakta + Kamus Kilat. Terinspirasi The Personal MBA & The Visual MBA, ditulis ulang orisinal |
+| 📚 Kurikulum 4 Season | 10 modul · 49 pelajaran: Wake Up (Business 101, Mindset, Read The Game), Find Your Why & Edge (Why Engine, Find Your Edge), Build & Sell (Sales & Marketing, Business Partner), Lead & Last (Lead The Squad, Life Ops, Future Proof) |
 | 🧩 Problem Map | Fenomena → masalah inti → akar → dampak → terdampak → langkah awal → validasi, dengan 6 Zona Dampak |
 | 🌟 Dream Pact | Pakta Mimpi: Personal WHY, Edge, Dream Statement, 6 level milestone (Launch Pad → Dream Unlocked) dengan usia/tahun otomatis, Skill Tree 4 cabang, Plan 12 bulan (Level Up/Cuan/Impact), komitmen + tanda tangan, **versi cetak A4** |
 
@@ -52,6 +52,6 @@ Panduan lengkap untuk pemula: **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**.
 
 ## Test
 ```bash
-npm test            # 73 unit/komponen test
+npm test            # 80 unit/komponen test
 npm run test:rules  # uji Security Rules (butuh Java 11+)
 ```

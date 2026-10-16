@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ALL_LESSON_IDS, MODULES } from './modules';
 import { ACTION_PLAN, ALL_TASK_IDS } from './actionPlan';
-import { PROMPTS } from './prompts';
+import { PROMPT_CATEGORIES, PROMPTS } from './prompts';
 import { INDUSTRIES, INDUSTRY_KEYS } from './industries';
 
 describe('integritas konten', () => {
@@ -9,7 +9,7 @@ describe('integritas konten', () => {
     expect(MODULES).toHaveLength(10);
     expect(new Set(MODULES.map((m) => m.slug)).size).toBe(10);
     expect(new Set(ALL_LESSON_IDS).size).toBe(ALL_LESSON_IDS.length);
-    expect(ALL_LESSON_IDS).toHaveLength(46);
+    expect(ALL_LESSON_IDS).toHaveLength(49);
     const seasons = MODULES.map((m) => m.season);
     expect([...seasons].sort()).toEqual(seasons);
     for (const no of [1, 2, 3, 4]) expect(seasons).toContain(no);
@@ -19,9 +19,9 @@ describe('integritas konten', () => {
       expect(l.exercise.prompt.length).toBeGreaterThan(10);
     }
   });
-  it('Business 101: modul pertama, 10 pelajaran lengkap dengan mitos-fakta & kamus kilat', () => {
+  it('Business 101: modul pertama, 13 pelajaran lengkap dengan mitos-fakta & kamus kilat', () => {
     expect(MODULES[0].slug).toBe('business-101');
-    expect(MODULES[0].lessons).toHaveLength(10);
+    expect(MODULES[0].lessons).toHaveLength(13);
     for (const l of MODULES[0].lessons) {
       expect(l.mythFact?.myth.length).toBeGreaterThan(10);
       expect(l.glossary?.length).toBeGreaterThanOrEqual(3);
@@ -34,7 +34,7 @@ describe('integritas konten', () => {
   });
   it('semua tautan internal menuju rute yang ada', () => {
     const slugs = MODULES.map((m) => m.slug).join('|');
-    const valid = new RegExp(`^/app/(passport|assessment|dream-pact|kurikulum|outreach(\\?skenario=(mentor|sales_partner|service_offer))?|toolkit(\\?tab=(prompts|calculator|proposal|problem))?|action-plan|belajar/(${slugs}))$`);
+    const valid = new RegExp(`^/app/(passport|assessment|dream-pact|kurikulum|outreach(\\?skenario=(mentor|sales_partner|service_offer))?|toolkit(\\?tab=(prompts|pricing|calculator|proposal|problem))?|action-plan|belajar/(${slugs}))$`);
     const links = [
       ...MODULES.flatMap((m) => m.lessons.map((l) => l.tool?.to).filter(Boolean)),
       ...ACTION_PLAN.flatMap((d) => d.tasks.map((t) => t.link?.to).filter(Boolean)),
@@ -44,6 +44,8 @@ describe('integritas konten', () => {
   it('prompt hanya memakai placeholder yang didukung', () => {
     for (const p of PROMPTS) for (const m of p.template.matchAll(/\{(\w+)\}/g)) expect(['industri', 'jalur', 'skill', 'kota']).toContain(m[1]);
     expect(new Set(PROMPTS.map((p) => p.id)).size).toBe(PROMPTS.length);
+    expect(PROMPTS.length).toBeGreaterThanOrEqual(36);
+    for (const c of PROMPT_CATEGORIES) expect(PROMPTS.some((p) => p.category === c)).toBe(true);
   });
   it('10 industri lengkap', () => {
     expect(INDUSTRY_KEYS).toHaveLength(10);

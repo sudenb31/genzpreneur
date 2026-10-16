@@ -1,4 +1,4 @@
-import type { LearningModule } from './modules';
+import type { Lesson, LearningModule } from './modules';
 
 /**
  * BUSINESS 101 — Peta Dunia Bisnis.
@@ -9,13 +9,13 @@ import type { LearningModule } from './modules';
  * (Jason Barron). Penjelasan, analogi, contoh angka, dan latihan ditulis
  * ulang untuk konteks Gen Z Indonesia — bukan terjemahan atau kutipan buku.
  */
-export const BUSINESS_101: LearningModule = {
+const BASE: LearningModule = {
   slug: 'business-101',
   season: 1,
   emoji: '🗺️',
   color: 'amber-soft',
   title: 'Business 101: Peta Dunia Bisnis',
-  tagline: 'Sales, marketing, branding, cuan — akhirnya nyambung semua.',
+  tagline: 'Sales, marketing, branding, harga, cuan — akhirnya nyambung semua.',
   lessons: [
     /* ------------------------------------------------------------------ */
     {
@@ -310,7 +310,7 @@ export const BUSINESS_101: LearningModule = {
         prompt: 'Hitung untuk ide bisnismu: harga jual per unit, biaya variabel per unit, margin kontribusi, biaya tetap per bulan, dan BEP (unit per bulan dan per hari). Realistis nggak angkanya?',
         placeholder: 'Harga: Rp… | Biaya variabel: Rp… | Margin: Rp… | Biaya tetap: Rp…/bln | BEP: … unit/bln = … unit/hari',
       },
-      tool: { to: '/app/toolkit?tab=calculator', label: 'Coba kalkulator di AI Toolkit' },
+      tool: { to: '/app/toolkit?tab=pricing', label: 'Hitung BEP di Kalkulator Harga' },
     },
     /* ------------------------------------------------------------------ */
     {
@@ -388,4 +388,136 @@ export const BUSINESS_101: LearningModule = {
       tool: { to: '/app/action-plan', label: 'Jalankan lewat Action Plan 7 Hari' },
     },
   ],
+};
+
+/* ------------------------------------------------------------------ */
+/*  Pelajaran tambahan (id baru agar progres peserta lama tetap aman)  */
+/* ------------------------------------------------------------------ */
+const EXTRA_LESSONS: Lesson[] = [
+  {
+    id: 'b101-11',
+    title: 'Nentuin harga tanpa galau',
+    minutes: 8,
+    body: [
+      'Harga adalah keputusan bisnis paling cepat berdampak: naik Rp5.000 per transaksi bisa mengubah bisnis dari ngos-ngosan jadi sehat, tanpa tambah pelanggan satu pun. Tapi kebanyakan pemula pasang harga dengan satu cara: lihat yang termurah di marketplace, lalu ikut lebih murah. Itu resep capek.',
+      'Pakai tiga sudut pandang sekaligus. LANTAI = biaya: harga tidak boleh di bawah biaya variabel ditambah nilai waktumu. PASAR = pembanding: berapa harga alternatif yang dilihat pelanggan (bukan cuma yang termurah). LANGIT-LANGIT = nilai: seberapa besar hasil atau penghematan yang pelanggan dapat. Harga yang sehat ada di antara pasar dan langit-langit — dan tidak pernah di bawah lantai.',
+      'Waktumu juga biaya. Hitung "harga per jam" dirimu: target penghasilan per bulan ÷ jam kerja per bulan. Kalau target Rp2 juta dengan 40 jam kerja, waktumu bernilai Rp50 ribu per jam. Jasa yang makan 3 jam tapi dijual Rp75 ribu artinya kamu "membayar" pelanggan.',
+      'Dua trik yang jujur dan ampuh: (1) Jual PAKET, bukan per jam — orang membeli hasil, dan paket membuat perbandingan lebih mudah. (2) Beri TIGA PILIHAN (dasar, utama, lengkap). Kebanyakan orang memilih tengah, dan paket lengkap membuat paket utama terasa masuk akal. Satu peringatan: hati-hati dengan diskon. Kalau margin-mu 40% lalu kamu diskon 20%, margin tinggal 20% — kamu harus menjual DUA KALI lipat hanya untuk mendapat untung yang sama.',
+    ],
+    keyPoints: [
+      'Lantai (biaya + waktumu) → pasar (pembanding) → langit-langit (nilai bagi pelanggan).',
+      'Harga per jam dirimu = target penghasilan ÷ jam kerja.',
+      'Jual paket hasil, bukan jam. Tawarkan 3 pilihan.',
+      'Diskon memakan margin jauh lebih cepat dari yang terlihat.',
+    ],
+    mythFact: {
+      myth: '"Biar laku, harus paling murah."',
+      fact: 'Paling murah adalah posisi yang paling gampang direbut orang lain — dan bikin kamu capek tanpa sisa. Lebih aman jadi pilihan yang paling jelas hasilnya untuk target tertentu.',
+    },
+    glossary: [
+      { term: 'Cost-plus', meaning: 'Harga = biaya + persentase untung yang kamu tentukan.' },
+      { term: 'Value-based pricing', meaning: 'Harga ditentukan dari besarnya hasil/manfaat bagi pelanggan.' },
+      { term: 'Anchoring', meaning: 'Harga pembanding pertama yang dilihat orang, yang memengaruhi penilaian harga berikutnya.' },
+      { term: 'Bundling', meaning: 'Menggabungkan beberapa produk/jasa jadi satu paket.' },
+      { term: 'Upsell', meaning: 'Menawarkan versi yang lebih lengkap ke orang yang sudah mau membeli.' },
+    ],
+    example: {
+      title: 'Harga jasa desain feed IG',
+      text: 'Lantai: Canva + kuota Rp20 ribu per proyek, kerja 4 jam × Rp50 ribu = Rp220 ribu. Pasar: freelancer lain Rp150–500 ribu untuk 9 desain. Langit-langit: kalau feed rapi menambah 5 pesanan/minggu bagi kedai, nilainya jutaan per bulan. Paket: DASAR 6 desain Rp250 ribu · UTAMA 9 desain + caption Rp400 ribu · LENGKAP 12 desain + caption + jadwal posting Rp650 ribu.',
+    },
+    exercise: {
+      prompt: 'Hitung harga untuk penawaranmu: lantai (biaya + jam × harga per jam dirimu), harga pasar (3 pembanding), dan langit-langit (nilai bagi pelanggan). Lalu susun 3 paket: dasar, utama, lengkap.',
+      placeholder: 'Lantai: Rp… | Pasar: Rp…–Rp… | Nilai bagi pelanggan: … | Dasar: … Rp… | Utama: … Rp… | Lengkap: … Rp…',
+    },
+    tool: { to: '/app/toolkit?tab=pricing', label: 'Hitung harga & 3 paket di Kalkulator Harga' },
+  },
+  {
+    id: 'b101-12',
+    title: 'Pencatatan duit: biar cuan nggak "hilang entah ke mana"',
+    minutes: 7,
+    body: [
+      'Banyak bisnis kecil sebenarnya untung, tapi pemiliknya merasa nggak pernah pegang uang. Penyebabnya hampir selalu sama: uang bisnis dan uang pribadi tercampur, dan tidak ada catatan. Uang jajan, bensin, dan modal belanja stok keluar dari dompet yang sama — lalu di akhir bulan semuanya terasa "habis".',
+      'Mulai dari tiga aturan. (1) PISAHKAN: pakai satu rekening atau e-wallet khusus bisnis. Semua uang masuk dari pelanggan ke sana, semua belanja bisnis keluar dari sana. (2) CATAT HARI ITU JUGA: tanggal, masuk/keluar, jumlah, kategori (bahan, ongkir, iklan, alat), dan keterangan. Simpan bukti — screenshot transfer sudah cukup. (3) GAJI DIRIMU SENDIRI: ambil jumlah tetap dari bisnis secara terjadwal, jangan ambil "seperlunya" kapan saja.',
+      'Seminggu sekali, luangkan 15 menit untuk "rapat duit" dengan dirimu sendiri: total masuk, total keluar, sisa, dan tiga pengeluaran terbesar. Sebulan sekali, hitung untung sederhana: PENJUALAN − BIAYA BARANG/BAHAN − BIAYA OPERASIONAL = LABA. Dari sini kamu tahu bulan ini benar-benar untung atau cuma ramai.',
+      'Sebelum membelanjakan laba, sisihkan dulu untuk tiga pos: modal putar (stok/bahan berikutnya), dana cadangan (untuk bulan sepi atau alat rusak), dan baru sisanya untuk dinikmati atau dikembangkan. Persentasenya bebas kamu atur sesuai kondisi — yang penting urutannya: sisihkan dulu, belanja kemudian.',
+    ],
+    keyPoints: [
+      'Pisahkan rekening/e-wallet bisnis dan pribadi.',
+      'Catat setiap transaksi di hari yang sama + simpan buktinya.',
+      'Gaji dirimu dengan jumlah tetap, bukan ambil seenaknya.',
+      'Rapat duit 15 menit per minggu; hitung laba sederhana per bulan.',
+      'Sisihkan modal putar & cadangan sebelum laba dibelanjakan.',
+    ],
+    mythFact: {
+      myth: '"Bisnisku masih kecil, belum perlu dicatat."',
+      fact: 'Justru saat kecil kebiasaan ini paling mudah dibangun. Bisnis yang tidak dicatat tidak bisa diperbaiki, karena kamu tidak tahu bagian mana yang bocor.',
+    },
+    glossary: [
+      { term: 'Pemasukan', meaning: 'Uang yang masuk ke bisnis — dari penjualan, DP, atau pelunasan.' },
+      { term: 'Pengeluaran', meaning: 'Uang yang keluar untuk keperluan bisnis.' },
+      { term: 'Modal putar', meaning: 'Uang yang dipakai lagi untuk belanja bahan/stok berikutnya.' },
+      { term: 'Dana cadangan', meaning: 'Uang yang disisihkan untuk keadaan darurat atau bulan sepi.' },
+      { term: 'Laporan laba rugi', meaning: 'Ringkasan: penjualan dikurangi semua biaya dalam satu periode.' },
+    ],
+    example: {
+      title: 'Catatan seminggu thrift shop online',
+      text: 'Masuk: 14 item terjual Rp1.260.000. Keluar: belanja bal Rp600.000, laundry Rp90.000, packing Rp45.000, iklan Rp50.000 = Rp785.000. Sisa: Rp475.000. Pengeluaran terbesar: belanja bal. Keputusan: sisihkan Rp300.000 untuk bal minggu depan (modal putar), Rp75.000 cadangan, Rp100.000 gaji diri. Tanpa catatan, uang Rp475.000 itu biasanya sudah habis untuk jajan di hari Rabu.',
+    },
+    exercise: {
+      prompt: 'Siapkan sistem pencatatanmu hari ini: rekening/e-wallet mana yang jadi khusus bisnis, di mana kamu mencatat (spreadsheet/aplikasi/buku), kategori pengeluaran apa saja, kapan jadwal "rapat duit" mingguanmu, dan berapa gaji tetap untuk dirimu.',
+      placeholder: 'Rekening bisnis: … | Catat di: … | Kategori: … | Rapat duit setiap: … jam … | Gaji diriku: Rp…/minggu',
+    },
+    tool: { to: '/app/toolkit?tab=prompts', label: 'Ambil prompt template catatan keuangan' },
+  },
+  {
+    id: 'b101-13',
+    title: 'Pelanggan balik lagi: cuan paling murah',
+    minutes: 7,
+    body: [
+      'Mendapatkan pelanggan baru itu mahal: butuh konten, iklan, outreach, dan waktu meyakinkan dari nol. Pelanggan lama sudah percaya, sudah tahu kualitasmu, dan tinggal diingatkan. Bisnis yang sehat bukan yang paling banyak pelanggan barunya, tapi yang pelanggannya terus kembali.',
+      'Cara menghitung pentingnya: NILAI PELANGGAN = rata-rata belanja × berapa kali beli per tahun × berapa tahun dia bertahan. Pelanggan es kopi Rp20 ribu yang beli 2x seminggu selama setahun bernilai ±Rp2 juta — bukan Rp20 ribu. Bandingkan dengan BIAYA MENDAPATKAN satu pelanggan. Selama nilai pelanggan jauh lebih besar dari biaya mendapatkannya, bisnismu bisa tumbuh.',
+      'Lima kebiasaan yang membuat orang kembali: (1) CEK SETELAH BELI — tanya 2–3 hari kemudian apakah semuanya oke. (2) BERI ALASAN KEMBALI — langganan, kartu stamp, paket bulanan, atau info produk baru yang relevan. (3) TANGANI KOMPLAIN DENGAN CEPAT — pelanggan yang masalahnya diselesaikan dengan baik sering jadi lebih loyal daripada yang tidak pernah bermasalah. (4) MINTA TESTIMONI & REFERRAL di momen mereka paling senang — selalu yang asli dan dengan izin mereka. (5) SIMPAN DAFTAR PELANGGAN — nama, kontak, apa yang dibeli, kapan terakhir beli.',
+      'Ukur satu angka: TINGKAT BELI ULANG — dari semua pembeli bulan lalu, berapa persen yang membeli lagi bulan ini. Kalau angkanya naik, bisnismu makin kuat walau tidak menambah iklan.',
+    ],
+    keyPoints: [
+      'Menjaga pelanggan lama jauh lebih murah daripada mencari yang baru.',
+      'Nilai pelanggan = rata-rata belanja × frekuensi × lama bertahan.',
+      'Cek setelah beli, beri alasan kembali, selesaikan komplain dengan cepat.',
+      'Minta testimoni & referral yang asli, dengan izin, di momen paling puas.',
+      'Pantau tingkat beli ulang setiap bulan.',
+    ],
+    mythFact: {
+      myth: '"Yang penting terus cari pembeli baru."',
+      fact: 'Ember bocor tidak penuh walau terus diisi. Kalau pembeli tidak pernah kembali, masalahnya ada di produk atau pelayanan — bukan di kurangnya promosi.',
+    },
+    glossary: [
+      { term: 'Retensi', meaning: 'Kemampuan bisnis membuat pelanggan tetap kembali.' },
+      { term: 'LTV', meaning: 'Lifetime value — total belanja satu pelanggan selama dia jadi pelangganmu.' },
+      { term: 'CAC', meaning: 'Customer acquisition cost — biaya untuk mendapatkan satu pelanggan baru.' },
+      { term: 'Repeat order', meaning: 'Pembelian ulang dari pelanggan yang sama.' },
+      { term: 'Referral', meaning: 'Pelanggan merekomendasikanmu ke orang lain.' },
+    ],
+    example: {
+      title: 'Kartu stamp kedai es teh',
+      text: 'Beli 10 gratis 1. Biaya satu gelas gratis Rp2.000 (biaya variabel), dan pelanggan yang mengumpulkan stamp rata-rata belanja Rp50.000 per 10 kunjungan. Artinya "diskon" efektifnya cuma 4% — jauh lebih hemat daripada promo potongan harga 20% untuk semua orang, dan membuat orang memilih kedaimu dibanding kedai sebelah.',
+    },
+    exercise: {
+      prompt: 'Hitung nilai pelanggan untuk bisnismu (rata-rata belanja × frekuensi × lama bertahan). Lalu pilih 2 dari 5 kebiasaan retensi yang akan kamu jalankan, dan tulis pesan "cek setelah beli" yang akan kamu kirim ke pelanggan.',
+      placeholder: 'Nilai pelanggan: Rp… × …x/tahun × … tahun = Rp… | Kebiasaan yang kupilih: 1) … 2) … | Pesan cek setelah beli: "…"',
+    },
+    tool: { to: '/app/outreach', label: 'Tulis pesan follow-up di Outreach Studio' },
+  },
+];
+
+/** Urutan belajar: harga setelah sales, retensi setelah delivery, pencatatan setelah duit. */
+const ORDER = ['b101-1', 'b101-2', 'b101-3', 'b101-4', 'b101-5', 'b101-11', 'b101-6', 'b101-7', 'b101-13', 'b101-8', 'b101-12', 'b101-9', 'b101-10'];
+const ALL = new Map([...BASE.lessons, ...EXTRA_LESSONS].map((l) => [l.id, l]));
+
+export const BUSINESS_101: LearningModule = {
+  ...BASE,
+  lessons: ORDER.map((id) => {
+    const l = ALL.get(id);
+    if (!l) throw new Error(`Pelajaran ${id} tidak ditemukan`);
+    return l;
+  }),
 };

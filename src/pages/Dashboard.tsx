@@ -114,7 +114,7 @@ export default function Dashboard() {
         <Link to="/app/toolkit" className="card-pop flex flex-col bg-white p-5 transition hover:-translate-y-0.5">
           <span className="text-3xl" aria-hidden>⚡</span>
           <h3 className="mt-2 font-display text-lg font-extrabold">AI Business Toolkit</h3>
-          <p className="text-sm text-ink/70">Prompt library · Kalkulator komisi · Proposal · Problem Map</p>
+          <p className="text-sm text-ink/70">38 prompt · Harga & BEP · Komisi · Proposal · Problem Map</p>
         </Link>
         <Link to="/app/action-plan" className="card-pop flex flex-col bg-amber-soft p-5 transition hover:-translate-y-0.5">
           <span className="text-3xl" aria-hidden>✅</span>
