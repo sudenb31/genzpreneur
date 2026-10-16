@@ -92,7 +92,9 @@ export default function AppLayout() {
         <p className="truncate text-xs text-muted">{profile?.email}</p>
         <div className="mt-2 flex flex-wrap gap-1">
           <span className="inline-block rounded-full bg-amber px-2.5 py-0.5 text-xs font-extrabold text-ink">{profile ? ROLE_LABEL[profile.role] : ''}</span>
-          {!access.loading && <span className={`inline-block rounded-full border border-ink px-2.5 py-0.5 text-xs font-extrabold ${PLAN_INFO[access.plan].tile}`}>{PLAN_INFO[access.plan].emoji} {PLAN_INFO[access.plan].name}{access.trial === 'active' || access.trial === 'ending' ? ' (trial)' : ''}</span>}
+          {!access.loading && (access.isAdmin
+            ? <span className="inline-block rounded-full border border-ink bg-lime px-2.5 py-0.5 text-xs font-extrabold" title="Admin & Super Admin bisa membuka semua fitur tanpa paket">♾️ Akses penuh</span>
+            : <span className={`inline-block rounded-full border border-ink px-2.5 py-0.5 text-xs font-extrabold ${PLAN_INFO[access.plan].tile}`}>{PLAN_INFO[access.plan].emoji} {PLAN_INFO[access.plan].name}{access.trial === 'active' || access.trial === 'ending' ? ' (trial)' : ''}</span>)}
         </div>
         <button type="button" onClick={doLogout} className="btn-ghost mt-3 w-full py-2">Keluar</button>
       </div>

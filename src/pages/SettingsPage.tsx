@@ -71,7 +71,9 @@ export default function SettingsPage() {
 
       <section className="card p-6">
         <h2 className="font-semibold">Paket & akses</h2>
-        {access.loading ? <p className="mt-2 text-sm text-muted">Memuat…</p> : (
+        {access.loading ? <p className="mt-2 text-sm text-muted">Memuat…</p> : access.isAdmin ? (
+          <p className="mt-3 text-sm">♾️ <strong>Akses penuh.</strong> Sebagai Admin/Super Admin kamu bisa membuka semua fitur tanpa paket, supaya bisa mengecek dan mendampingi peserta.</p>
+        ) : (
           <div className="mt-3 space-y-2 text-sm">
             <p>Paket: <strong>{PLAN_INFO[access.membership?.plan ?? 'none'].emoji} {PLAN_INFO[access.membership?.plan ?? 'none'].name}</strong></p>
             {access.membership?.trial && (access.trial === 'active' || access.trial === 'ending') && (
