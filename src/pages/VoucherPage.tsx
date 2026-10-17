@@ -89,7 +89,7 @@ export function RedeemVoucherForm({ initialCode = '', onDone }: { initialCode?: 
 
 /** Halaman publik /voucher — untuk pembeli dari GoAkal maupun peserta yang mau naik paket. */
 export default function VoucherPage() {
-  const { loading, firebaseUser, sendLoginLink } = useAuth();
+  const { loading, firebaseUser, profile, notInvited, sendLoginLink } = useAuth();
   const [params] = useSearchParams();
   const nav = useNavigate();
   const fromUrl = normalizeCode(params.get('kode') ?? '');
@@ -125,8 +125,15 @@ export default function VoucherPage() {
     <AuthShell
       title="Akses voucher"
       subtitle="Sudah beli paket GenZ Preneur? Tukarkan kode vouchermu di sini untuk mengaktifkan akses."
-      footer={<>Belum punya voucher? <Link to="/#harga" className="font-semibold text-ink underline">Lihat paket</Link> · <Link to="/masuk" className="font-semibold text-ink underline">Masuk</Link></>}
+      footer={<>Belum punya voucher? <Link to="/#harga" className="font-semibold text-ink underline">Lihat paket</Link> · {firebaseUser ? <Link to="/" className="font-semibold text-ink underline">Beranda</Link> : <Link to="/masuk" className="font-semibold text-ink underline">Masuk</Link>}</>}
     >
+      <nav aria-label="Navigasi halaman voucher" className="mb-6">
+        {firebaseUser && profile && !notInvited ? (
+          <Link to="/app" className="btn-ghost w-full">← Kembali ke Dashboard</Link>
+        ) : (
+          <Link to="/" className="btn-ghost w-full">← Kembali ke Beranda</Link>
+        )}
+      </nav>
       {firebaseUser ? (
         <div className="space-y-4">
           <p className="text-sm text-muted">Masuk sebagai <strong>{firebaseUser.email}</strong>.</p>
