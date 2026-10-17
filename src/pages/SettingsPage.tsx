@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useState, type FormEvent } from 'react';
 import { sendEmailVerification, updateProfile } from 'firebase/auth';
 import { z } from 'zod';
@@ -56,9 +57,10 @@ export default function SettingsPage() {
     <div className="space-y-6">
       <header>
         <p className="text-sm font-medium text-amber-ink">Akun</p>
-        <h1 className="h-page">Profil & Pengaturan</h1>
+        <h1 className="h-page">Akun & Paket</h1>
       </header>
 
+<div className="flex flex-wrap gap-2"><Link to="/voucher" className="btn-accent">Tukar voucher</Link><Link to="/#harga" className="btn-ghost">Lihat pilihan paket ↗</Link><Link to="/app/tersimpan" className="btn-ghost">Hasil tersimpan</Link></div>
       <form onSubmit={saveName} noValidate className="card space-y-4 p-6">
         <h2 className="font-semibold">Nama tampilan</h2>
         <div>

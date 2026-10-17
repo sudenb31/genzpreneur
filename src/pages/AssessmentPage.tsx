@@ -57,7 +57,7 @@ export default function AssessmentPage() {
   if (showIntro) {
     return (
       <div className="space-y-6">
-        <PageHeader eyebrow="Assessment Industri + Profil Cuan" title={<>Bisnis apa yang paling <span className="text-amber">kamu banget</span>?</>}
+        <PageHeader eyebrow="Temukan Jalurmu · Assessment" title={<>Bisnis apa yang paling <span className="text-amber">kamu banget</span>?</>}
           desc={`${QUESTIONS.length} pertanyaan (±8 menit) dalam 2 bagian. Hasilnya: 3 industri paling cocok, jalur mulai, cara mulai modal Rp0, dan Profil Cuan-mu — lengkap dengan contoh tokoh dunia & tokoh Muslim.`} />
         <div className="grid gap-4 sm:grid-cols-2">
           {(['industry', 'profile'] as const).map((sec) => (

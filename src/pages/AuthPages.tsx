@@ -9,7 +9,7 @@ import { readPendingVoucher, RedeemVoucherForm } from './VoucherPage';
 
 export function AuthShell({ title, subtitle, children, footer }: { title: string; subtitle: string; children: ReactNode; footer: ReactNode }) {
   return (
-    <main className="grid min-h-screen lg:grid-cols-2">
+    <main className="auth-shell grid min-h-screen lg:grid-cols-[0.9fr_1.1fr]">
       <section className="hidden flex-col justify-between bg-ink p-10 text-paper lg:flex">
         <Link to="/" className="text-paper"><Logo /></Link>
         <div>
@@ -19,9 +19,9 @@ export function AuthShell({ title, subtitle, children, footer }: { title: string
         <p className="text-xs text-paper/50">© {new Date().getFullYear()} GenZ Preneur</p>
       </section>
       <section className="flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-sm">
+        <div className="w-full max-w-md">
           <Link to="/" className="mb-8 inline-block lg:hidden"><Logo /></Link>
-          <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+          <Link to="/" className="mb-6 inline-flex min-h-10 items-center text-sm font-semibold text-muted hover:text-ink">← Kembali ke Beranda</Link><h1 className="font-display text-3xl font-extrabold tracking-tight">{title}</h1>
           <p className="mt-1 text-sm text-muted">{subtitle}</p>
           <div className="mt-8">{children}</div>
           <div className="mt-6 text-sm text-muted">{footer}</div>

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { Logo } from '../components/ui';
@@ -22,6 +22,7 @@ const STEPS = [
 
 export default function Home() {
   const { firebaseUser } = useAuth();
+  const [mobileMenu, setMobileMenu] = useState(false);
   const loggedIn = isFirebaseConfigured && !!firebaseUser;
   const cta = loggedIn ? { to: '/app', label: 'Buka dashboard' } : { to: '/daftar', label: 'Gabung daftar tunggu' };
   const { hash } = useLocation();
@@ -35,46 +36,50 @@ export default function Home() {
   }, [hash]);
 
   return (
-    <div className="overflow-x-hidden bg-paper text-ink">
+    <div className="public-home overflow-x-hidden bg-paper text-ink">
       {/* Nav */}
       <header className="sticky top-0 z-30 border-b-2 border-ink/10 bg-paper/85 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
-          <Logo />
+          <Link to="/" aria-label="GenZ Preneur — Beranda"><Logo /></Link>
           <nav aria-label="Navigasi publik" className="flex items-center gap-1 sm:gap-2">
-            <a href="#benefit" className="hidden rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2 md:block">Benefit</a>
+            <button type="button" aria-expanded={mobileMenu} aria-controls="public-mobile-menu" className="btn-ghost px-3 py-2 text-xs md:hidden" onClick={() => setMobileMenu(!mobileMenu)}>Menu</button>
+<a href="#benefit" className="hidden rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2 md:block">Benefit</a>
             <a href="#jalur" className="hidden rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2 md:block">Jalur</a>
             <a href="#harga" className="hidden rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2 md:block">Harga</a>
             <Link to="/voucher" className="hidden rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2 md:block">Tukar voucher</Link>
             <a href="#faq" className="hidden rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2 md:block">FAQ</a>
-            {!loggedIn && <Link to="/masuk" className="rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2">Masuk</Link>}
-            <Link to={cta.to} className="btn-primary py-2">{loggedIn ? 'Dashboard' : 'Gabung'}</Link>
+            {!loggedIn && <Link to="/masuk" className="hidden rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2 sm:inline-flex">Masuk</Link>}
+            <Link to={cta.to} className="btn-primary hidden py-2 sm:inline-flex">{loggedIn ? 'Dashboard' : 'Gabung'}</Link>
           </nav>
         </div>
+        {mobileMenu && <nav id="public-mobile-menu" aria-label="Menu situs di HP" className="grid grid-cols-2 gap-2 border-t border-line px-4 py-3 md:hidden">
+          {[{ to: '/#benefit', label: 'Isi program' }, { to: '/#jalur', label: 'Jalur mulai' }, { to: '/#harga', label: 'Paket & harga' }, { to: '/#faq', label: 'Pertanyaan umum' }, { to: '/voucher', label: 'Tukar voucher' }, { to: loggedIn ? '/app' : '/masuk', label: loggedIn ? 'Dashboard' : 'Masuk' }].map((item) => <Link key={item.to} to={item.to} className="rounded-xl bg-white px-3 py-3 text-sm font-semibold" onClick={() => setMobileMenu(false)}>{item.label}</Link>)}
+        </nav>}
       </header>
 
-      <main>
+<main id="public-content">
         {/* Hero */}
         <section className="mx-auto grid max-w-6xl gap-12 px-4 pb-16 pt-12 sm:px-6 lg:grid-cols-[1.15fr_1fr] lg:items-center lg:pt-20">
           <div>
             <div className="flex flex-wrap gap-2">
-              <span className="chip bg-lime" style={{ transform: 'rotate(-3deg)' }}>✦ Modal Rp0</span>
-              <span className="chip bg-lilac" style={{ transform: 'rotate(2deg)' }}>⚡ AI Toolkit</span>
-              <span className="chip bg-sky" style={{ transform: 'rotate(-1deg)' }}>✅ 7-day plan</span>
+              <span className="chip bg-lime" style={{ transform: 'rotate(-3deg)' }}>Mulai dari skill yang kamu punya</span>
+              <span className="chip bg-lilac" style={{ transform: 'rotate(2deg)' }}>Belajar + alat bisnis</span>
+              <span className="chip bg-sky" style={{ transform: 'rotate(-1deg)' }}>Action Plan 7 Hari</span>
             </div>
             <h1 className="mt-6 font-display text-[2.75rem] font-extrabold leading-[0.95] tracking-tight sm:text-7xl">
-              Nggak punya bisnis?<br />
+              Punya kemauan.<br />
               <span className="relative inline-block">
-                <span className="relative z-10">Mulai aja dulu.</span>
+                <span className="relative z-10">Mulai langkahmu.</span>
                 <span aria-hidden className="absolute inset-x-0 bottom-1 z-0 h-4 -rotate-1 bg-amber sm:h-6" />
               </span>
             </h1>
             <p className="mt-6 max-w-xl text-lg text-ink/75">
-              GenZ Preneur bantu kamu nemuin industri yang paling cocok, belajar jualan, dan chat duluan ke mentor & bisnis yang udah jalan —
-              <strong className="text-ink"> tanpa modal uang.</strong>
+              Temukan jalur usaha, pelajari dasarnya, lalu praktik: hitung harga, susun penawaran, dan mulai percakapan dengan calon pelanggan.
+              <strong className="text-ink"> Bisa mulai dengan membantu bisnis yang sudah berjalan.</strong>
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link to={cta.to} className="btn-accent px-7 py-3.5 text-base">{cta.label} →</Link>
-              <a href="#benefit" className="btn-ghost px-7 py-3.5 text-base">Lihat isinya</a>
+              <a href="#benefit" className="btn-ghost px-7 py-3.5 text-base">Jelajahi isi program ↓</a>
             </div>
             <p className="mt-4 text-xs text-muted">Akses lewat undangan — gabung daftar tunggu, link masuk dikirim ke emailmu. Tidak ada jaminan penghasilan.</p>
           </div>
@@ -104,11 +109,14 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Marquee */}
+        <section aria-label="Hasil yang bisa kamu kerjakan" className="mx-auto mb-12 grid max-w-6xl gap-3 px-4 sm:grid-cols-3 sm:px-6">
+          {[{ no: '01', title: 'Temukan titik mulai', desc: 'Kenali minat, skill, dan jalur yang ingin kamu coba.' }, { no: '02', title: 'Bawa pulang hasil kerja', desc: 'Latihan, perhitungan harga, dan penawaran yang bisa dipakai.' }, { no: '03', title: 'Lakukan langkah nyata', desc: 'Susun pesan personal dan jalankan Action Plan harian.' }].map((item) => <div key={item.no} className="flex gap-4 rounded-2xl border border-line bg-white p-5"><span className="font-display text-sm font-extrabold text-amber-ink">{item.no}</span><div><h2 className="text-sm font-bold">{item.title}</h2><p className="mt-1 text-xs leading-relaxed text-muted">{item.desc}</p></div></div>)}
+        </section>
+        {/* Jalur mulai — statis agar nyaman dibaca */}
         <section aria-label="Contoh jalur mulai" className="border-y-2 border-ink bg-ink py-3 text-paper">
-          <div className="flex w-max gap-8 whitespace-nowrap" style={{ animation: 'marquee 28s linear infinite' }}>
-            {[...PATHS, ...PATHS].map((p, i) => (
-              <span key={i} className="font-display text-lg font-extrabold">{p} <span className="text-amber" aria-hidden>✦</span></span>
+          <div className="mx-auto flex max-w-6xl flex-wrap justify-center gap-x-6 gap-y-3 px-4">
+            {PATHS.map((p, i) => (
+              <span key={i} className="font-display text-sm font-bold">{p} <span className="text-amber" aria-hidden>✦</span></span>
             ))}
           </div>
         </section>
@@ -136,9 +144,9 @@ export default function Home() {
             <div className="mt-10 grid gap-4 md:grid-cols-6">
               {SITE.benefits.map((b, i) => (
                 <article key={b.no}
-                  className={`card-pop p-6 ${b.tile} ${i < 2 ? 'md:col-span-3' : 'md:col-span-2'}`}>
+                  className={`public-benefit card-pop p-6 ${i < 2 ? 'md:col-span-3' : 'md:col-span-2'}`}>
                   <div className="flex items-start justify-between">
-                    <span className="text-4xl" aria-hidden>{b.emoji}</span>
+                    <span className="benefit-icon" aria-hidden>{b.emoji}</span>
                     <span className="chip bg-white">#{b.no}</span>
                   </div>
                   <h3 className="mt-6 font-display text-2xl font-extrabold leading-tight">{b.title}</h3>
@@ -217,7 +225,7 @@ export default function Home() {
 
             <div className="mt-10 flex flex-col gap-3 rounded-3xl border-2 border-lime p-6 sm:flex-row sm:items-center sm:justify-between">
               <p className="font-display text-xl font-extrabold">Bingung pilih yang mana? <span className="text-lime">36 soal Assessment</span> bantu mengarahkan.</p>
-              <Link to={cta.to} className="btn-accent shrink-0">{loggedIn ? 'Buka Assessment' : 'Gabung daftar tunggu'} →</Link>
+              <Link to={loggedIn ? '/app/assessment' : cta.to} className="btn-accent shrink-0">{loggedIn ? 'Buka Assessment' : 'Gabung daftar tunggu'} →</Link>
             </div>
           </div>
         </section>

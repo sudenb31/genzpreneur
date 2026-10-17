@@ -56,7 +56,7 @@ export default function ActionPlanPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Benefit #5 · Practical Action Plan" title={<>7 hari dari <span className="text-amber">bingung</span> ke <span className="text-amber">bergerak</span>.</>}
+      <PageHeader eyebrow="Praktik harian · Action Plan" title={<>7 hari dari <span className="text-amber">bingung</span> ke <span className="text-amber">bergerak</span>.</>}
         desc="Satu misi per hari, ±45–60 menit. Centang yang sudah kamu kerjakan — progres tersimpan otomatis."
         right={<div className="w-full sm:w-60"><ProgressBar value={pct} label={`${done}/${ALL_TASK_IDS.length} misi`} /></div>} />
 

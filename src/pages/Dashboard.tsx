@@ -1,140 +1,103 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
+import { useAccess } from '../auth/AccessProvider';
 import { getAssessment, getDreamPact, getPassport, getProgress } from '../lib/data';
 import { dreamPactProgress } from '../lib/dreamPact';
 import { useAsync } from '../lib/useAsync';
 import { completionPercent } from '../lib/passport';
-import { MODULES, SEASONS } from '../content/modules';
+import { nextLearningLesson, lessonUrl } from '../lib/learning';
+import { MODULES } from '../content/modules';
 import { ACTION_PLAN, ALL_TASK_IDS } from '../content/actionPlan';
 import { INDUSTRIES } from '../content/industries';
 import { TRACKS } from '../content/assessment';
-import { ErrorState, PageSkeleton, ProgressBar, TILE_BG } from '../components/ui';
+import { ErrorState, PageSkeleton, ProgressBar } from '../components/ui';
 
+const QUICK_TOOLS = [
+  { to: '/app/toolkit?tab=hpp', icon: '↗', label: 'Hitung harga jual', desc: 'HPP, biaya & margin', feature: 'toolkit' as const },
+  { to: '/app/toolkit?tab=calculator', icon: '%', label: 'Simulasi komisi', desc: 'Hitung hasil per penjualan', feature: 'toolkit' as const },
+  { to: '/app/toolkit?tab=proposal', icon: '▤', label: 'Susun proposal', desc: 'Buat penawaran yang jelas', feature: 'toolkit' as const },
+  { to: '/app/outreach', icon: '↗', label: 'Cari pelanggan', desc: 'Siapkan pesan personal', feature: 'outreach' as const },
+];
 
 export default function Dashboard() {
   const { profile, firebaseUser } = useAuth();
+  const access = useAccess();
   const { data, loading, error, reload } = useAsync(async () => {
     const [passport, assessment, progress, pact] = await Promise.all([
-      getPassport(profile!.uid, profile!.displayName),
-      getAssessment(profile!.uid),
-      getProgress(profile!.uid),
-      getDreamPact(profile!.uid, profile!.displayName),
+      getPassport(profile!.uid, profile!.displayName), getAssessment(profile!.uid), getProgress(profile!.uid), getDreamPact(profile!.uid, profile!.displayName),
     ]);
     return { passport, assessment, progress, pact };
   }, [profile?.uid]);
-
-  if (loading) return <PageSkeleton />;
+  if (loading || access.loading) return <PageSkeleton />;
   if (error || !data) return <ErrorState message={error ?? 'Data tidak tersedia.'} onRetry={reload} />;
 
   const { passport, assessment, progress, pact } = data;
-  const pactPct = dreamPactProgress(pact.data).pct;
   const passportPct = completionPercent(passport.data);
-  const seasonStats = SEASONS.map((se) => {
-    const lessons = MODULES.filter((m) => m.season === se.no).flatMap((m) => m.lessons);
-    const done = lessons.filter((l) => progress.lessons[l.id]?.done).length;
-    return { se, done, total: lessons.length, pct: lessons.length ? Math.round((done / lessons.length) * 100) : 0 };
-  });
-  const SEASON_TILE = ['bg-lime', 'bg-pink', 'bg-sky', 'bg-lilac'];
+  const pactPct = dreamPactProgress(pact.data).pct;
+  const allLessons = MODULES.flatMap((m) => m.lessons);
+  const doneLessons = allLessons.filter((l) => progress.lessons[l.id]?.done).length;
   const tasksDone = ALL_TASK_IDS.filter((id) => progress.tasks[id]).length;
-  const planPct = Math.round((tasksDone / ALL_TASK_IDS.length) * 100);
   const currentDay = ACTION_PLAN.find((d) => d.tasks.some((t) => !progress.tasks[t.id]));
+  const learning = nextLearningLesson(progress.lessons, access.can);
   const firstName = (profile?.displayName || 'Entrepreneur').split(' ')[0];
-
-  // Langkah berikutnya — urutan deterministik.
-  const next =
-    passportPct < 100 ? { to: '/app/passport', label: 'Lengkapi Passport', why: `Baru ${passportPct}% — dipakai untuk personalisasi semua tools.` }
-    : !assessment ? { to: '/app/assessment', label: 'Ikuti Assessment Industri', why: '±8 menit untuk tahu industri, jalur, dan Profil Cuan-mu.' }
-    : currentDay ? { to: '/app/action-plan', label: `Lanjut Action Plan · Hari ${currentDay.day}`, why: currentDay.goal }
-    : pactPct < 100 ? { to: '/app/dream-pact', label: 'Selesaikan Dream Pact', why: 'Tulis komitmenmu, cetak, dan tempel di tempat yang sering kamu lihat.' }
-    : { to: '/app/outreach', label: 'Kirim outreach berikutnya', why: 'Action Plan selesai 🎉 Pertahankan ritme minggu ini.' };
+  const next = access.can('actionPlan') && currentDay
+    ? { to: '/app/action-plan', label: `Hari ${currentDay.day}: ${currentDay.goal}`, desc: 'Buka daftar tugas hari ini. Kerjakan satu dulu, lalu tandai yang sudah selesai.', cta: 'Kerjakan Action Plan' }
+    : learning
+    ? { to: lessonUrl(learning.mod.slug, learning.lesson.id), label: learning.lesson.title, desc: `${learning.lesson.minutes} menit membaca, lalu praktik lewat latihan yang bisa kamu simpan.`, cta: 'Buka pelajaran' }
+    : access.can('outreach')
+    ? { to: '/app/outreach', label: 'Siapkan percakapan dengan calon pelanggan.', desc: 'Susun pesan yang relevan untuk satu bisnis yang ingin kamu bantu.', cta: 'Siapkan pesan' }
+    : { to: '/app/tersimpan', label: 'Tinjau kembali hasil kerjamu.', desc: 'Buka catatan dan hasil yang sudah kamu simpan, lalu pilih yang ingin dikembangkan.', cta: 'Buka hasil tersimpan' };
 
   return (
-    <div className="space-y-8">
-      <header className="relative overflow-hidden rounded-[2rem] border-2 border-ink bg-ink p-6 text-paper shadow-[5px_5px_0_0_#ff5a1f] sm:p-8">
-        <span aria-hidden className="absolute -right-6 -top-6 h-32 w-32 rounded-full bg-amber/30 blur-2xl" />
-        <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-lime">Dashboard</p>
-        <h1 className="mt-1 font-display text-4xl font-extrabold tracking-tight sm:text-5xl">Yo, {firstName}! 👋</h1>
-        <p className="mt-2 max-w-xl text-paper/75">Satu langkah kecil yang jelas lebih berguna daripada rencana besar yang nggak dijalankan.</p>
-        <div className="mt-6 flex flex-col gap-3 rounded-3xl bg-paper/10 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-paper/60">Langkah berikutnya</p>
-            <p className="font-display text-xl font-extrabold">{next.label}</p>
-            <p className="text-sm text-paper/70">{next.why}</p>
-          </div>
-          <Link to={next.to} className="btn-accent shrink-0">Gas →</Link>
-        </div>
+    <div className="space-y-8 sm:space-y-10">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div><p className="eyebrow">Ruang bertumbuhmu</p><h1 className="mt-2 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">Halo, {firstName}<span className="text-amber">.</span></h1><p className="mt-2 text-sm text-muted">Belajar sedikit. Praktik langsung. Bangun langkahmu sendiri.</p></div>
+        <Link to="/app/tersimpan" className="text-sm font-semibold underline underline-offset-4">Lihat hasil tersimpan ↗</Link>
       </header>
 
-      {firebaseUser && !firebaseUser.emailVerified && (
-        <div role="note" className="rounded-2xl border-2 border-amber bg-amber-soft px-4 py-3 text-sm font-semibold text-amber-ink">
-          Email kamu belum terverifikasi. Cek inbox/spam {firebaseUser.email}. Verifikasi akan diwajibkan sebelum pembelian program.
+      <section aria-labelledby="today-title" className="dashboard-focus">
+        <div className="relative z-10 max-w-2xl">
+          <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-paper/80"><span aria-hidden className="h-1.5 w-1.5 rounded-full bg-amber" />Fokus hari ini</p>
+          <h2 id="today-title" className="font-display text-2xl font-extrabold leading-tight tracking-tight sm:text-4xl">{next.label}</h2>
+          <p className="mt-4 max-w-lg text-sm leading-relaxed text-paper/75">{next.desc}</p>
+          <Link to={next.to} className="btn-accent mt-6">{next.cta} →</Link>
+          <p className="mt-4 text-xs text-paper/65">Mulai dari satu langkah. Nggak harus beres semuanya hari ini.</p>
         </div>
-      )}
+        <span aria-hidden className="dashboard-focus-mark">↗</span>
+      </section>
 
-      <section className="grid gap-4 md:grid-cols-2">
-        <Link to="/app/passport" className="card-pop block p-5 transition hover:-translate-y-0.5">
-          <div className="flex items-center justify-between">
-            <h2 className="font-display text-lg font-extrabold">🪪 Entrepreneur Passport</h2>
-            <span className="chip">{passportPct}%</span>
+      {firebaseUser && !firebaseUser.emailVerified && <div role="note" className="rounded-2xl border border-amber/40 bg-amber-soft p-4 text-sm text-amber-ink">Email belum terverifikasi. Cek inbox atau spam <strong className="break-all">{firebaseUser.email}</strong> untuk melanjutkan verifikasi akun.</div>}
+
+      <section aria-label="Progres nyata" className="grid grid-cols-2 gap-3 sm:gap-4">
+        <div className="card p-4 sm:p-5"><p className="text-xs font-semibold text-muted">Pelajaran selesai</p><p className="mt-2 font-display text-3xl font-extrabold">{doneLessons}<span className="ml-1 text-sm font-medium text-muted">/ {allLessons.length}</span></p><p className="mt-1 text-xs text-muted">Sesuai pelajaran yang kamu tandai</p></div>
+        <div className="card p-4 sm:p-5"><p className="text-xs font-semibold text-muted">Tugas Action Plan selesai</p><p className="mt-2 font-display text-3xl font-extrabold">{tasksDone}<span className="ml-1 text-sm font-medium text-muted">/ {ALL_TASK_IDS.length}</span></p><p className="mt-1 text-xs text-muted">Sesuai checklist yang kamu isi</p></div>
+      </section>
+
+      <div className="grid gap-6 xl:grid-cols-[1.3fr_1fr]">
+        <section aria-labelledby="continue-title" className="card flex flex-col p-5 sm:p-6">
+          <div className="mb-5 flex items-center justify-between gap-3"><h2 id="continue-title" className="section-title">Lanjut belajar</h2><Link to="/app/kurikulum" className="text-xs font-bold text-muted underline">Semua materi</Link></div>
+          {learning ? <>
+            <p className="text-xs font-semibold text-muted">Season {learning.mod.season} · {learning.mod.title}</p>
+            <h3 className="mt-2 font-display text-xl font-extrabold leading-snug">{learning.lesson.title}</h3>
+            <p className="mt-2 text-sm text-muted">{learning.lesson.minutes} menit · {progress.lessons[learning.lesson.id]?.reflection.trim() ? 'Ada latihan tersimpan untuk dilanjutkan' : 'Baca, praktik, lalu simpan latihanmu'}</p>
+            <div className="my-5"><ProgressBar value={Math.round(doneLessons / allLessons.length * 100)} label={`${doneLessons} dari ${allLessons.length} pelajaran selesai`} /></div>
+            <Link to={lessonUrl(learning.mod.slug, learning.lesson.id)} className="btn-primary mt-auto self-start">Lanjutkan pelajaran →</Link>
+          </> : <><p className="text-sm text-muted">{doneLessons === allLessons.length ? 'Semua pelajaran sudah kamu tandai selesai. Buka kembali materi untuk mengulang atau memperbarui latihan.' : 'Belum ada pelajaran berikutnya yang tersedia pada aksesmu. Kamu bisa meninjau materi yang sudah selesai atau melihat paket.'}</p><Link to="/app/kurikulum" className="btn-ghost mt-5 self-start">Buka ruang belajar →</Link></>}
+        </section>
+        <section aria-labelledby="direction-title" className="card p-5 sm:p-6">
+          <h2 id="direction-title" className="section-title">Arah & bekalmu</h2>
+          <p className="mt-2 text-sm text-muted">Kenali diri sambil jalan. Profil lengkap bukan syarat untuk mulai belajar.</p>
+          <div className="mt-5 divide-y divide-line">
+            <Link to="/app/assessment" className="dashboard-row"><span><strong className="block text-sm">Temukan Jalurmu</strong><span className="mt-1 block text-xs text-muted">{assessment ? `${INDUSTRIES[assessment.topIndustries[0]].name} · ${TRACKS[assessment.track].name}` : 'Assessment industri & Profil Cuan'}</span></span><span aria-hidden>↗</span></Link>
+            <Link to="/app/passport" className="dashboard-row"><span><strong className="block text-sm">Passport · Profil Usaha</strong><span className="mt-1 block text-xs text-muted">{passportPct}% lengkap · minat, skill & kondisimu</span></span><span aria-hidden>↗</span></Link>
+            <Link to="/app/dream-pact" className="dashboard-row"><span><strong className="block text-sm">Kontrak Mimpi</strong><span className="mt-1 block text-xs text-muted">{access.can('dreamPact') ? `${pactPct}% lengkap · komitmen yang bisa dicetak` : '🔒 Lihat akses Dream Pact'}</span></span><span aria-hidden>↗</span></Link>
           </div>
-          <div className="mt-4"><ProgressBar value={passportPct} label="Kelengkapan" /></div>
-        </Link>
-        <Link to="/app/assessment" className={`card-pop block p-5 transition hover:-translate-y-0.5 ${assessment ? 'bg-sky' : ''}`}>
-          <div className="flex items-center justify-between">
-            <h2 className="font-display text-lg font-extrabold">🧭 Assessment Industri</h2>
-            <span className="chip bg-white">{assessment ? 'Selesai' : 'Belum'}</span>
-          </div>
-          {assessment ? (
-            <p className="mt-3 text-sm">
-              Top: <strong>{INDUSTRIES[assessment.topIndustries[0]].emoji} {INDUSTRIES[assessment.topIndustries[0]].name}</strong><br />
-              Jalur: <strong>{TRACKS[assessment.track].name}</strong>
-            </p>
-          ) : <p className="mt-3 text-sm text-muted">36 pertanyaan · industri + Profil Cuan.</p>}
-        </Link>
-      </section>
+        </section>
+      </div>
 
-      <section>
-        <div className="mb-3 flex items-end justify-between gap-3">
-          <h2 className="font-display text-2xl font-extrabold">Kurikulum · 4 Season</h2>
-          <Link to="/app/kurikulum" className="text-sm font-bold underline">Lihat semua →</Link>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {seasonStats.map(({ se, done, total, pct }, i) => (
-            <Link key={se.no} to="/app/kurikulum" className={`card-pop flex flex-col p-5 transition hover:-translate-y-0.5 ${SEASON_TILE[i]}`}>
-              <span className="chip w-fit bg-white">Season {se.no}</span>
-              <h3 className="mt-3 font-display text-lg font-extrabold leading-tight">{se.name}</h3>
-              <p className="text-xs text-ink/70">{se.desc}</p>
-              <div className="mt-auto pt-4"><ProgressBar value={pct} label={`${done}/${total} pelajaran`} /></div>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <section className="grid gap-4 md:grid-cols-3">
-        <Link to="/app/toolkit" className="card-pop flex flex-col bg-white p-5 transition hover:-translate-y-0.5">
-          <span className="text-3xl" aria-hidden>⚡</span>
-          <h3 className="mt-2 font-display text-lg font-extrabold">AI Business Toolkit</h3>
-          <p className="text-sm text-ink/70">38 prompt · HPP & Harga · Komisi · Proposal · Problem Map</p>
-        </Link>
-        <Link to="/app/action-plan" className="card-pop flex flex-col bg-amber-soft p-5 transition hover:-translate-y-0.5">
-          <span className="text-3xl" aria-hidden>✅</span>
-          <h3 className="mt-2 font-display text-lg font-extrabold">Action Plan 7 Hari</h3>
-          <div className="mt-auto pt-3"><ProgressBar value={planPct} label={`${tasksDone}/${ALL_TASK_IDS.length} misi`} /></div>
-        </Link>
-        <Link to="/app/dream-pact" className="card-pop flex flex-col bg-ink p-5 text-paper transition hover:-translate-y-0.5">
-          <span className="text-3xl" aria-hidden>🌟</span>
-          <h3 className="mt-2 font-display text-lg font-extrabold">Dream Pact</h3>
-          <p className="text-sm text-paper/70">Komitmen tertulis untuk mimpi bisnismu — bisa dicetak.</p>
-          <p className="mt-auto pt-3 text-sm font-bold text-lime">{pactPct}% lengkap →</p>
-        </Link>
-      </section>
-
-      <section className={`card-pop flex flex-col gap-3 p-6 sm:flex-row sm:items-center sm:justify-between ${TILE_BG.lime}`}>
-        <div>
-          <h2 className="font-display text-xl font-extrabold">💬 Outreach Studio — modal Rp0</h2>
-          <p className="text-sm">Pesan siap kirim untuk mentor, jadi sales partner, atau menawarkan jasa ke UMKM.</p>
-        </div>
-        <Link to="/app/outreach" className="btn-primary shrink-0">Buka studio →</Link>
+      <section aria-labelledby="tools-title">
+        <div className="mb-4 flex items-center justify-between gap-3"><div><p className="eyebrow">Dari ide ke hasil kerja</p><h2 id="tools-title" className="section-title mt-1">Mau mengerjakan apa?</h2></div><Link to="/app/toolkit" className="text-sm font-semibold underline">Semua alat →</Link></div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{QUICK_TOOLS.map((tool) => <Link key={tool.to} to={tool.to} className="quick-tool"><span aria-hidden className="mb-5 grid h-10 w-10 place-items-center rounded-xl bg-amber-soft text-lg font-bold">{tool.icon}</span><h3 className="text-sm font-bold">{tool.label}</h3><p className="mt-1 text-xs leading-relaxed text-muted">{tool.desc}</p><p className="mt-4 text-xs font-bold">{access.can(tool.feature) ? 'Buka alat →' : '🔒 Lihat akses'}</p></Link>)}</div>
       </section>
     </div>
   );

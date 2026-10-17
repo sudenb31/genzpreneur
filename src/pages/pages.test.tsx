@@ -16,7 +16,7 @@ const wrap = (ui: React.ReactNode, path = '/') => (
 describe('halaman publik', () => {
   it('Home tampil tanpa klaim jaminan penghasilan', () => {
     render(wrap(<Home />));
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Mulai aja dulu');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Mulai langkahmu');
     expect(screen.getAllByText(/Rp\s?49\.000/).length).toBeGreaterThan(0);
     expect(screen.getByText('GenZ Boost', { exact: false, selector: 'h3' })).toBeInTheDocument();
     expect(document.body.textContent).toMatch(/coba GenZ Boost gratis 3 hari/);

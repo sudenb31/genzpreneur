@@ -22,7 +22,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={push}>
       {children}
-      <div aria-live="polite" className="pointer-events-none fixed inset-x-4 bottom-4 z-50 flex flex-col items-end gap-2 sm:inset-x-auto sm:right-6">
+      <div aria-live="polite" className="toast-stack pointer-events-none fixed inset-x-4 bottom-4 z-50 flex flex-col items-end gap-2 sm:inset-x-auto sm:right-6">
         {toasts.map((t) => (
           <div key={t.id} role="status" className={`pointer-events-auto w-full max-w-sm rounded-2xl border-2 px-4 py-3 text-sm font-bold shadow-[3px_3px_0_0_#111112] ${tone[t.kind]}`}>
             {t.message}
@@ -42,6 +42,7 @@ export function ConfirmDialog(props: {
   title: string;
   description: ReactNode;
   confirmLabel: string;
+  cancelLabel?: string;
   danger?: boolean;
   busy?: boolean;
   onConfirm: () => void;
@@ -66,7 +67,7 @@ export function ConfirmDialog(props: {
         <div className="mt-2 text-sm text-muted">{props.description}</div>
         {props.children && <div className="mt-4">{props.children}</div>}
         <div className="mt-6 flex justify-end gap-2">
-          <button type="button" className="btn-ghost" onClick={props.onCancel} disabled={props.busy}>Batal</button>
+          <button type="button" className="btn-ghost" onClick={props.onCancel} disabled={props.busy}>{props.cancelLabel ?? 'Batal'}</button>
           <button type="button" className={props.danger ? 'btn-danger' : 'btn-primary'} onClick={props.onConfirm} disabled={props.busy}>
             {props.busy ? 'Memproses…' : props.confirmLabel}
           </button>

@@ -15,11 +15,11 @@ import { buildProblemMap, IMPACT_ZONES, PROBLEM_STEPS, type ProblemMapInput } fr
 import { CopyButton, PageHeader, PageSkeleton, useToast } from '../components/ui';
 
 const TABS = [
-  { key: 'prompts', label: '⚡ Prompt Library' },
-  { key: 'hpp', label: '🧾 Kalkulator HPP & Harga' },
-  { key: 'calculator', label: '🧮 Kalkulator Komisi' },
-  { key: 'proposal', label: '📄 Template Proposal' },
-  { key: 'problem', label: '🧩 Problem Map' },
+  { key: 'prompts', label: 'Prompt AI', desc: 'Susun instruksi siap salin' },
+  { key: 'hpp', label: 'HPP & Harga', desc: 'Tentukan biaya dan margin' },
+  { key: 'calculator', label: 'Komisi', desc: 'Simulasikan hasil penjualan' },
+  { key: 'proposal', label: 'Proposal', desc: 'Susun penawaran jasa' },
+  { key: 'problem', label: 'Problem Map', desc: 'Petakan masalah pelanggan' },
 ] as const;
 type Tab = (typeof TABS)[number]['key'];
 
@@ -30,22 +30,19 @@ export default function ToolkitPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Benefit #4 · AI Business Toolkit" title={<>Kerja lebih cepat, <span className="text-amber">tetap jujur</span>.</>}
-        desc="5 alat untuk eksekusi: prompt AI siap pakai, kalkulator HPP & harga jual, kalkulator komisi, template proposal, dan Problem Map. Setiap alat punya panduan singkat — baca dulu, lalu praktik." />
-      <div role="tablist" aria-label="Alat" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1">
-        {TABS.map((t) => (
-          <button key={t.key} role="tab" type="button" aria-selected={tab === t.key} onClick={() => setParams({ tab: t.key }, { replace: true })}
-            className={`shrink-0 rounded-full border-2 px-4 py-2 text-sm font-bold ${tab === t.key ? 'border-ink bg-ink text-paper' : 'border-line bg-white hover:border-ink'}`}>
-            {t.label}
-          </button>
-        ))}
+      <PageHeader eyebrow="Alat Bisnis · AI Business Toolkit" title={<>Dari rencana ke <span className="text-amber">hasil kerja</span>.</>}
+        desc="Pilih yang ingin kamu kerjakan. Setiap alat punya panduan dan hasil yang bisa disalin atau disimpan. Prompt AI disalin ke layanan AI pilihanmu." />
+      <div role="group" aria-label="Pilih alat bisnis" className="tool-picker">
+        {TABS.map((t) => <button key={t.key} type="button" aria-pressed={tab === t.key} aria-controls="active-tool" onClick={() => setParams({ tab: t.key })}><span className="text-sm font-bold">{t.label}</span><span className="text-xs leading-relaxed text-muted">{t.desc}</span></button>)}
       </div>
+      <section id="active-tool" aria-label={TABS.find((t) => t.key === tab)?.label} className="space-y-6">
       <ToolIntro key={tab} tool={tab} />
       {tab === 'prompts' && <PromptLibrary />}
       {tab === 'hpp' && <HppCalculator />}
       {tab === 'calculator' && <CommissionCalculator />}
       {tab === 'proposal' && <ProposalBuilder />}
       {tab === 'problem' && <ProblemMapTool />}
+      </section>
     </div>
   );
 }
@@ -62,6 +59,7 @@ function PromptLibrary() {
     ]);
     return { passport: passport.data, assessment };
   }, [profile?.uid]);
+  const [search, setSearch] = useState('');
   const [cat, setCat] = useState<'Semua' | PromptTemplate['category']>('Semua');
   const [savingId, setSavingId] = useState<string | null>(null);
 
@@ -79,7 +77,7 @@ function PromptLibrary() {
 
   const fill = (t: string) => t.replace(/\{(industri|jalur|skill|kota)\}/g, (_, k: keyof typeof vars) => vars[k]);
   const cats = ['Semua', ...PROMPT_CATEGORIES.filter((c) => PROMPTS.some((p) => p.category === c))] as const;
-  const list = PROMPTS.filter((p) => cat === 'Semua' || p.category === cat);
+  const list = PROMPTS.filter((p) => (cat === 'Semua' || p.category === cat) && `${p.title} ${p.useWhen} ${p.template}`.toLocaleLowerCase('id').includes(search.trim().toLocaleLowerCase('id')));
 
   async function save(p: PromptTemplate) {
     if (!profile) return;
@@ -102,12 +100,15 @@ function PromptLibrary() {
         <strong>Terisi otomatis:</strong> industri <em>{vars.industri}</em> · jalur <em>{vars.jalur}</em> · skill <em>{vars.skill}</em> · kota <em>{vars.kota}</em>.
         <span className="text-muted"> Lengkapi Passport & Assessment supaya prompt makin personal. Bagian [dalam kurung siku] diisi sendiri.</span>
       </div>
+      <div><label htmlFor="prompt-search" className="label">Cari prompt sesuai pekerjaanmu</label><input id="prompt-search" type="search" className="input" placeholder="Misalnya: konten, pelanggan, penawaran…" value={search} onChange={(e) => setSearch(e.target.value)} /></div>
       <div className="flex flex-wrap gap-1.5" role="group" aria-label="Kategori">
         {cats.map((c) => (
           <button key={c} type="button" aria-pressed={cat === c} onClick={() => setCat(c)}
             className={`rounded-full px-3 py-1.5 text-xs font-bold ${cat === c ? 'bg-amber text-ink' : 'bg-white text-ink/70 hover:text-ink'}`}>{c}</button>
         ))}
       </div>
+      <p role="status" className="text-xs text-muted">{list.length} prompt tersedia pada pilihan ini.</p>
+      {list.length === 0 && <div className="card p-5"><p className="font-semibold">Prompt belum ditemukan.</p><button type="button" className="btn-ghost mt-3" onClick={() => { setSearch(''); setCat('Semua'); }}>Hapus pencarian & filter</button></div>}
       <div className="grid gap-4 md:grid-cols-2">
         {list.map((p) => (
           <article key={p.id} className="card flex flex-col p-5">

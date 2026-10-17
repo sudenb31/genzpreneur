@@ -353,7 +353,7 @@ export default function PassportPage() {
       </section>
 
       {dirty && (
-        <div className="fixed inset-x-4 bottom-4 z-20 mx-auto flex max-w-xl items-center justify-between gap-3 rounded-xl bg-ink px-4 py-3 text-sm text-paper shadow-xl lg:left-[260px]">
+        <div className="save-reminder fixed inset-x-4 bottom-4 z-20 mx-auto flex max-w-xl items-center justify-between gap-3 rounded-xl bg-ink px-4 py-3 text-sm text-paper shadow-xl lg:left-[264px]">
           <span>Ada perubahan yang belum disimpan.</span>
           <button type="button" className="btn-accent py-1.5" onClick={() => void save()} disabled={saving}>{saving ? 'Menyimpan…' : 'Simpan'}</button>
         </div>

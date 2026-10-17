@@ -1,0 +1,39 @@
+BACA DULU — GENZ PRENEUR OS
+Revisi desain: 17 Oktober 2026
+
+STATUS PEMERIKSAAN
+- npm run typecheck: LULUS
+- npm test: 114 tes lulus pada 16 file
+- npm run build: BERHASIL
+- Ada peringatan ukuran bundle besar dan dynamic import yang belum memecah bundle. Tidak menghalangi build; optimasi pemuatan menjadi pekerjaan lanjutan.
+- Tampilan desktop dan HP diperiksa lewat browser menggunakan data contoh lokal yang terpisah dari aplikasi produksi. Data contoh/alat pemeriksaan TIDAK disertakan dalam ZIP ini.
+- Belum dilakukan pengujian penyimpanan ulang di akun Firebase produksi Bos. Tes otomatis penyimpanan memakai pengganti data agar tidak mengubah data asli.
+- Tes Security Rules berbasis emulator tidak dijalankan. Java tidak tersedia di lingkungan ini. Rules tidak diubah.
+
+CARA MEMASANG — UPLOAD GITHUB
+1. Buka folder Downloads, cari genz-preneur-os-design-revisi-2026-10-17.zip.
+2. Klik kanan file ZIP, pilih Extract All / Ekstrak Semua.
+3. Buka folder hasil ekstrak, lalu buka folder genz-preneur-os di dalamnya.
+4. Buka https://github.com/sudenb31/genzpreneur. Pastikan branch yang dipakai adalah branch yang terhubung ke deployment Vercel Bos.
+5. Klik Add file, lalu Upload files.
+6. Upload seluruh ISI folder genz-preneur-os ke root repo: folder src, public, docs, tests, dan file konfigurasi lainnya. Jangan upload file ZIP atau folder pembungkus genz-preneur-os sebagai folder baru di dalam repo.
+7. Tulis commit message: Revisi desain, navigasi HP, dan dashboard tindakan.
+8. Klik Commit changes untuk menyimpan ke branch deployment Bos.
+9. Buka Vercel, pilih proyek GenZ Preneur, masuk Deployments. Tunggu deployment terbaru berstatus Ready.
+10. Buka situs. Jika masih terlihat versi lama, tekan Ctrl+Shift+R di komputer, atau buka tab baru/incognito di HP dan masuk kembali.
+
+FIREBASE — TIDAK PERLU PUBLISH ULANG UNTUK REVISI INI
+firestore.rules TIDAK BERUBAH. Tidak ada perubahan skema data atau konfigurasi autentikasi. Jangan mengganti atau melemahkan Rules karena revisi desain ini.
+Jika Rules versi voucher sebelumnya belum dipublikasikan, pengecekan itu tetap perlu diselesaikan secara terpisah.
+
+CEK SETELAH DEPLOY (SEKITAR 10–15 MENIT)
+- Dashboard menampilkan Fokus hari ini, pelajaran berikutnya, progres, dan alat cepat.
+- HP menampilkan menu bawah Beranda, Belajar, Alat, Akun. Tombol Menu membuka semua fitur.
+- Cari kata harga di Belajar. Hapus pencarian untuk melihat semua modul.
+- Buka pelajaran, isi latihan, pilih Simpan draf. Buka ulang: jawaban tetap ada, tetapi pelajaran belum ditandai selesai.
+- Ubah latihan lalu pindah pelajaran. Pastikan muncul pengingat latihan belum disimpan.
+- Buka Alat Bisnis, pilih HPP & Harga. Coba pencarian di Prompt AI.
+- Buka Voucher, lalu klik Kembali ke Dashboard.
+- Tes peserta Spark dalam mode Sesuai paket: penguncian fitur tetap sesuai paket.
+
+Detail perubahan: docs/DESIGN-REVISION.md.
