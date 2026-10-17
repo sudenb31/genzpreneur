@@ -25,7 +25,9 @@ describe('halaman publik', () => {
     // 10 jalur mulai & FAQ tanpa fitur yang belum ada
     expect(screen.getByText('Banyak jalan ke cuan pertama.')).toBeInTheDocument();
     expect(screen.getByText('Digitalisasi UMKM')).toBeInTheDocument();
-    expect(document.body.textContent).not.toMatch(/AI Coach/);
+    // "AI Coach" hanya boleh disebut sebagai layanan di Heybinder (bukan fitur palsu di aplikasi ini).
+    expect(document.body.textContent).toMatch(/AI Coach di Heybinder/);
+    expect(document.body.textContent).not.toMatch(/AI Coach menggantikan/);
   });
 
   it('rute /app tanpa konfigurasi Firebase menampilkan layar setup, bukan crash', () => {
