@@ -1,39 +1,69 @@
-BACA DULU — GENZ PRENEUR OS
-Revisi desain: 17 Oktober 2026
+GENZ PRENEUR OS — REVISI MISI PERTAMA, 17 OKTOBER 2026
 
-STATUS PEMERIKSAAN
-- npm run typecheck: LULUS
-- npm test: 114 tes lulus pada 16 file
-- npm run build: BERHASIL
-- Ada peringatan ukuran bundle besar dan dynamic import yang belum memecah bundle. Tidak menghalangi build; optimasi pemuatan menjadi pekerjaan lanjutan.
-- Tampilan desktop dan HP diperiksa lewat browser menggunakan data contoh lokal yang terpisah dari aplikasi produksi. Data contoh/alat pemeriksaan TIDAK disertakan dalam ZIP ini.
-- Belum dilakukan pengujian penyimpanan ulang di akun Firebase produksi Bos. Tes otomatis penyimpanan memakai pengganti data agar tidak mengubah data asli.
-- Tes Security Rules berbasis emulator tidak dijalankan. Java tidak tersedia di lingkungan ini. Rules tidak diubah.
+FILE TERBARU
+genz-preneur-os-misi-pertama-2026-10-17.zip
+Salinan ZIP dan dokumen keputusan tersedia di Downloads. Gunakan versi ini, menggantikan ZIP Founder Studio sebelumnya.
 
-CARA MEMASANG — UPLOAD GITHUB
-1. Buka folder Downloads, cari genz-preneur-os-design-revisi-2026-10-17.zip.
-2. Klik kanan file ZIP, pilih Extract All / Ekstrak Semua.
-3. Buka folder hasil ekstrak, lalu buka folder genz-preneur-os di dalamnya.
-4. Buka https://github.com/sudenb31/genzpreneur. Pastikan branch yang dipakai adalah branch yang terhubung ke deployment Vercel Bos.
-5. Klik Add file, lalu Upload files.
-6. Upload seluruh ISI folder genz-preneur-os ke root repo: folder src, public, docs, tests, dan file konfigurasi lainnya. Jangan upload file ZIP atau folder pembungkus genz-preneur-os sebagai folder baru di dalam repo.
-7. Tulis commit message: Revisi desain, navigasi HP, dan dashboard tindakan.
-8. Klik Commit changes untuk menyimpan ke branch deployment Bos.
-9. Buka Vercel, pilih proyek GenZ Preneur, masuk Deployments. Tunggu deployment terbaru berstatus Ready.
-10. Buka situs. Jika masih terlihat versi lama, tekan Ctrl+Shift+R di komputer, atau buka tab baru/incognito di HP dan masuk kembali.
+KEPUTUSAN UTAMA
+Fokus: pemula yang sudah punya satu skill menyiapkan bantuan kecil untuk bisnis yang sudah berjalan, mencoba pendekatan personal, lalu mengevaluasi dan memperbaiki. Ini hipotesis yang akan diuji, bukan pembeda yang sudah terbukti atau jaminan pelanggan.
 
-FIREBASE — TIDAK PERLU PUBLISH ULANG UNTUK REVISI INI
-firestore.rules TIDAK BERUBAH. Tidak ada perubahan skema data atau konfigurasi autentikasi. Jangan mengganti atau melemahkan Rules karena revisi desain ini.
-Jika Rules versi voucher sebelumnya belum dipublikasikan, pengecekan itu tetap perlu diselesaikan secara terpisah.
+PERUBAHAN APLIKASI
+- Misi Pertama: sembilan tahap dengan hasil kerja, contoh ilustrasi, kriteria cek mandiri, bantuan saat buntu, dan materi/alat sesuai kebutuhan.
+- Simpan draf sebagian tanpa wajib profil lengkap. Unduh teks hasil yang sudah tersimpan.
+- Checklist dan catatan tujuh hari lama tetap di /app/action-plan/arsip; tidak dimigrasikan menjadi bukti hasil kerja baru.
+- Dashboard dan navigasi mendahulukan Misi. Assessment, Passport dan Dream Pact opsional; skor profil diberi batas dan disembunyikan dalam detail opsional.
+- Landing/paket diselaraskan. Pendampingan Impact hanya pencatatan minat, bukan penjualan dengan jadwal pasti. Paket/trial aplikasi tidak menjanjikan konsultasi harian.
+- Tautan AI Coach Heybinder dari Bos di Akun & Paket. Layanan eksternal, percakapan belum sinkron ke Misi. Ikuti ketentuan layanan dan periksa jawabannya.
+- Visual Founder Studio dipertahankan: lime/lilac/sky/pink, garis dan bayangan tegas, area baca putih, navigasi HP serta kembali ke Dashboard.
 
-CEK SETELAH DEPLOY (SEKITAR 10–15 MENIT)
-- Dashboard menampilkan Fokus hari ini, pelajaran berikutnya, progres, dan alat cepat.
-- HP menampilkan menu bawah Beranda, Belajar, Alat, Akun. Tombol Menu membuka semua fitur.
-- Cari kata harga di Belajar. Hapus pencarian untuk melihat semua modul.
-- Buka pelajaran, isi latihan, pilih Simpan draf. Buka ulang: jawaban tetap ada, tetapi pelajaran belum ditandai selesai.
-- Ubah latihan lalu pindah pelajaran. Pastikan muncul pengingat latihan belum disimpan.
-- Buka Alat Bisnis, pilih HPP & Harga. Coba pencarian di Prompt AI.
-- Buka Voucher, lalu klik Kembali ke Dashboard.
-- Tes peserta Spark dalam mode Sesuai paket: penguncian fitur tetap sesuai paket.
+UPLOAD GITHUB → CEK VERCEL
+1. Ekstrak ZIP dari Downloads, buka folder genz-preneur-os di dalamnya.
+2. Buka repo GitHub yang terhubung proyek Vercel Bos (repo sebelumnya: sudenb31/genzpreneur). Pastikan repo dan branch deployment benar.
+3. Add file → Upload files. Upload seluruh ISI folder proyek ke root repo. Jangan upload ZIP atau menambah folder pembungkus genz-preneur-os di dalam repo.
+4. Pastikan src/content/mission.ts, src/lib/mission.ts, src/pages/MissionPage.tsx serta perubahan src/main.tsx ikut terunggah, juga docs, tests, public dan konfigurasi.
+5. Commit changes, misalnya: Sambungkan Misi Pertama dan selaraskan janji produk.
+6. Vercel → proyek Bos → Deployments. Tunggu deployment commit tersebut berstatus Ready. Buka URL deployment itu dan uji; jangan menganggap build lokal berarti production sudah terpasang.
+7. Jika produksi belum berganti, periksa branch/domain yang aktif, lalu hard refresh Ctrl+Shift+R atau buka tab baru di HP.
+8. Tidak perlu mengubah environment variables untuk revisi ini. Jangan menimpa konfigurasi Firebase produksi dengan nilai contoh .env.example.
 
-Detail perubahan: docs/DESIGN-REVISION.md.
+FIREBASE: TIDAK PERLU PUBLISH RULES ULANG
+firestore.rules sama persis dengan ZIP awal yang diberikan Bos. Entitlement akun lama, dependency dan konfigurasi Firebase tidak diganti.
+Misi memakai progres akun yang sudah ada, melalui key work-v1-* di plan.notes dan merge; tidak menimpa d1–d7, task lama atau pelajaran.
+Tidak ada migrasi wajib atau koleksi baru. firestore.rules.txt tidak diperlukan untuk revisi ini. Jika deployment Bos belum memakai Rules baseline proyek, cek kondisi tersebut secara terpisah; jangan melonggarkan Rules untuk mengatasi error.
+
+HASIL PEMERIKSAAN
+- npm run typecheck: LULUS.
+- npm test: 131 tes LULUS pada 19 file (termasuk serialisasi Misi, hubungan materi, komponen simpan/gagal/pindah draf, serta bentuk payload merge).
+- npm run build: BERHASIL. Ada peringatan chunk JS sekitar 1,38 MB sebelum gzip dan dynamic import Firebase yang tidak memecah bundle. Optimasi pemuatan belum dikerjakan.
+- Browser: desktop dan viewport HP 390 × 844, fixture data contoh lokal yang jelas diberi label. Simpan, pindah tahap, kembali ke hasil tersimpan, batal meninggalkan draf, kembali ke Dashboard, dan href Heybinder diperiksa. Tidak ditemukan gulir horizontal pada viewport HP yang diperiksa.
+- Fixture QA, node_modules, cache dan hasil build tidak disertakan dalam ZIP.
+- Auth/Firestore produksi belum diuji end-to-end memakai akun Bos. Tes payload menggunakan mock, bukan server database nyata.
+- Tes Rules emulator tidak dijalankan karena Java tidak tersedia. Rules tidak berubah.
+- Login, kuota dan jawaban Heybinder belum diuji sebagai peserta; tombol memakai URL yang Bos berikan.
+
+BATAS FUNGSIONAL
+- Centang kriteria adalah penilaian peserta, bukan pemeriksaan otomatis atas kualitas atau keberhasilan bisnis.
+- Draf belum disimpan masih berada di layar saja. Dialog melindungi pindah lewat tombol tahap dan tautan aplikasi, dan browser memberi peringatan saat menutup/memuat ulang. Tombol Back/Forward browser pada navigasi SPA belum mempunyai dialog khusus: simpan dahulu. Ini bukan autosave/offline draft.
+- Teks maksimal 1.600 karakter per tahap, dengan batas serialisasi 2.000 karakter; teks penuh karakter yang perlu escape (misalnya banyak baris baru) bisa perlu diringkas. Penyimpanan gagal tidak memotong teks diam-diam.
+- File contoh disimpan sendiri; Misi hanya menyimpan teks/tautan. Alat belum otomatis menyalin hasil ke Misi. Gunakan kode prospek, bukan nomor/email pelanggan.
+- Sesuai Rules saat ini, pemilik dan admin bisa membaca progres. Item Tersimpan memiliki aturan terpisah hanya untuk pemilik.
+
+CEK SETELAH DEPLOY DENGAN AKUN PESERTA UJI
+1. Masuk → Dashboard → Lanjut Misi Pertama. Profil kosong tidak menjadi prasyarat.
+2. Isi draf tahap pertama, simpan tanpa semua centang. Buka halaman lain, kembali dan refresh: teks tetap ada. Jika gagal, catat error; jangan ubah Rules sembarang.
+3. Ubah teks lalu pilih tahap lain: dialog tampil; Kembali ke draf mempertahankan teks. Simpan sebelum memakai Back/Forward browser.
+4. Centang kriteria, simpan; ubah teks: centang kembali kosong agar dinilai lagi.
+5. Isi tahap lain; unduh hasil tersimpan dan periksa file teks. Pastikan catatan tujuh hari lama dan progres pelajaran tetap ada.
+6. Uji peserta Spark dalam mode Sesuai paket: kerangka Misi tersedia, alat tambahan tetap terkunci sesuai akses.
+7. Akun & Paket → Buka undangan AI Coach. Uji dengan akun peserta baru dan ikuti instruksi Heybinder tanpa mengirim data pelanggan.
+8. HP: menu bawah Beranda/Misi/Alat/Akun, tombol Menu untuk semua fitur, kembali ke Dashboard bekerja.
+9. Landing: harga aplikasi Spark/Boost, Impact hanya daftar minat, tidak ada klaim konsultasi harian atau jaminan hasil.
+
+DOKUMEN PENDAMPING
+docs/KEPUTUSAN-PRODUK-DAN-PILOT.md: audit, tiga pilihan posisi, alur sembilan tahap, dua klinik kerja, kapasitas untuk 6/12/20 peserta, asumsi dan keputusan lanjut/ubah/hentikan.
+docs/TEMPLATE-CATATAN-PILOT.md: persetujuan, rubrik peninjau, bukti pekerjaan/percobaan/kegunaan lapangan dan waktu founder.
+docs/DESIGN-REVISION.md: riwayat revisi desain terdahulu; bila berbeda, panduan rilis ini dan dokumen keputusan terbaru berlaku untuk cakupan revisi ini.
+
+SARAN LANGKAH BOS
+Upload GitHub → tunggu Vercel Ready → uji akun peserta/Firebase dan Heybinder → tetapkan tanggal serta batas pendampingan → pilot enam peserta selama dua pekan. Dua sesi live, satu per pekan, adalah rancangan; tidak ada jadwal kalender dibuat otomatis.
+Untuk penjadwalan setelah tanggal dipilih, balas "masukin kalender".
