@@ -16,18 +16,26 @@ const wrap = (ui: React.ReactNode, path = '/') => (
 describe('halaman publik', () => {
   it('Home tampil tanpa klaim jaminan penghasilan', () => {
     render(wrap(<Home />));
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Mulai langkahmu');
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Bantu bisnis orang.');
     expect(screen.getAllByText(/Rp\s?49\.000/).length).toBeGreaterThan(0);
     expect(screen.getByText('GenZ Boost', { exact: false, selector: 'h3' })).toBeInTheDocument();
-    expect(document.body.textContent).toMatch(/coba GenZ Boost gratis 3 hari/);
-    expect(document.body.textContent).toMatch(/coba GenZ Impact gratis 7 hari/);
+    expect(document.body.textContent).toMatch(/Trial aplikasi/);
+    expect(document.body.textContent).toMatch(/7 hari/);
     expect(document.body.textContent).toMatch(/Tidak ada jaminan penghasilan/);
     // 10 jalur mulai & FAQ tanpa fitur yang belum ada
-    expect(screen.getByText('Banyak jalan ke cuan pertama.')).toBeInTheDocument();
+    expect(screen.getByText('Jalur referensi untuk dieksplorasi.')).toBeInTheDocument();
     expect(screen.getByText('Digitalisasi UMKM')).toBeInTheDocument();
     // "AI Coach" hanya boleh disebut sebagai layanan di Heybinder (bukan fitur palsu di aplikasi ini).
     expect(document.body.textContent).toMatch(/AI Coach di Heybinder/);
     expect(document.body.textContent).not.toMatch(/AI Coach menggantikan/);
+    expect(document.querySelector('s')).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'GenZ Impact' })).not.toBeInTheDocument();
+  });
+
+  it('minat Impact tetap daftar minat tanpa kepastian jadwal', () => {
+    render(wrap(<WaitlistPage />, '/daftar?minat=impact'));
+    expect(screen.getByRole('button', { name: /Impact/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText(/Pendampingan belum dibuka/)).toBeInTheDocument();
   });
 
   it('rute /app tanpa konfigurasi Firebase menampilkan layar setup, bukan crash', () => {
@@ -60,3 +68,4 @@ describe('validasi daftar tunggu', () => {
   it('email tidak valid ditolak', () => expect(waitlistSchema.safeParse({ ...ok, email: 'rani' }).success).toBe(false));
   it('tanpa persetujuan ditolak', () => expect(waitlistSchema.safeParse({ ...ok, consent: false }).success).toBe(false));
 });
+

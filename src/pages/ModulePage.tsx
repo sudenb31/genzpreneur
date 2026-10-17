@@ -92,7 +92,7 @@ export default function ModulePage() {
 
   return (
     <div className="space-y-6">
-      <header className="card flex flex-wrap items-center gap-4 p-5">
+      <header className="lesson-module-header card flex flex-wrap items-center gap-4 p-5">
         <span className="grid h-12 w-12 place-items-center rounded-xl bg-amber-soft text-2xl" aria-hidden>{mod.emoji}</span>
         <div className="flex-1">
           <p className="text-xs font-extrabold uppercase tracking-[0.14em]"><button type="button" className="underline" disabled={saving} onClick={() => requestMove('/app/kurikulum')}>Belajar</button> · Season {mod.season} · {SEASONS[mod.season - 1].name}</p>
@@ -178,13 +178,14 @@ export default function ModulePage() {
               <button type="button" className="btn-ghost" disabled={saving || !dirty} onClick={() => void persist(lp?.done ?? false)}>Simpan draf</button>
               {lp?.done && <button type="button" className="btn-ghost" disabled={saving} onClick={() => void persist(false)}>Tandai belum selesai</button>}
             </div>
+            <button type="button" className="btn-ghost" disabled={saving} onClick={() => requestMove('/app/action-plan')}>Terapkan di Misi Pertama →</button>
             {lesson.tool && <button type="button" className="btn-ghost" disabled={saving} onClick={() => requestMove(lesson.tool!.to)}>{lesson.tool.label} →</button>}
             <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
               <button type="button" className="text-sm font-semibold underline" disabled={saving} onClick={() => requestMove('/app/kurikulum')}>← Semua materi</button>
               <button type="button" className="btn-primary" disabled={saving} onClick={() => {
                 if (next) open(next.id);
                 else requestMove(nextModule ? `/app/belajar/${nextModule.slug}` : '/app/dream-pact');
-              }}>{next ? 'Pelajaran berikutnya →' : nextModule ? 'Modul berikutnya →' : 'Buka Kontrak Mimpi →'}</button>
+              }}>{next ? 'Pelajaran berikutnya →' : nextModule ? 'Modul berikutnya →' : 'Buka Misi Pertama →'}</button>
             </div>
           </div>
         </article>

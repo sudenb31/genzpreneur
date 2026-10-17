@@ -154,13 +154,13 @@ export function CopyButton({ text, label = 'Salin', className = 'btn-ghost' }: {
 
 export function PageHeader({ eyebrow, title, desc, right }: { eyebrow: string; title: ReactNode; desc?: ReactNode; right?: ReactNode }) {
   return (
-    <header className="flex flex-wrap items-end justify-between gap-4">
+    <header className="workspace-page-header flex flex-wrap items-end justify-between gap-4">
       <div className="max-w-2xl">
         <p className="eyebrow">{eyebrow}</p>
         <h1 className="h-page mt-1">{title}</h1>
         {desc && <p className="mt-2 text-muted">{desc}</p>}
       </div>
-      {right}
+      {right ?? <span aria-hidden className="brand-sticker">IDE → AKSI ✦</span>}
     </header>
   );
 }

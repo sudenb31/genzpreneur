@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { INDUSTRIES, INDUSTRY_KEYS, type IndustryKey } from '../content/industries';
 import { getAssessment, saveItem } from '../lib/data';
@@ -20,7 +20,7 @@ export default function OutreachPage() {
   const qScenario = params.get('skenario');
 
   const [input, setInput] = useState<OutreachInput>({
-    scenario: isScenario(qScenario) ? qScenario : 'mentor',
+    scenario: isScenario(qScenario) ? qScenario : 'service_offer',
     channel: 'whatsapp',
     tone: 'casual',
     myName: profile?.displayName ?? '',
@@ -67,9 +67,10 @@ export default function OutreachPage() {
 
   return (
     <div className="space-y-8">
-      <PageHeader eyebrow="Outreach Studio · Modal Rp0" title={<>Chat duluan, <span className="text-amber">tanpa canggung</span>.</>}
-        desc="Pilih tujuanmu, isi beberapa detail, dan dapatkan pesan yang personal — untuk mentor, jadi sales partner bisnis orang, atau menawarkan jasa." />
+      <PageHeader eyebrow="Pendekatan personal · Outreach Studio" title={<>Siapkan pesan yang <span className="text-amber">relevan</span>.</>}
+        desc="Mulai dari pengamatan, contoh, dan penawaranmu. Pesan ini adalah draf; kamu memeriksa dan mengirimnya sendiri, tanpa broadcast." />
 
+      <Link to="/app/action-plan?tahap=approach" className="btn-ghost">← Buka tahap pendekatan di Misi Pertama</Link>
       {/* Skenario */}
       <section aria-labelledby="sc-h">
         <h2 id="sc-h" className="mb-3 font-display text-lg font-extrabold">1. Mau ngapain?</h2>

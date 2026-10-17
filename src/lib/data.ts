@@ -28,6 +28,7 @@ import {
   buildTrial, isPlanKey, normalizeEmail, type Membership, type PlanKey, type Trial, type TrialPlan,
 } from './membership';
 import { normalizeCode, type Voucher } from './voucher';
+import { encodeMissionDraft, missionKey, type MissionDraft } from './mission';
 
 /* ------------------------------ Users ------------------------------ */
 
@@ -289,6 +290,14 @@ export async function setTask(uid: string, taskId: string, done: boolean) {
 
 export async function setDayNote(uid: string, day: number, note: string) {
   await setDoc(progressRef(uid), { ownerUid: uid, plan: { notes: { [`d${day}`]: note.slice(0, 2000) } }, updatedAt: serverTimestamp() }, { merge: true });
+}
+
+/** New work drafts live alongside legacy day notes; no migration or rule expansion. */
+export async function saveMissionArtifact(uid: string, stepId: string, draft: MissionDraft) {
+  const key = missionKey(stepId);
+  const encoded = encodeMissionDraft(draft);
+  await setDoc(progressRef(uid), { ownerUid: uid, plan: { notes: { [key]: encoded } }, updatedAt: serverTimestamp() }, { merge: true });
+  return encoded;
 }
 
 /* ---------------------------- Saved items --------------------------- */

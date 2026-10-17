@@ -33,7 +33,7 @@ beforeEach(() => {
 describe('dashboard action guidance', () => {
   it('offers a real task even when the Passport is incomplete', async () => {
     render(<MemoryRouter><Dashboard /></MemoryRouter>);
-    expect(await screen.findByRole('link', { name: 'Kerjakan Action Plan →' })).toHaveAttribute('href', '/app/action-plan');
+    expect(await screen.findByRole('link', { name: 'Lanjut Misi Pertama →' })).toHaveAttribute('href', '/app/action-plan?tahap=start');
     expect(screen.getByRole('link', { name: 'Lanjutkan pelajaran →' })).toHaveAttribute('href', expect.stringContaining('/app/belajar/'));
     expect(screen.queryByRole('link', { name: 'Lengkapi Passport' })).not.toBeInTheDocument();
   });
@@ -41,7 +41,7 @@ describe('dashboard action guidance', () => {
     mocks.can.mockImplementation((...args: unknown[]) => args[0] !== 'actionPlan');
     render(<MemoryRouter><Dashboard /></MemoryRouter>);
     expect(await screen.findByRole('link', { name: 'Buka pelajaran →' })).toHaveAttribute('href', expect.stringContaining('/app/belajar/'));
-    expect(screen.queryByRole('link', { name: 'Kerjakan Action Plan →' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Lanjut Misi Pertama →' })).not.toBeInTheDocument();
   });
 });
 

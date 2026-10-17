@@ -166,13 +166,13 @@ export default function PassportPage() {
   if (showSummary) {
     return (
       <div className="space-y-6">
-        <header className="flex flex-wrap items-end justify-between gap-4">
+        <header className="workspace-page-header flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="eyebrow">Entrepreneur Passport</p>
             <h1 className="h-page">Rangkuman profil entrepreneur-mu</h1>
             <p className="mt-1 max-w-xl text-sm text-muted">Dihitung otomatis dari isian Passport-mu. Ubah isian kapan saja — rangkuman ikut berubah.</p>
           </div>
-          <div className="w-full sm:w-64"><ProgressBar value={pct} label="Kelengkapan" /></div>
+          <div className="w-full sm:w-64"><ProgressBar value={pct} label="Isian profil (opsional)" /></div>
         </header>
         <PassportSummary
           passport={record.data}
@@ -186,14 +186,14 @@ export default function PassportPage() {
 
   return (
     <div className="space-y-6 pb-24">
-      <header className="flex flex-wrap items-end justify-between gap-4">
+      <header className="workspace-page-header flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-amber-ink">Entrepreneur Passport</p>
           <h1 className="h-page">Profil entrepreneur-mu</h1>
-          <p className="mt-1 max-w-xl text-sm text-muted">Diisi sekali, dipakai di semua tools. Hanya kamu yang bisa mengubah data ini.</p>
+          <p className="mt-1 max-w-xl text-sm text-muted">Isian opsional untuk merefleksikan kondisi dan mengisi beberapa bagian prompt. Tidak perlu lengkap untuk mulai Misi Pertama.</p>
         </div>
         <div className="flex w-full flex-col gap-2 sm:w-64">
-          <ProgressBar value={pct} label="Kelengkapan" />
+          <ProgressBar value={pct} label="Isian profil (opsional)" />
           {record.exists && (
             <button type="button" className="text-left text-sm font-semibold underline" onClick={() => { setEditing(false); setParams({}, { replace: true }); if (record) setDraft(record.data); }}>
               ← Kembali ke rangkuman{dirty ? ' (batalkan perubahan)' : ''}
@@ -204,7 +204,7 @@ export default function PassportPage() {
 
       {welcome && (
         <div role="status" className="rounded-xl border border-ok/30 bg-ok-soft px-4 py-3 text-sm text-ok">
-          Akun berhasil dibuat. Mulai dengan melengkapi Passport — sekitar 5 menit.
+          Akun aktif. Kamu boleh mulai Misi Pertama; profil dapat dilengkapi nanti.
         </div>
       )}
 

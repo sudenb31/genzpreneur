@@ -15,11 +15,11 @@ import { buildProblemMap, IMPACT_ZONES, PROBLEM_STEPS, type ProblemMapInput } fr
 import { CopyButton, PageHeader, PageSkeleton, useToast } from '../components/ui';
 
 const TABS = [
-  { key: 'prompts', label: 'Prompt AI', desc: 'Susun instruksi siap salin' },
-  { key: 'hpp', label: 'HPP & Harga', desc: 'Tentukan biaya dan margin' },
-  { key: 'calculator', label: 'Komisi', desc: 'Simulasikan hasil penjualan' },
-  { key: 'proposal', label: 'Proposal', desc: 'Susun penawaran jasa' },
-  { key: 'problem', label: 'Problem Map', desc: 'Petakan masalah pelanggan' },
+  { key: 'prompts', icon: '⚡', label: 'Prompt AI', desc: 'Susun instruksi siap salin' },
+  { key: 'hpp', icon: '🧾', label: 'HPP & Harga', desc: 'Tentukan biaya dan margin' },
+  { key: 'calculator', icon: '🧮', label: 'Komisi', desc: 'Simulasikan hasil penjualan' },
+  { key: 'proposal', icon: '📄', label: 'Proposal', desc: 'Susun penawaran jasa' },
+  { key: 'problem', icon: '🧩', label: 'Problem Map', desc: 'Petakan masalah pelanggan' },
 ] as const;
 type Tab = (typeof TABS)[number]['key'];
 
@@ -31,9 +31,10 @@ export default function ToolkitPage() {
   return (
     <div className="space-y-6">
       <PageHeader eyebrow="Alat Bisnis · AI Business Toolkit" title={<>Dari rencana ke <span className="text-amber">hasil kerja</span>.</>}
-        desc="Pilih yang ingin kamu kerjakan. Setiap alat punya panduan dan hasil yang bisa disalin atau disimpan. Prompt AI disalin ke layanan AI pilihanmu." />
+        desc="Gunakan alat sesuai tahap Misi Pertama. Hasil kalkulator dan prompt perlu diperiksa dengan data nyata; ini bukan validasi harga pasar atau AI Coach." />
+      <Link to="/app/action-plan" className="btn-ghost">← Kembali ke hasil kerja di Misi Pertama</Link>
       <div role="group" aria-label="Pilih alat bisnis" className="tool-picker">
-        {TABS.map((t) => <button key={t.key} type="button" aria-pressed={tab === t.key} aria-controls="active-tool" onClick={() => setParams({ tab: t.key })}><span className="text-sm font-bold">{t.label}</span><span className="text-xs leading-relaxed text-muted">{t.desc}</span></button>)}
+        {TABS.map((t) => <button key={t.key} type="button" aria-pressed={tab === t.key} aria-controls="active-tool" onClick={() => setParams({ tab: t.key })}><span aria-hidden className="tool-icon">{t.icon}</span><span className="text-sm font-bold">{t.label}</span><span className="text-xs leading-relaxed text-muted">{t.desc}</span></button>)}
       </div>
       <section id="active-tool" aria-label={TABS.find((t) => t.key === tab)?.label} className="space-y-6">
       <ToolIntro key={tab} tool={tab} />

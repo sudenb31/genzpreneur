@@ -8,35 +8,35 @@ import { PLAN_INFO, type FeatureKey } from '../lib/membership';
 
 const NAV_GROUPS = [
   { label: 'Ruang utamamu', items: [
-    { to: '/app', label: 'Dashboard', icon: '⌂', end: true },
-    { to: '/app/kurikulum', label: 'Belajar', icon: '▤' },
-    { to: '/app/action-plan', label: 'Action Plan · 7 Hari', icon: '✓', feature: 'actionPlan' as FeatureKey },
+    { to: '/app', label: 'Dashboard', icon: '🏠', end: true },
+    { to: '/app/action-plan', label: 'Misi Pertama', icon: '✅', feature: 'actionPlan' as FeatureKey },
+    { to: '/app/kurikulum', label: 'Belajar', icon: '📚' },
     { to: '/app/toolkit', label: 'Alat Bisnis', icon: '⚡', feature: 'toolkit' as FeatureKey },
-    { to: '/app/outreach', label: 'Cari Pelanggan', icon: '↗', feature: 'outreach' as FeatureKey },
+    { to: '/app/outreach', label: 'Cari Pelanggan', icon: '💬', feature: 'outreach' as FeatureKey },
   ] },
   { label: 'Kenali & arahkan diri', items: [
-    { to: '/app/passport', label: 'Passport · Profil Usaha', icon: '◉' },
-    { to: '/app/assessment', label: 'Temukan Jalurmu', icon: '◇' },
-    { to: '/app/dream-pact', label: 'Dream Pact · Kontrak Mimpi', icon: '✦', feature: 'dreamPact' as FeatureKey },
+    { to: '/app/passport', label: 'Passport · Profil Usaha', icon: '🪪' },
+    { to: '/app/assessment', label: 'Temukan Jalurmu', icon: '🧭' },
+    { to: '/app/dream-pact', label: 'Dream Pact · Kontrak Mimpi', icon: '🌟', feature: 'dreamPact' as FeatureKey },
   ] },
   { label: 'Akun & hasil kerja', items: [
-    { to: '/app/tersimpan', label: 'Tersimpan', icon: '▱' },
-    { to: '/voucher', label: 'Tukar Voucher', icon: '⊞' },
-    { to: '/app/pengaturan', label: 'Akun & Paket', icon: '⚙' },
+    { to: '/app/tersimpan', label: 'Tersimpan', icon: '📌' },
+    { to: '/voucher', label: 'Tukar Voucher', icon: '🎟️' },
+    { to: '/app/pengaturan', label: 'Akun & Paket', icon: '⚙️' },
   ] },
 ];
 const ADMIN_NAV = [
-  { to: '/app/admin/peserta', label: 'Peserta & Paket', icon: '◎' },
-  { to: '/app/admin/voucher', label: 'Voucher', icon: '⊞' },
-  { to: '/app/admin/daftar-tunggu', label: 'Daftar Tunggu', icon: '▤' },
-  { to: '/app/admin/pengguna', label: 'Pengguna & Role', icon: '♧' },
-  { to: '/app/admin/audit', label: 'Audit Log', icon: '≡' },
+  { to: '/app/admin/peserta', label: 'Peserta & Paket', icon: '👤' },
+  { to: '/app/admin/voucher', label: 'Voucher', icon: '🎟️' },
+  { to: '/app/admin/daftar-tunggu', label: 'Daftar Tunggu', icon: '📚' },
+  { to: '/app/admin/pengguna', label: 'Pengguna & Role', icon: '👥' },
+  { to: '/app/admin/audit', label: 'Audit Log', icon: '🧾' },
 ];
 const MOBILE_NAV = [
-  { to: '/app', label: 'Beranda', icon: '⌂', end: true },
-  { to: '/app/kurikulum', label: 'Belajar', icon: '▤', end: false },
+  { to: '/app', label: 'Beranda', icon: '🏠', end: true },
+  { to: '/app/action-plan', label: 'Misi', icon: '🛠️', end: false },
   { to: '/app/toolkit', label: 'Alat', icon: '⚡', end: false },
-  { to: '/app/pengaturan', label: 'Akun', icon: '◎', end: false },
+  { to: '/app/pengaturan', label: 'Akun', icon: '👤', end: false },
 ];
 
 export default function AppLayout() {
@@ -45,6 +45,7 @@ export default function AppLayout() {
   const nav = useNavigate();
   const toast = useToast();
   const location = useLocation();
+  const area = location.pathname.includes('/admin/') ? 'admin' : location.pathname.includes('/belajar/') || location.pathname.endsWith('/kurikulum') ? 'learn' : location.pathname.endsWith('/toolkit') ? 'tools' : location.pathname.endsWith('/action-plan') ? 'action' : location.pathname.endsWith('/assessment') || location.pathname.endsWith('/passport') ? 'profile' : location.pathname.endsWith('/dream-pact') ? 'dream' : 'home';
   const [open, setOpen] = useState(false);
   const dialog = useRef<HTMLDialogElement>(null);
   const page = [...NAV_GROUPS.flatMap((g) => g.items), ...ADMIN_NAV].find((n) => n.to === location.pathname)?.label
@@ -82,7 +83,7 @@ export default function AppLayout() {
             <p className="mb-2 px-3 text-[10px] font-extrabold uppercase tracking-[0.15em] text-muted">{g.label}</p>
             {g.items.map((n) => (
               <NavLink key={n.to} to={n.to} end={'end' in n ? n.end : undefined} className={linkCls} onClick={() => setOpen(false)}>
-                <span aria-hidden className="w-5 shrink-0 text-center text-lg">{n.icon}</span><span>{n.label}</span>
+                <span aria-hidden className="nav-icon">{n.icon}</span><span>{n.label}</span>
                 {'feature' in n && n.feature && !access.loading && !access.can(n.feature) && <span className="ml-auto text-xs" aria-label="terkunci">🔒</span>}
               </NavLink>
             ))}
@@ -95,7 +96,7 @@ export default function AppLayout() {
           </div>
         )}
       </nav>
-      <div className="mt-auto rounded-2xl border border-line bg-white p-4">
+      <div className="sidebar-account mt-auto rounded-2xl border border-line bg-white p-4">
         <p className="truncate text-sm font-bold">{profile?.displayName || 'Entrepreneur'}</p>
         <p className="mt-1 truncate text-xs text-muted">{profile?.email}</p>
         <div className="mt-3 flex flex-wrap gap-1.5">
@@ -111,9 +112,9 @@ export default function AppLayout() {
   );
 
   return (
-    <div className="workspace min-h-screen lg:grid lg:grid-cols-[264px_minmax(0,1fr)]">
+    <div data-area={area} className="workspace min-h-screen lg:grid lg:grid-cols-[264px_minmax(0,1fr)]">
       <a href="#workspace-content" className="skip-link">Lewati ke isi halaman</a>
-      <aside className="sticky top-0 hidden h-dvh border-r border-line bg-paper lg:block">{sidebar}</aside>
+      <aside className="workspace-sidebar sticky top-0 hidden h-dvh border-r border-line bg-paper lg:block">{sidebar}</aside>
       <div className="min-w-0">
         <header className="workspace-topbar">
           <div className="flex min-w-0 items-center gap-3">
@@ -124,7 +125,7 @@ export default function AppLayout() {
             </div>
           </div>
           <button type="button" className="btn-ghost px-4 lg:hidden" aria-label="Buka semua menu" aria-expanded={open} aria-controls="mobile-nav" onClick={() => setOpen(true)}>Menu</button>
-          <Link to="/app/tersimpan" className="hidden items-center gap-2 text-sm font-semibold text-muted hover:text-ink lg:flex">▱ Hasil tersimpan</Link>
+          <span aria-hidden className="brand-top-tag hidden xl:inline-flex">LEARN. EXECUTE. BUILD. ✦</span><Link to="/app/tersimpan" className="hidden items-center gap-2 text-sm font-semibold text-muted hover:text-ink lg:flex">▱ Hasil tersimpan</Link>
         </header>
         <main id="workspace-content" tabIndex={-1} className="workspace-main mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-8 sm:py-8 lg:px-10">
           {location.pathname !== '/app' && <Link to="/app" className="mb-5 inline-flex min-h-10 items-center text-sm font-semibold text-muted hover:text-ink">← Kembali ke Dashboard</Link>}

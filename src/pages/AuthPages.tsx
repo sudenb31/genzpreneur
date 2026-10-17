@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
 import { authErrorMessage, useAuth } from '../auth/AuthProvider';
 import { Logo } from '../components/ui';
@@ -211,12 +211,15 @@ export const waitlistSchema = z.object({
 const INTEREST_OPTIONS = [
   { v: 'spark', l: '⚡ GenZ Spark' },
   { v: 'boost', l: '🚀 GenZ Boost' },
-  { v: 'impact', l: '🎯 GenZ Impact' },
+  { v: 'impact', l: '🎯 Impact · catat minat' },
   { v: 'unsure', l: '🤔 Belum tahu' },
 ] as const;
 
 export function WaitlistPage() {
-  const [form, setForm] = useState({ name: '', email: '', whatsapp: '', interest: 'boost' as 'spark' | 'boost' | 'impact' | 'unsure', message: '', consent: false });
+  const [interestParams] = useSearchParams();
+  const requestedInterest = interestParams.get('minat');
+  const initialInterest = requestedInterest === 'spark' || requestedInterest === 'boost' || requestedInterest === 'impact' || requestedInterest === 'unsure' ? requestedInterest : 'boost';
+  const [form, setForm] = useState({ name: '', email: '', whatsapp: '', interest: initialInterest as 'spark' | 'boost' | 'impact' | 'unsure', message: '', consent: false });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState('');
   const [done, setDone] = useState(false);
@@ -267,7 +270,8 @@ export function WaitlistPage() {
           {field('email', 'Email', 'email', 'email', 'Link masuk akan dikirim ke email ini.')}
           {field('whatsapp', 'Nomor WhatsApp', 'tel', 'tel')}
           <fieldset>
-            <legend className="label">Paket yang kamu minati</legend>
+            <legend className="label">Akses yang kamu minati</legend>
+            {form.interest === 'impact' && <p className="mb-3 text-xs text-muted">Pendampingan belum dibuka. Ini pencatatan minat, bukan pembelian atau kepastian jadwal.</p>}
             <div className="grid grid-cols-2 gap-2">
               {INTEREST_OPTIONS.map((o) => (
                 <button key={o.v} type="button" aria-pressed={form.interest === o.v} onClick={() => setForm({ ...form, interest: o.v })}
@@ -278,7 +282,7 @@ export function WaitlistPage() {
           <div>
             <label htmlFor="message" className="label">Pesan (opsional)</label>
             <textarea id="message" rows={3} maxLength={300} className="input" value={form.message}
-              placeholder="Ceritakan singkat kondisimu atau pertanyaanmu" onChange={(e) => setForm({ ...form, message: e.target.value })} />
+              placeholder="Skill yang sudah bisa dipakai, waktu yang tersedia, dan bantuan yang ingin dicoba" onChange={(e) => setForm({ ...form, message: e.target.value })} />
             {errors.message && <p className="err">{errors.message}</p>}
           </div>
           <div>
