@@ -1,5 +1,3 @@
-> Revisi 17 Oktober 2026: posisi, batas layanan, dan rancangan pilot ada di `docs/KEPUTUSAN-PRODUK-DAN-PILOT.md`. Mulai pemasangan dari `BACA-DULU.txt`. AI Coach eksternal ditautkan di Akun & Paket; sesi live belum dibuka untuk pendaftaran.
-
 # GenZ Preneur OS
 
 **Future Entrepreneurs — Learn. Execute. Build.**
@@ -19,7 +17,7 @@ Stack: React 19 · Vite · TypeScript · Tailwind v4 · Firebase Auth + Firestor
 | 📈 Sales & Marketing Skills | 4 pelajaran + latihan |
 | 🤝 Business Partner Strategy | 4 pelajaran (5 jalur modal Rp0, skema komisi/fee) |
 | ⚡ AI Business Toolkit | 38 prompt siap salin dalam 10 kategori (riset, strategi, audit, outreach, harga, konten, branding, pelanggan, keuangan, belajar) — terisi otomatis dari Passport/Assessment; Kalkulator HPP & Harga lengkap (bahan per batch, kemasan, tenaga kerja, overhead, potongan platform, target laba → HPP, harga rekomendasi, BEP, proyeksi; mode produk & jasa; contoh siap pakai); panduan "apa ini & cara pakai" di setiap alat; kalkulator komisi; template proposal; Problem Map |
-| ✅ Misi Pertama | 9 tahap hasil kerja, cek mandiri, ekspor teks; checklist tujuh hari lama tersedia sebagai arsip |
+| ✅ Practical Action Plan | 7 hari × 3 misi + catatan harian |
 | 📌 Tersimpan | Semua pesan/prompt/proposal/simulasi/problem map yang disimpan |
 | 🗺️ Business 101 | 13 pelajaran peta dunia bisnis: 5 organ bisnis, value, marketing vs sales vs branding, STP, closing & penolakan, harga (lantai–pasar–langit-langit, 3 paket), brand = janji × bukti × konsistensi, delivery & bottleneck, retensi pelanggan (LTV vs CAC), omzet/untung/cash + BEP, pencatatan duit, strategi (5 tekanan, SWOT), eksperimen & negosiasi. Tiap pelajaran ada Mitos vs Fakta + Kamus Kilat. Terinspirasi The Personal MBA & The Visual MBA, ditulis ulang orisinal |
 | 📚 Kurikulum 4 Season | 10 modul · 49 pelajaran: Wake Up (Business 101, Mindset, Read The Game), Find Your Why & Edge (Why Engine, Find Your Edge), Build & Sell (Sales & Marketing, Business Partner), Lead & Last (Lead The Squad, Life Ops, Future Proof) |
