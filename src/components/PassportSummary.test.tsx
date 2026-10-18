@@ -12,7 +12,7 @@ describe('PassportSummary', () => {
         <PassportSummary passport={p} completion={100} assessment={{ topIndustries: ['fnb', 'retail', 'event'], topProfiles: ['creator', 'star'] }} onEdit={vi.fn()} />
       </MemoryRouter>,
     );
-    expect(screen.getByText(/Ringkasan bekal: Starter/)).toBeInTheDocument();
+    expect(screen.getByText(/Level kesiapan: Starter/)).toBeInTheDocument();
     expect(screen.getByText(/Langkah berikutnya buatmu/)).toBeInTheDocument();
     expect(screen.getByText(/Si Pencipta/)).toBeInTheDocument();
     expect(screen.getByTestId('readiness')).toHaveTextContent('0');

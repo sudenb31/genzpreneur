@@ -105,7 +105,7 @@ const CORE_MODULES: LearningModule[] = [
           prompt: 'Tentukan target aktivitasmu minggu ini (contoh: menghubungi 10 bisnis). Tulis juga apa yang akan kamu lakukan saat ditolak supaya tetap jalan.',
           placeholder: 'Target minggu ini: … Kalau ditolak, aku akan…',
         },
-        tool: { to: '/app/action-plan', label: 'Buka Misi Pertama' },
+        tool: { to: '/app/action-plan', label: 'Buka Action Plan' },
       },
       {
         id: 'mindset-4',

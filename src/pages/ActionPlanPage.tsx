@@ -56,11 +56,10 @@ export default function ActionPlanPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Arsip catatan lama" title="Checklist tujuh hari versi lama"
-        desc="Catatan dan centang lamamu tetap ada. Untuk latihan baru yang berfokus pada hasil kerja, buka Misi Pertama."
+      <PageHeader eyebrow="Benefit #5 · Practical Action Plan" title={<>7 hari dari <span className="text-amber">bingung</span> ke <span className="text-amber">bergerak</span>.</>}
+        desc="Satu misi per hari, ±45–60 menit. Centang yang sudah kamu kerjakan — progres tersimpan otomatis."
         right={<div className="w-full sm:w-60"><ProgressBar value={pct} label={`${done}/${ALL_TASK_IDS.length} misi`} /></div>} />
 
-      <Link to="/app/action-plan" className="btn-accent">Buka Misi Pertama →</Link>
       <ol className="grid grid-cols-7 gap-1.5 sm:gap-2" aria-label="Hari">
         {ACTION_PLAN.map((d) => {
           const all = d.tasks.every((t) => progress.tasks[t.id]);

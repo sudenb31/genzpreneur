@@ -385,7 +385,7 @@ const BASE: LearningModule = {
         prompt: 'Rancang satu eksperimen 7 hari untuk ide bisnismu: apa hipotesisnya, versi kecil apa yang akan kamu tawarkan, ke berapa orang, dan angka apa yang akan kamu ukur. Tulis juga rencana cadanganmu kalau hasilnya nol.',
         placeholder: 'Hipotesis: … | Versi kecil: … | Diuji ke: … orang | Angka yang diukur: … | Rencana cadangan: …',
       },
-      tool: { to: '/app/action-plan', label: 'Terapkan di Misi Pertama' },
+      tool: { to: '/app/action-plan', label: 'Jalankan lewat Action Plan 7 Hari' },
     },
   ],
 };

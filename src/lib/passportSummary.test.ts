@@ -41,11 +41,11 @@ describe('summarizePassport', () => {
 });
 
 describe('nextSteps', () => {
-  it('belum assessment → langkah pertama misi; maksimal 4; tanpa duplikat', () => {
+  it('belum assessment → langkah pertama assessment; maksimal 4; tanpa duplikat', () => {
     const p = emptyPassport('A');
     p.resources.startBudget = 'zero';
     const st = nextSteps(p, summarizePassport(p), false);
-    expect(st[0].to).toBe('/app/action-plan');
+    expect(st[0].to).toBe('/app/assessment');
     expect(st.length).toBeLessThanOrEqual(4);
     expect(new Set(st.map((x) => x.to)).size).toBe(st.length);
   });

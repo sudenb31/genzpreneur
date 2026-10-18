@@ -7,7 +7,7 @@ import {
  * Ringkasan Passport — dihitung deterministik dari isian (bukan AI).
  * Skor kesiapan 0–100 = waktu (25) + perangkat (15) + pengalaman melayani
  * pelanggan (15) + pengalaman bisnis (20) + rata-rata skill (25).
- * Indeks ini merupakan heuristik produk yang belum divalidasi sebagai ukuran kesiapan.
+ * Ini mengukur KESIAPAN MULAI (modal waktu, alat, jam terbang), bukan bakat.
  */
 
 export type ReadinessKey = 'starter' | 'builder' | 'runner';
@@ -66,13 +66,27 @@ export interface NextStep { title: string; why: string; to: string; cta: string 
 
 /** Langkah berikutnya, maksimal 4, urut prioritas. */
 export function nextSteps(p: Passport, s: PassportSummary, hasAssessment: boolean): NextStep[] {
-  const hours = p.resources.hoursPerWeek;
-  const steps: NextStep[] = [{ title: 'Siapkan satu bantuan kecil', why: hours && hours > 0 ? `Pilih cakupan sesuai waktu yang kamu tulis: ${hours} jam per minggu. Buat contoh sebelum menawarkan.` : 'Mulai dari waktu dan skill yang benar-benar tersedia. Profil tidak harus lengkap.', to: '/app/action-plan', cta: 'Buka Misi Pertama' }];
-  if (!hasAssessment) steps.push({ title: 'Assessment sebagai refleksi (opsional)', why: 'Gunakan jawaban untuk mencari alternatif, lalu cek kebutuhan melalui pengamatan dan percakapan nyata.', to: '/app/assessment', cta: 'Lihat assessment opsional' });
-  if (s.gaps.some((g) => g.key === 'sales' || g.key === 'communication')) steps.push({ title: 'Latih percakapan penawaran', why: 'Pelajari cara bertanya dan menjelaskan bantuan, sesuai kebutuhan pekerjaanmu saat ini.', to: '/app/belajar/business-101?pelajaran=b101-5', cta: 'Baca contoh percakapan' });
-  steps.push({ title: 'Dream Pact untuk arah jangka panjang (opsional)', why: 'Boleh dikerjakan setelah percobaan kecil; bukan syarat mengirim penawaran.', to: '/app/dream-pact', cta: 'Buka Dream Pact' });
-  return steps.slice(0, 4);
+  const steps: NextStep[] = [];
+  if (!hasAssessment) {
+    steps.push({ title: 'Kerjakan Assessment + Profil Cuan', why: 'Tahu industri, jalur, dan cara alamimu menciptakan nilai sebelum memilih bisnis.', to: '/app/assessment', cta: 'Mulai assessment' });
+  }
+  if ((p.resources.hoursPerWeek ?? 0) < 5) {
+    steps.push({ title: 'Kunci minimal 5 jam per minggu', why: 'Waktumu masih di bawah 5 jam. Blok jadwal tetap di kalender — konsistensi lebih penting dari durasi.', to: '/app/action-plan', cta: 'Lihat Action Plan' });
+  }
+  const gapKeys = new Set(s.gaps.map((g) => g.key));
+  if (gapKeys.has('sales') || gapKeys.has('communication') || p.resources.customerExperience === 'none') {
+    steps.push({ title: 'Latih skill jualan & komunikasi', why: 'Ini skill yang paling cepat menghasilkan cuan pertama — dan bisa dilatih.', to: '/app/belajar/sales-marketing', cta: 'Buka modul Sales' });
+  }
+  if (p.resources.startBudget === 'zero' || p.resources.startBudget === 'under_500k') {
+    steps.push({ title: 'Mulai dari jalur modal Rp0', why: 'Jadi sales/marketing partner bisnis orang atau tawarkan jasa — tanpa stok, tanpa modal besar.', to: '/app/outreach', cta: 'Buka Outreach Studio' });
+  }
+  steps.push({ title: 'Ikuti Action Plan 7 Hari', why: 'Ubah profil ini jadi aksi: 3 misi kecil per hari.', to: '/app/action-plan', cta: 'Mulai hari 1' });
+  steps.push({ title: 'Tulis Dream Pact-mu', why: 'Komitmen tertulis + milestone sampai Dream Unlocked, bisa dicetak.', to: '/app/dream-pact', cta: 'Buka Dream Pact' });
+  // Hapus duplikat tujuan, ambil 4 teratas.
+  const seen = new Set<string>();
+  return steps.filter((x) => (seen.has(x.to) ? false : (seen.add(x.to), true))).slice(0, 4);
 }
+
 /* Label helper untuk tampilan ringkasan. */
 type Opt = readonly { value: string | number; label: string }[];
 export const labelOf = (opts: Opt, v: string | number | null | undefined) => opts.find((o) => o.value === v)?.label ?? '—';

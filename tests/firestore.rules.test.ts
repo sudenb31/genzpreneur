@@ -347,3 +347,55 @@ describe('voucher', () => {
     await assertSucceeds(getDocs(collection(ctx('adi'), 'vouchers')));
   });
 });
+
+describe('baselines (kondisi awal)', () => {
+  // DATA UJI — fiktif.
+  const base = (uid: string, extra: Record<string, unknown> = {}) => ({
+    ownerUid: uid, answers: { goal: 'unsure', smallTask: 'desain 3 postingan (uji)', skills: ['design'] },
+    step: 1, status: 'draft', chosenEntry: null, result: null, questionsVersion: 'v1', rulesVersion: 'r1',
+    createdAt: serverTimestamp(), updatedAt: serverTimestamp(), ...extra,
+  });
+
+  it('pemilik bisa membuat, membaca, dan memperbarui miliknya', async () => {
+    const db = ctx('alice');
+    await assertSucceeds(setDoc(doc(db, 'baselines', 'alice'), base('alice')));
+    await assertSucceeds(getDoc(doc(db, 'baselines', 'alice')));
+    await assertSucceeds(setDoc(doc(db, 'baselines', 'alice'), { ownerUid: 'alice', chosenEntry: 'D', updatedAt: serverTimestamp() }, { merge: true }));
+  });
+
+  it('akun lain tidak bisa membaca atau menulis; mentor biasa tidak bisa membaca', async () => {
+    await assertSucceeds(setDoc(doc(ctx('alice'), 'baselines', 'alice'), base('alice')));
+    await assertFails(getDoc(doc(ctx('bob'), 'baselines', 'alice')));
+    await assertFails(setDoc(doc(ctx('bob'), 'baselines', 'alice'), base('alice')));
+    await assertFails(setDoc(doc(ctx('bob'), 'baselines', 'alice'), base('bob')));
+    await assertFails(getDoc(doc(ctx('mia'), 'baselines', 'alice')));
+  });
+
+  it('admin & owner boleh membaca, tapi tidak boleh menulis', async () => {
+    await assertSucceeds(setDoc(doc(ctx('alice'), 'baselines', 'alice'), base('alice')));
+    await assertSucceeds(getDoc(doc(ctx('adi'), 'baselines', 'alice')));
+    await assertSucceeds(getDoc(doc(ctx('owner'), 'baselines', 'alice')));
+    await assertFails(updateDoc(doc(ctx('adi'), 'baselines', 'alice'), { chosenEntry: 'A', updatedAt: serverTimestamp() }));
+  });
+
+  it('non-anggota (tanpa dokumen users) ditolak; field asing, titik masuk tak dikenal, teks kepanjangan ditolak', async () => {
+    await assertFails(setDoc(doc(ctx('stranger'), 'baselines', 'stranger'), base('stranger')));
+    const db = ctx('alice');
+    await assertFails(setDoc(doc(db, 'baselines', 'alice'), base('alice', { income: 5000000 })));
+    await assertFails(setDoc(doc(db, 'baselines', 'alice'), base('alice', { chosenEntry: 'Z' })));
+    await assertFails(setDoc(doc(db, 'baselines', 'alice'), base('alice', { answers: { goalNote: 'x'.repeat(301) } })));
+    await assertFails(setDoc(doc(db, 'baselines', 'alice'), base('alice', { step: 9 })));
+  });
+
+  it('createdAt tidak bisa diubah setelah dibuat', async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      await setDoc(doc(c.firestore(), 'baselines', 'alice'), { ...base('alice'), createdAt: new Date('2026-01-01'), updatedAt: new Date() });
+    });
+    await assertFails(updateDoc(doc(ctx('alice'), 'baselines', 'alice'), { createdAt: serverTimestamp(), updatedAt: serverTimestamp() }));
+  });
+
+  it('menyimpan kondisi awal tidak membuka akses ke progres akun lain', async () => {
+    await assertSucceeds(setDoc(doc(ctx('alice'), 'baselines', 'alice'), base('alice')));
+    await assertFails(getDoc(doc(ctx('alice'), 'progress', 'bob')));
+  });
+});

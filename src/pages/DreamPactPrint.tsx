@@ -172,7 +172,7 @@ export default function DreamPactPrint() {
         </section>
 
         <footer className="mt-8 flex items-center justify-between border-t border-line pt-3 text-[11px] text-muted">
-          <span>GenZ Preneur · Learn. Execute. Build.</span>
+          <span>GenZ Preneur · Learn. Execute. Grow.</span>
           <span>Tinjau ulang Dream Pact ini setiap akhir bulan.</span>
         </footer>
       </article>

@@ -107,7 +107,7 @@ export default function DreamPactPage() {
 
   return (
     <div className="space-y-6 pb-24">
-      <PageHeader eyebrow="Final Boss · Dream Pact" title={<>Kontrak Mimpi <span className="text-amber">kamu</span>.</>}
+      <PageHeader eyebrow="Final Boss · Dream Pact" title={<>Pakta Mimpi <span className="text-amber">kamu</span>.</>}
         desc="Komitmen tertulis untuk mimpi bisnismu: alasan, kekuatan, mimpi, milestone, dan janji harian. Selesaikan, cetak, lalu tempel di tempat yang paling sering kamu lihat."
         right={<div className="w-full sm:w-60"><ProgressBar value={pct} label="Kelengkapan" /></div>} />
 
@@ -313,7 +313,7 @@ export default function DreamPactPage() {
       </section>
 
       {dirty && (
-        <div className="save-reminder fixed inset-x-4 bottom-4 z-20 mx-auto flex max-w-xl items-center justify-between gap-3 rounded-2xl border-2 border-ink bg-ink px-4 py-3 text-sm text-paper shadow-[4px_4px_0_0_#ff5a1f] lg:left-[264px]">
+        <div className="fixed inset-x-4 bottom-4 z-20 mx-auto flex max-w-xl items-center justify-between gap-3 rounded-2xl border-2 border-ink bg-ink px-4 py-3 text-sm text-paper shadow-[4px_4px_0_0_#ff5a1f] lg:left-[272px]">
           <span>Ada perubahan yang belum disimpan.</span>
           <button type="button" className="btn-accent py-1.5" onClick={() => void save()} disabled={saving}>{saving ? 'Menyimpan…' : 'Simpan'}</button>
         </div>

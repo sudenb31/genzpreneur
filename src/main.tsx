@@ -23,12 +23,12 @@ import ModulePage from './pages/ModulePage';
 import VoucherPage from './pages/VoucherPage';
 import AdminVouchers from './pages/admin/AdminVouchers';
 import ToolkitPage from './pages/ToolkitPage';
-import MissionPage from './pages/MissionPage';
 import ActionPlanPage from './pages/ActionPlanPage';
 import SavedPage from './pages/SavedPage';
 import CurriculumPage from './pages/CurriculumPage';
 import DreamPactPage from './pages/DreamPactPage';
 import DreamPactPrint from './pages/DreamPactPrint';
+import BaselinePage from './pages/BaselinePage';
 
 /** Build "standalone" (bisa dibuka dengan klik dua kali) memakai HashRouter. */
 const Router = import.meta.env.MODE === 'standalone' ? HashRouter : BrowserRouter;
@@ -59,11 +59,12 @@ createRoot(document.getElementById('root')!).render(
             <Route path="/app" element={<RequireAuth><AppLayout /></RequireAuth>}>
               <Route index element={<Dashboard />} />
               <Route path="passport" element={<PassportPage />} />
+              <Route path="kondisi-awal" element={<BaselinePage />} />
               <Route path="assessment" element={<AssessmentPage />} />
               <Route path="outreach" element={<RequireFeature feature="outreach"><OutreachPage /></RequireFeature>} />
               <Route path="belajar/:slug" element={<ModulePage />} />
               <Route path="toolkit" element={<RequireFeature feature="toolkit"><ToolkitPage /></RequireFeature>} />
-              <Route path="action-plan" element={<RequireFeature feature="actionPlan"><MissionPage /></RequireFeature>} /><Route path="action-plan/arsip" element={<RequireFeature feature="actionPlan"><ActionPlanPage /></RequireFeature>} />
+              <Route path="action-plan" element={<RequireFeature feature="actionPlan"><ActionPlanPage /></RequireFeature>} />
               <Route path="tersimpan" element={<SavedPage />} />
               <Route path="kurikulum" element={<CurriculumPage />} />
               <Route path="dream-pact" element={<RequireFeature feature="dreamPact"><DreamPactPage /></RequireFeature>} />

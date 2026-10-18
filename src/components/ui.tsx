@@ -22,7 +22,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={push}>
       {children}
-      <div aria-live="polite" className="toast-stack pointer-events-none fixed inset-x-4 bottom-4 z-50 flex flex-col items-end gap-2 sm:inset-x-auto sm:right-6">
+      <div aria-live="polite" className="pointer-events-none fixed inset-x-4 bottom-4 z-50 flex flex-col items-end gap-2 sm:inset-x-auto sm:right-6">
         {toasts.map((t) => (
           <div key={t.id} role="status" className={`pointer-events-auto w-full max-w-sm rounded-2xl border-2 px-4 py-3 text-sm font-bold shadow-[3px_3px_0_0_#111112] ${tone[t.kind]}`}>
             {t.message}
@@ -42,7 +42,6 @@ export function ConfirmDialog(props: {
   title: string;
   description: ReactNode;
   confirmLabel: string;
-  cancelLabel?: string;
   danger?: boolean;
   busy?: boolean;
   onConfirm: () => void;
@@ -67,7 +66,7 @@ export function ConfirmDialog(props: {
         <div className="mt-2 text-sm text-muted">{props.description}</div>
         {props.children && <div className="mt-4">{props.children}</div>}
         <div className="mt-6 flex justify-end gap-2">
-          <button type="button" className="btn-ghost" onClick={props.onCancel} disabled={props.busy}>{props.cancelLabel ?? 'Batal'}</button>
+          <button type="button" className="btn-ghost" onClick={props.onCancel} disabled={props.busy}>Batal</button>
           <button type="button" className={props.danger ? 'btn-danger' : 'btn-primary'} onClick={props.onConfirm} disabled={props.busy}>
             {props.busy ? 'Memproses…' : props.confirmLabel}
           </button>
@@ -128,8 +127,8 @@ export function ProgressBar({ value, label }: { value: number; label: string }) 
 export function Logo({ className = '' }: { className?: string }) {
   return (
     <span className={`inline-flex items-center gap-2 font-display text-lg font-extrabold tracking-tight ${className}`}>
-      <span aria-hidden className="grid h-8 w-8 rotate-[-6deg] place-items-center rounded-xl border-2 border-ink bg-amber font-display text-base font-extrabold text-ink shadow-[2px_2px_0_0_#111112]">G</span>
-      <span>GenZ<span className="text-amber">.</span>Preneur</span>
+      <img src="/logo-mark.png" alt="" aria-hidden width={32} height={32} className="h-8 w-8 object-contain" />
+      <span>Gen<span className="text-brand">Z</span> Preneur</span>
     </span>
   );
 }
@@ -154,13 +153,13 @@ export function CopyButton({ text, label = 'Salin', className = 'btn-ghost' }: {
 
 export function PageHeader({ eyebrow, title, desc, right }: { eyebrow: string; title: ReactNode; desc?: ReactNode; right?: ReactNode }) {
   return (
-    <header className="workspace-page-header flex flex-wrap items-end justify-between gap-4">
+    <header className="flex flex-wrap items-end justify-between gap-4">
       <div className="max-w-2xl">
         <p className="eyebrow">{eyebrow}</p>
         <h1 className="h-page mt-1">{title}</h1>
         {desc && <p className="mt-2 text-muted">{desc}</p>}
       </div>
-      {right ?? <span aria-hidden className="brand-sticker">IDE → AKSI ✦</span>}
+      {right}
     </header>
   );
 }

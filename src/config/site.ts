@@ -1,60 +1,92 @@
-/** Public promises describe shipped app functions. Service enrollment is separate. */
-export const PROGRAM_STATUS = {
-  enrollmentOpen: false,
-  mentor: 'Suden Bahaudin (Bung Suden)',
-  mentorCount: 1,
-  liveCadence: 'Satu sesi live per pekan',
-  coachReadyByFounderConfirmation: true,
-  coachAccessUrl: 'https://invite.heybinder.com/T8rQePvuj7b',
-  note: 'Jadwal, kuota, dan panduan akses pendampingan diumumkan sebelum pendaftaran dibuka.',
-} as const;
-
+/**
+ * Konten publik sementara (Sprint 1).
+ * Mulai Sprint 2 (produk & harga) dan Sprint 3 (CMS), data ini dipindah ke
+ * database dan dikelola dari Command Center tanpa mengubah kode.
+ *
+ * ATURAN: jangan menambahkan angka omzet, jumlah alumni, testimoni, atau
+ * klaim keberhasilan yang belum terverifikasi.
+ */
 export const SITE = {
   brand: 'GenZ Preneur',
-  tagline: 'Satu bantuan kecil. Satu percobaan nyata.',
+  tagline: 'Future Entrepreneurs — Learn. Execute. Grow.',
   philosophy: "You don't need to own a business to start becoming an entrepreneur.",
+
   instructor: {
-    name: 'Suden Bahaudin, S.Pi.', title: 'Founder & CEO GenZ Prime Corp',
-    bio: 'Menjalankan bisnis custom apparel, sales, marketing, dan relasi B2B. Di GenZ Preneur, Bung Suden membagikan cara menyiapkan bantuan dan penawaran untuk bisnis yang sudah berjalan. Pengalaman praktisi bukan jaminan hasil peserta.',
+    name: 'Suden Bahaudin, S.Pi.',
+    title: 'Founder & CEO GenZ Prime Corp',
+    bio: 'Praktisi yang membangun dan menjalankan bisnis custom apparel, sales, marketing, dan relasi B2B. Di GenZ Preneur, ia membagikan cara kerja yang ia jalankan sendiri — dari mencari calon klien sampai menutup kesepakatan.',
   },
+
   benefits: [
-    { no: 1, emoji: '🔎', title: 'Pilih satu masalah', desc: 'Pisahkan pengamatan dari dugaan dan pilih kebutuhan yang ingin kamu cek.', tile: 'bg-lime' },
-    { no: 2, emoji: '🛠️', title: 'Buat contoh bantuan', desc: 'Tentukan cakupan kecil yang sanggup kamu kerjakan, lalu buat satu contoh.', tile: 'bg-sky' },
-    { no: 3, emoji: '🧾', title: 'Susun penawaran', desc: 'Jelaskan hasil, harga, waktu, revisi, dan batas pekerjaan secara jujur.', tile: 'bg-lilac' },
-    { no: 4, emoji: '💬', title: 'Coba pendekatan personal', desc: 'Siapkan satu pesan yang relevan; kamu sendiri yang memutuskan untuk mengirim.', tile: 'bg-pink' },
-    { no: 5, emoji: '🔁', title: 'Evaluasi & perbaiki', desc: 'Catat percobaan, bedakan fakta dari tafsiran, lalu perbaiki satu hal.', tile: 'bg-amber-soft' },
+    { no: 1, emoji: '🧠', title: 'Entrepreneur Mindset', desc: 'Pola pikir dan mentalitas untuk mulai.', tile: 'bg-lime' },
+    { no: 2, emoji: '📈', title: 'Sales & Marketing Skills', desc: 'Belajar mencari prospek dan membuat penawaran.', tile: 'bg-sky' },
+    { no: 3, emoji: '🤝', title: 'Business Partner Strategy', desc: 'Belajar menawarkan jasa ke bisnis yang sudah berjalan.', tile: 'bg-lilac' },
+    { no: 4, emoji: '⚡', title: 'AI Business Toolkit', desc: 'Template dan tools untuk mendukung eksekusi.', tile: 'bg-pink' },
+    { no: 5, emoji: '✅', title: 'Practical Action Plan', desc: 'Panduan langkah awal yang terstruktur.', tile: 'bg-amber-soft' },
   ],
+
+  /**
+   * Paket — harga perkenalan batch pertama. Final dikonfigurasi admin di Sprint 2.
+   * ATURAN: fitur yang ditulis harus SUDAH ADA di aplikasi (atau jelas "sesuai jadwal program").
+   * Harga normal (refPrice) hanya boleh ditampilkan bila benar-benar berlaku setelah masa perkenalan.
+   */
   plans: [
-    { key: 'spark', saleReady: true, level: 'Mulai praktik', name: 'GenZ Spark', emoji: '⚡', price: 49_000,
-      tagline: 'Siapkan bantuan pertamamu.',
-      desc: 'Untuk pemula yang ingin membuat draf, contoh kerja, dan penawaran sederhana dengan kerangka yang bisa dikerjakan manual.',
-      features: ['Misi Pertama: 9 tahap, draf tersimpan & unduh hasil', 'Business 101 dan Season 1 sebagai materi pendukung', 'Passport & assessment opsional untuk refleksi', 'Dream Pact opsional + versi cetak', 'Bukan layanan review individual atau jaminan pelanggan'],
+    {
+      key: 'spark', level: 'Level 01 · Start', name: 'GenZ Spark', emoji: '⚡', price: 49_000, refPrice: 99_000,
+      tagline: 'Find Your Spark.',
+      desc: 'Temukan potensi, kenali peluang cuan, dan mulai langkah pertamamu.',
+      features: [
+        'Entrepreneur Passport + rangkuman kesiapan',
+        'Assessment 36 soal: industri, jalur & Profil Cuan',
+        'Business 101: 13 pelajaran peta dunia bisnis',
+        'Season 1 — Wake Up',
+        'Action Plan 7 Hari',
+        'Dream Pact + versi cetak',
+      ],
       trial: { to: 'GenZ Boost', days: 3 },
     },
-    { key: 'boost', saleReady: true, level: 'Tambahan alat kerja', name: 'GenZ Boost', emoji: '🚀', price: 149_000,
-      tagline: 'Kerangka yang sama, alat lebih lengkap.',
-      desc: 'Untuk peserta yang ingin menambah kalkulator, template proposal, dan penyusun draf pesan pada Misi Pertama.',
-      features: ['Semua fungsi GenZ Spark', 'Toolkit: HPP & Harga, Komisi, Proposal, Problem Map, prompt siap salin', 'Outreach Studio: draf pesan yang dikirim sendiri oleh peserta', 'Season 2–3 sebagai referensi sesuai kebutuhan', 'Tidak termasuk sesi live atau konsultasi harian'],
+    {
+      key: 'boost', level: 'Level 02 · Execute', name: 'GenZ Boost', emoji: '🚀', price: 149_000, refPrice: 249_000,
+      tagline: 'Turn Skills Into Action.',
+      desc: 'Bangun skill, gunakan AI business tools, dan mulai eksekusi bisnis secara nyata.',
+      features: [
+        'Semua isi GenZ Spark',
+        'Season 2 — Find Your Why & Edge',
+        'Season 3 — Build & Sell',
+        'AI Business Toolkit lengkap: 38 prompt, Kalkulator HPP & Harga, Kalkulator Komisi, Template Proposal, Problem Map',
+        'Outreach Studio: pesan ke mentor, klien & partner',
+      ],
       trial: { to: 'GenZ Impact', days: 7 },
-      badge: 'Alat lengkap',
+      badge: 'Paling Pas',
     },
-    { key: 'impact', saleReady: false, level: 'Materi lanjutan · akses lama tetap berlaku', name: 'GenZ Impact', emoji: '🎯', price: 299_000,
-      tagline: 'Pendampingan dibuka terpisah setelah siap.',
-      desc: 'Pendaftaran pendampingan belum dibuka. Jadwal, kuota, cakupan review, dan panduan akses akan diumumkan lebih dahulu.',
-      features: ['Fungsi GenZ Boost sesuai akses akun', 'Season 4 — materi lanjutan', 'Layanan manual dan AI Coach eksternal bukan fungsi otomatis aplikasi'],
-      badge: 'Belum dibuka',
+    {
+      key: 'impact', level: 'Level 03 · Accelerate', name: 'GenZ Impact', emoji: '🎯', price: 299_000, refPrice: 499_000,
+      tagline: 'Build Something That Matters.',
+      desc: 'Nggak jalan sendirian: 2 sesi live bareng Bung Suden, 30 hari dikawal mentor di grup, plus checklist harian yang dipantau AI Coach.',
+      features: [
+        'Semua isi GenZ Boost',
+        '🎙️ 2 sesi live bersama Suden Bahaudin (Bung Suden) selama program',
+        '🔥 30 hari konsultasi grup bersama mentor',
+        '🤖 AI Coach di Heybinder: pantau checklist harianmu selama 30 hari',
+        'Season 4 — Lead & Last (tim, life ops, future proof)',
+        'Challenge lanjutan + evaluasi progres di akhir 30 hari',
+      ],
+      badge: 'Premium',
     },
   ],
+
   faq: [
-    { q: 'Untuk siapa GenZ Preneur paling sesuai?', a: 'Pemula yang belum punya usaha, punya satu skill dasar dan waktu untuk membuat contoh, serta ingin mencoba membantu bisnis yang sudah berjalan. Kalau belum bisa membuat contoh sederhana, pakai materi untuk latihan dulu.' },
-    { q: 'Apa yang akan kubuat?', a: 'Catatan masalah, batas bantuan, contoh hasil kerja atau tautannya, penawaran dengan dasar harga, draf pendekatan, catatan percobaan, evaluasi, dan versi perbaikan. File contoh disimpan di tempat milikmu; aplikasi menyimpan teks/tautan dan penilaianmu sendiri.' },
-    { q: 'Kenapa memilih alur ini?', a: 'Jika kamu butuh satu tempat untuk menyiapkan bantuan kecil, mencoba pendekatan personal, dan mengevaluasi catatannya, alur ini menghubungkan pekerjaan tersebut. Apakah alur ini membantu pengguna secara nyata masih perlu diuji lewat pilot; belum ada klaim lebih unggul dari produk lain.' },
-    { q: 'Harus melengkapi profil dan assessment dulu?', a: 'Tidak. Keduanya opsional. Assessment memberi arah refleksi berdasarkan jawabanmu, bukan penentu bakat atau bukti kebutuhan pasar. Mulai dari pengamatan dan skill yang sudah kamu punya.' },
-    { q: 'Harus selesai dalam tujuh hari atau punya modal Rp0?', a: 'Tidak ada tenggat wajib tujuh hari. Perkecil bantuan sesuai waktu dan alatmu. Tidak perlu membeli stok untuk jalur bantuan jasa, tetapi waktu, perangkat, koneksi, dan biaya lain tetap perlu dihitung.' },
-    { q: 'Apakah ada jaminan penghasilan?', a: 'Tidak ada jaminan penghasilan atau pelanggan. Target yang bisa kamu kendalikan adalah membuat pekerjaan, melakukan percobaan secara etis, mencatat bukti, dan memperbaikinya. Belum dibalas atau ditolak tetap bisa dievaluasi tanpa mengarang hasil.' },
-    { q: 'Bagaimana status live, mentor, dan AI Coach?', a: 'Pendampingan belum dibuka untuk pendaftaran. Rancangannya dua sesi kerja, satu per pekan, bersama Bung Suden sebagai mentor tunggal. AI Coach di Heybinder tersedia sebagai layanan eksternal melalui tautan undangan di Akun & Paket. Ikuti ketentuan Heybinder; akses ini terpisah dari paket dan trial aplikasi. Jadwal, kuota dan cakupan pendampingan diumumkan sebelum pendaftaran dibuka. Tidak ada janji konsultasi harian atau review individual tanpa batas.' },
-    { q: 'Bagaimana akses dan trial aplikasi?', a: 'Gabung daftar tunggu atau gunakan undangan/voucher yang diberikan tim. Trial aplikasi dapat diaktifkan admin: Spark ke Boost 3 hari atau Boost ke materi Impact 7 hari, sekali per akun, tanpa tagihan otomatis. Trial tidak mencakup live, konsultasi, atau layanan AI Coach eksternal.' },
-    { q: 'Siapa yang melihat hasil kerja dan data profil?', a: 'Draf Misi Pertama disimpan pada progres akun; sesuai aturan database, pemilik dan admin dapat membacanya. Item di menu Tersimpan memiliki aturan terpisah dan hanya dibaca pemilik. Gunakan kode prospek, hindari data pribadi pelanggan, dan minta izin sebelum membagikan contoh atau kutipan untuk review/publikasi.' },
+    { q: 'Aku belum punya ide bisnis sama sekali. Cocok nggak?', a: 'Cocok — justru dibuat untuk itu. Assessment (36 soal) memetakan industri, jalur, dan Profil Cuan-mu, lalu kamu pilih satu dari 10 jalur mulai. Problem Map membantu mengubah keresahan di sekitarmu jadi ide yang bisa dicoba.' },
+    { q: 'Aku masih kuliah/kerja. Butuh waktu berapa?', a: 'Satu pelajaran 6–9 menit, dan Action Plan berisi 3 misi kecil per hari. Supaya ada kemajuan nyata, siapkan sekitar 5 jam per minggu — lebih penting rutin daripada lama.' },
+    { q: 'Bedanya apa sama nonton konten bisnis gratis di TikTok/YouTube?', a: 'Konten gratis memberi informasi yang tercecer. Di sini kamu ikut alur yang berurutan dan langsung memakai alatnya: hitung HPP & harga, bikin pesan outreach, susun proposal, dan tulis Dream Pact. Hasil kerjamu tersimpan — bukan cuma ditonton.' },
+    { q: 'Aku introvert / nggak jago jualan. Bisa?', a: 'Bisa. Sales di sini diajarkan sebagai skill: mendengar, bertanya, dan menjelaskan dengan jujur. Outreach Studio memberi draf pesan yang tinggal kamu sesuaikan, dan banyak jalur (freelance, produk digital) tidak menuntut banyak bicara.' },
+    { q: 'Apakah aku harus punya modal?', a: 'Tidak wajib. Sebagian besar dari 10 jalur bisa dimulai dengan modal Rp0 — memakai skill, waktu, dan HP yang kamu punya. Jalur produk fisik diajarkan dengan sistem pre-order supaya tidak menumpuk stok.' },
+    { q: 'Apakah ada jaminan penghasilan?', a: 'Tidak ada. GenZ Preneur membantu kamu belajar dan berlatih secara terstruktur. Hasil bergantung pada eksekusi, pasar, dan banyak faktor lain. Hati-hati dengan program apa pun yang menjanjikan angka pasti.' },
+    { q: 'Apa bedanya GenZ Impact?', a: 'GenZ Impact menambahkan pendampingan selama 30 hari: 2 sesi live bersama Suden Bahaudin, konsultasi harian di grup bersama mentor, dan AI Coach di Heybinder yang memantau checklist harianmu. Program berjalan serentak per batch; jadwal sesi dan aturan grup diumumkan saat batch dimulai.' },
+    { q: 'Gimana cara dapat akses? Ada free trial?', a: 'Akses dibuka lewat undangan: gabung daftar tunggu, tim kami menghubungimu, lalu link masuk dikirim ke emailmu — tanpa password. Setiap pembeli GenZ Spark bisa mencoba GenZ Boost gratis 3 hari, dan pembeli GenZ Boost bisa mencoba GenZ Impact gratis 7 hari — tanpa tagihan otomatis.' },
+    { q: 'Data pribadiku aman?', a: 'Data Passport hanya bisa dilihat olehmu dan admin untuk keperluan layanan, tidak dibagikan ke peserta lain, dan bisa kamu ekspor atau hapus kapan saja dari halaman Passport.' },
   ],
 } as const;
-export const formatRupiah = (n: number) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);
+
+export const formatRupiah = (n: number) =>
+  new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(n);

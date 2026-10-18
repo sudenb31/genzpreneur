@@ -28,7 +28,9 @@ import {
   buildTrial, isPlanKey, normalizeEmail, type Membership, type PlanKey, type Trial, type TrialPlan,
 } from './membership';
 import { normalizeCode, type Voucher } from './voucher';
-import { encodeMissionDraft, missionKey, type MissionDraft } from './mission';
+import {
+  normalizeAnswers, QUESTIONS_VERSION, RULES_VERSION, recommendEntry, type BaselineAnswers, type EntryKey,
+} from './baseline';
 
 /* ------------------------------ Users ------------------------------ */
 
@@ -290,14 +292,6 @@ export async function setTask(uid: string, taskId: string, done: boolean) {
 
 export async function setDayNote(uid: string, day: number, note: string) {
   await setDoc(progressRef(uid), { ownerUid: uid, plan: { notes: { [`d${day}`]: note.slice(0, 2000) } }, updatedAt: serverTimestamp() }, { merge: true });
-}
-
-/** New work drafts live alongside legacy day notes; no migration or rule expansion. */
-export async function saveMissionArtifact(uid: string, stepId: string, draft: MissionDraft) {
-  const key = missionKey(stepId);
-  const encoded = encodeMissionDraft(draft);
-  await setDoc(progressRef(uid), { ownerUid: uid, plan: { notes: { [key]: encoded } }, updatedAt: serverTimestamp() }, { merge: true });
-  return encoded;
 }
 
 /* ---------------------------- Saved items --------------------------- */
@@ -696,4 +690,77 @@ export async function listRedemptions(max = 2000): Promise<Redemption[]> {
     const x = d.data();
     return { id: d.id, code: String(x.code ?? ''), uid: String(x.uid ?? ''), email: String(x.email ?? ''), plan: String(x.plan ?? ''), createdAt: toDate(x.createdAt) };
   }).sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0));
+}
+
+/* ------------------------------ Kondisi awal ------------------------------ */
+
+
+export interface BaselineRecord {
+  exists: boolean;
+  answers: BaselineAnswers;
+  step: number;
+  status: 'draft' | 'complete';
+  /** Titik masuk yang dipilih peserta sendiri (null = ikuti rekomendasi). */
+  chosenEntry: EntryKey | null;
+  /** Hasil yang tersimpan saat terakhir diselesaikan, beserta versi aturannya. */
+  result: { entry: EntryKey; tentative: boolean; rulesVersion: string; questionsVersion: string } | null;
+  questionsVersion: string;
+  updatedAt: Date | null;
+}
+
+const isEntry = (v: unknown): v is EntryKey => typeof v === 'string' && ['A', 'B', 'C', 'D', 'E'].includes(v);
+
+export async function getBaseline(uid: string): Promise<BaselineRecord> {
+  const snap = await getDoc(doc(db(), 'baselines', uid));
+  if (!snap.exists()) {
+    return { exists: false, answers: normalizeAnswers({}), step: 0, status: 'draft', chosenEntry: null, result: null, questionsVersion: QUESTIONS_VERSION, updatedAt: null };
+  }
+  const x = snap.data();
+  const r = x.result as Record<string, unknown> | null | undefined;
+  return {
+    exists: true,
+    answers: normalizeAnswers(x.answers),
+    step: Math.max(0, Math.min(6, Number(x.step ?? 0))),
+    status: x.status === 'complete' ? 'complete' : 'draft',
+    chosenEntry: isEntry(x.chosenEntry) ? x.chosenEntry : null,
+    result: r && isEntry(r.entry)
+      ? { entry: r.entry, tentative: r.tentative === true, rulesVersion: String(r.rulesVersion ?? ''), questionsVersion: String(r.questionsVersion ?? '') }
+      : null,
+    questionsVersion: String(x.questionsVersion ?? QUESTIONS_VERSION),
+    updatedAt: toDate(x.updatedAt),
+  };
+}
+
+/**
+ * Simpan draf / selesaikan kondisi awal. Hanya dokumen baselines/{uid} yang ditulis —
+ * progres Action Plan, pelajaran, dan item tersimpan TIDAK disentuh.
+ */
+export async function saveBaseline(uid: string, params: { answers: BaselineAnswers; step: number; complete: boolean; chosenEntry?: EntryKey | null; isNew: boolean }) {
+  const answers = normalizeAnswers(params.answers);
+  const data: Record<string, unknown> = {
+    ownerUid: uid,
+    answers,
+    step: Math.max(0, Math.min(6, Math.round(params.step))),
+    questionsVersion: QUESTIONS_VERSION,
+    updatedAt: serverTimestamp(),
+  };
+  if (params.complete) {
+    const r = recommendEntry(answers);
+    data.status = 'complete';
+    data.rulesVersion = RULES_VERSION;
+    data.result = { entry: r.entry, tentative: r.tentative, rulesVersion: RULES_VERSION, questionsVersion: QUESTIONS_VERSION };
+  }
+  if (params.chosenEntry !== undefined) data.chosenEntry = params.chosenEntry;
+  if (params.isNew) {
+    data.createdAt = serverTimestamp();
+    data.status ??= 'draft';
+    data.chosenEntry ??= null;
+    data.result ??= null;
+    data.rulesVersion ??= RULES_VERSION;
+  }
+  await setDoc(doc(db(), 'baselines', uid), data, { merge: true });
+}
+
+export async function setChosenEntry(uid: string, entry: EntryKey | null) {
+  await setDoc(doc(db(), 'baselines', uid), { ownerUid: uid, chosenEntry: entry, updatedAt: serverTimestamp() }, { merge: true });
 }

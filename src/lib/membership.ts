@@ -117,7 +117,7 @@ export const FEATURE_LABEL: Record<FeatureKey, string> = {
   assessment: 'Assessment',
   business101: 'Business 101',
   season1: 'Season 1 — Wake Up',
-  actionPlan: 'Misi Pertama',
+  actionPlan: 'Action Plan 7 Hari',
   dreamPact: 'Dream Pact',
   season2: 'Season 2 — Find Your Why & Edge',
   season3: 'Season 3 — Build & Sell',

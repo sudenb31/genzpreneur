@@ -24,20 +24,20 @@ export default function ToolIntro({ tool }: { tool: ToolKey }) {
   }
 
   return (
-    <section className="card overflow-hidden" aria-labelledby={`guide-${tool}`}>
-      <div className={`flex flex-wrap items-center gap-4 border-b border-line bg-paper p-5`}>
-        <span className="text-2xl" aria-hidden>{g.emoji}</span>
+    <section className="card-pop overflow-hidden" aria-labelledby={`guide-${tool}`}>
+      <div className={`flex flex-wrap items-center gap-4 border-b-2 border-ink p-5 ${g.tile}`}>
+        <span className="text-4xl" aria-hidden>{g.emoji}</span>
         <div className="min-w-0 flex-1">
           <p className="text-xs font-extrabold uppercase tracking-wider">Panduan alat</p>
-          <h2 id={`guide-${tool}`} className="font-display text-xl font-extrabold">{g.title}</h2>
+          <h2 id={`guide-${tool}`} className="font-display text-2xl font-extrabold">{g.title}</h2>
         </div>
-        <button type="button" className="btn-ghost w-full bg-white py-1.5 text-sm sm:w-auto" onClick={toggle} aria-expanded={!isHidden} aria-controls={`guide-body-${tool}`}>
+        <button type="button" className="btn-ghost bg-white py-1.5 text-sm" onClick={toggle} aria-expanded={!isHidden}>
           {isHidden ? 'Tampilkan panduan' : 'Sembunyikan panduan'}
         </button>
       </div>
 
       {!isHidden && (
-        <div id={`guide-body-${tool}`} className="grid gap-5 p-5 md:grid-cols-2">
+        <div className="grid gap-5 p-5 md:grid-cols-2">
           <div className="space-y-4">
             <div>
               <h3 className="text-sm font-extrabold">🤔 Apa ini?</h3>
