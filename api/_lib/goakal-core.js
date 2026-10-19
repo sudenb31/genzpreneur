@@ -171,12 +171,14 @@ export function normalizeWebhook(body) {
     transactionId: clean(data.id, 120),
     status: String(data.status || '').toUpperCase(),
     amount: Number.isFinite(Number(data.amount)) ? Number(data.amount) : 0,
-    payerName: clean(data.user?.name, 80),
-    payerEmail: normalizeEmail(data.user?.email),
-    serviceId: clean(data.service?.id, 60),
-    serviceTitle: clean(data.service?.name, 200),
-    priceSchemeId: clean(data.priceScheme?.id, 60),
-    priceSchemeTitle: clean(data.priceScheme?.name, 200),
+    // Payload nyata GoAkal (Okt 2026) memakai `payer` {name,email,phoneNumber}, sedangkan
+    // dokumentasi menulis `user`. Keduanya didukung, `payer` diutamakan.
+    payerName: clean(data.payer?.name ?? data.user?.name, 80),
+    payerEmail: normalizeEmail(data.payer?.email ?? data.user?.email ?? data.payerEmail),
+    serviceId: clean(data.service?.id ?? data.service?.cuid ?? data.serviceCuid ?? data.serviceId, 60),
+    serviceTitle: clean(data.service?.name ?? data.service?.title ?? data.serviceTitle, 200),
+    priceSchemeId: clean(data.priceScheme?.id ?? data.priceScheme?.cuid ?? data.priceSchemeCuid ?? data.priceSchemeId, 60),
+    priceSchemeTitle: clean(data.priceScheme?.name ?? data.priceScheme?.title ?? data.priceSchemeTitle, 200),
     paidAt: data.paidAt ? clean(data.paidAt, 40) : null,
   };
 }

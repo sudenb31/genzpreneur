@@ -43,6 +43,11 @@ describe('GoAkal core', () => {
     expect(() => normalizeWebhook({ event: 'x' })).toThrow();
   });
 
+  it('payload webhook nyata memakai "payer" (bukan "user" seperti di dokumentasi)', () => {
+    const tx = normalizeWebhook({ event: 'transaction.updated', token: 'x', data: { id: 'cmveznkjd00011607yefphjdp', paymentId: 'AKL-9', status: 'PAID', payer: { name: 'SB', email: ' Pembeli@Contoh-Uji.id ', phoneNumber: '6280000000000' }, priceScheme: { id: 'ps1', name: 'GenZ Spark' }, service: { id: 'svc', name: 'Webinar' } } });
+    expect(tx).toMatchObject({ payerName: 'SB', payerEmail: 'pembeli@contoh-uji.id', priceSchemeId: 'ps1', serviceId: 'svc' });
+  });
+
   it('normalisasi baris API transaksi untuk sync', () => {
     const tx = normalizeApiTransaction({ paymentId: 'AKL-2', status: 'SETTLED', payerEmail: 'A@B.id', priceSchemeCuid: 'ps2', serviceCuid: 'svc', incomingAmount: 5 });
     expect(tx).toMatchObject({ paymentId: 'AKL-2', status: 'SETTLED', payerEmail: 'a@b.id', priceSchemeId: 'ps2', serviceId: 'svc', amount: 5, source: 'sync' });
