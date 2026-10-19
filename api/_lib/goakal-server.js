@@ -365,7 +365,16 @@ export async function checkConfig(config, deps = {}) {
   }
   const unknownMapKeys = Object.keys(config.priceMap).filter((id) => !seen.has(id));
   const unmapped = services.flatMap((s) => (s.priceSchemes || []).filter((p) => p.mapping === 'BELUM_DIPETAKAN').map((p) => p.cuid));
-  return { ok: !unknownMapKeys.length && !unmapped.length && services.every((s) => !s.error), services, unknownMapKeys, unmapped };
+  // project_id service account bukan rahasia; dipakai untuk memastikan server menulis ke project Firebase yang sama dengan aplikasi.
+  let firebase;
+  try {
+    const sa = parseServiceAccount(config.serviceAccountJson);
+    const expected = String(deps.env?.EXPECTED_FIREBASE_PROJECT_ID || process.env.EXPECTED_FIREBASE_PROJECT_ID || 'genzpreneur');
+    firebase = { projectId: sa.project_id, expectedProjectId: expected, match: sa.project_id === expected };
+  } catch (error) {
+    firebase = { error: redact(error.message) };
+  }
+  return { ok: !unknownMapKeys.length && !unmapped.length && services.every((s) => !s.error) && firebase.match === true, services, unknownMapKeys, unmapped, firebase };
 }
 
 export function _resetForTests() { cachedDb = null; }

@@ -337,6 +337,7 @@ describe('Skenario 9 & 10 — endpoint sync', () => {
     expect(r.json.ok).toBe(false);
     expect(r.json.unknownMapKeys).toEqual(['cmsalahketik0000000000001']);
     expect(r.json.unmapped).toContain(PS.boost);
+    expect(r.json.firebase.error).toMatch(/project_id/);
     expect(db.docs.size).toBe(0);
   });
 
