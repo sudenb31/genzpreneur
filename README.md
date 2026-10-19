@@ -34,6 +34,7 @@ Tidak memakai API AI berbayar: generator berbasis template + prompt untuk ditemp
 | Fitur | Keterangan |
 |---|---|
 | Akses & login | **Tanpa daftar mandiri.** Akses lewat undangan admin, voucher (`/voucher`, untuk pembeli dari GoAkal dll.), atau daftar tunggu → undangan. Login tanpa password lewat link email. Detail: docs/DEPLOYMENT.md bagian I |
+| Otomasi GoAkal | Webhook transaksi `PAID` membuat voucher unik yang terikat email dan mengirimkannya lewat Resend. External API dipakai untuk sinkronisasi transaksi terlewat. Setup: `docs/GOAKAL-INTEGRATION.md` |
 | Command Center | Peserta & Paket (undang, ubah paket, trial 3/7 hari, pantau trial ≤24 jam/habis, mode akses), Voucher (kode unik/bersama, kuota, kedaluwarsa, penukaran), Daftar Tunggu, Pengguna & Role, Audit Log |
 | Paket | GenZ Spark Rp49rb (Level 01 · Start) · GenZ Boost Rp149rb (Level 02 · Execute) · GenZ Impact Rp299rb (Level 03 · Accelerate) — harga perkenalan; bonus trial: Spark → Boost 3 hari, Boost → Impact 7 hari. penguncian fitur per paket + trial sudah aktif (saklar Mode akses); checkout otomatis di Sprint 2 |
 | Landing page | Hero, alur, 10 jalur mulai dalam 3 gaya main (Bantu Jualin · Jual Skill · Bangun Sendiri), narasumber, harga perkenalan, 8 FAQ yang menjawab keraguan calon peserta, CTA |

@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => ({
   build: mode === 'standalone' ? { outDir: 'preview', emptyOutDir: true } : undefined,
   test: {
     environment: 'jsdom',
-    include: ['src/**/*.test.{ts,tsx}'],
+    include: ['src/**/*.test.{ts,tsx}', 'api/**/*.test.js'],
     setupFiles: ['./src/test/setup.ts'],
   },
 }));

@@ -323,6 +323,11 @@ describe('voucher', () => {
     await seedVoucher();
     await assertSucceeds(redeemBatch('buyer'));
   });
+  it('voucher GoAkal yang terikat email hanya bisa ditukar oleh email pembeli', async () => {
+    await seedVoucher({ assignedEmail: 'buyer@test.id', source: 'goakal', sourcePaymentId: 'AKL-123' });
+    await assertFails(redeemBatch('alice'));
+    await assertSucceeds(redeemBatch('buyer'));
+  });
   it('paket di membership harus sama dengan isi voucher', async () => {
     await seedVoucher();
     await assertFails(redeemBatch('buyer', 'impact'));

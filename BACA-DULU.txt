@@ -1,70 +1,66 @@
-GENZ PRENEUR — KONDISI AWAL & TITIK MASUK
+GENZ PRENEUR — INTEGRASI GOAKAL & EMAIL VOUCHER
 Revisi 19 Oktober 2026
 
-ZIP TERBARU
-genz-preneur-os-kondisi-awal-2026-10-19.zip
-Ini paket sumber lengkap untuk ditinjau. Belum diunggah ke GitHub atau dideploy ke produksi.
+STATUS
+Kode integrasi sudah dibuat dan lulus tes lokal yang tersedia. Belum diunggah ke GitHub, belum dideploy ke Vercel, belum menerima secret produksi, dan tidak menyentuh transaksi/data produksi.
 
-APA YANG BERUBAH
-- Menu Kondisi Awal di /app/kondisi-awal, opsional dan dapat diisi sebagian.
-- Empat bagian: tujuan/kemampuan, penerima/contoh, penawaran/pengalaman, waktu/kendala.
-- Jawaban belum tahu/belum pernah dan contoh fiktif/publik diperbolehkan. Tidak ada upload baru atau pekerjaan gratis wajib.
-- Enam kebutuhan dipetakan terpisah, dengan aturan A–E dan satu pertanyaan klarifikasi saat informasi penting tidak selaras/belum jelas.
-- Hasil menampilkan bekal, yang belum jelas, alasan rekomendasi, tombol pekerjaan, ubah jawaban dan pilihan titik masuk lain.
-- Assessment minat tetap terpisah. Jawaban minat tidak dijadikan skor kesiapan kerja.
-- Dashboard/Misi menghormati pilihan tahap manual dan melanjutkan draf yang sudah ada. Memilih tahap tidak menyelesaikan tahap lain.
-- Cek singkat bekal pada tahap Misi lanjutan, tanpa penguncian baru.
-- Ringkasan baca kondisi awal di Peserta & Paket, dimuat ketika admin membuka satu peserta.
-- Logo resmi dan tombol sidebar tiga garis dari revisi lokal sebelumnya ikut disertakan. Sidebar dapat ditutup ke kiri lalu dibuka kembali; ruang konten melebar dan preferensi disimpan di browser.
+ALUR BARU
+1. Webhook GoAkal mengirim transaksi PAID ke /api/goakal/webhook.
+2. Server memverifikasi token dan memetakan ID price scheme ke spark/boost/impact.
+3. Firestore transaction membuat tepat satu order internal dan satu voucher unik per paymentId.
+4. Voucher maxUses 1, kedaluwarsa default 30 hari, dan terikat ke email pembeli.
+5. Resend mengirim kode serta link aktivasi otomatis ke pembeli.
+6. /api/goakal/sync memakai External API key untuk mengambil ulang transaksi PAID yang mungkin terlewat.
 
-YANG TIDAK DIKLAIM
-Ini rekomendasi berdasarkan jawaban peserta, bukan sertifikasi skill atau review mentor.
-Contoh yang dilaporkan tersedia dibedakan dari teks/tautan yang benar-benar diberikan. Kualitas/keamanan tautan tidak diperiksa otomatis.
-Belum ada alur yang bisa memberi status ditinjau mentor; membuka ringkasan admin tidak menghasilkan status tersebut.
-Tidak ada janji review personal, batas waktu respons, pelanggan atau penghasilan.
-Tidak ada kiriman data peserta ke Heybinder atau layanan AI baru.
+YANG DIPERLUKAN SEBELUM BISA AKTIF
+- API key GoAkal scope external_api.
+- Verification token webhook GoAkal.
+- Service cuid dan price scheme cuid untuk setiap paket.
+- Firebase service-account JSON.
+- Akun/API key Resend dan domain email pengirim yang sudah diverifikasi.
+- Secret acak untuk kode voucher dan endpoint sinkronisasi.
 
-DATA DAN FIREBASE
-Data baru memakai progress/{uid}.plan.notes.entry-map-v1 dengan versi pertanyaan dan aturan 1.
-Simpan memakai merge satu key: tidak menimpa catatan d1–d7, work-v1-*, task atau pelajaran.
-Rules saat ini mengizinkan pemilik member menulis sendiri serta pemilik/admin/owner membaca. Peserta lain, mentor biasa dan anonim tidak mendapat akses membaca progres itu. Admin tidak menulis progres peserta lain.
-Validasi format jawaban di klien melengkapi, bukan menggantikan kontrol akses di server.
-FIRESTORE RULES TIDAK BERUBAH: tidak perlu Publish ulang untuk revisi ini. Tidak ada koleksi baru, migrasi wajib, atau perubahan dependency/config Firebase.
+JANGAN KIRIM SECRET KE CHAT ATAU COMMIT KE GITHUB.
+Masukkan semuanya sebagai Environment Variables di Vercel. Contoh nama dan format ada di .env.example dan docs/GOAKAL-INTEGRATION.md.
 
 HASIL PEMERIKSAAN
 - npm run typecheck: LULUS.
-- npm test: 150 tes LULUS dalam 22 file.
-- npm run build: BERHASIL; ada peringatan chunk JS sekitar 1,40 MB sebelum gzip dan dynamic import Firebase yang belum memecah bundle.
-- Tes aplikasi meliputi A–E, data belum tahu, contoh opsional, jawaban bertentangan, versi tidak dikenal, simpan/muat lewat remount dengan mock, gagal simpan, ubah jawaban/tahap, kelanjutan progres lama, bentuk payload merge, serta penjagaan UI admin/mentor.
-- Browser lokal berlabel data contoh: saran masalah saat skill sudah ada; simpan/ubah dan memilih titik masuk contoh; Misi membuka tahap contoh dengan tahap lain tetap kosong; viewport HP 390 x 844 tanpa gulir horizontal pada halaman yang diperiksa; Tab dari tujuan ke skill; sidebar tutup/buka, inert, dan kolom tertutup nol.
-- Auth/Firestore produksi tidak diuji dan data produksi tidak disentuh.
-- npm run test:rules DICOBA tetapi terhenti SEBELUM tes: Java tidak tersedia. Upaya mengambil runtime resmi ditolak HTTP 403. Skenario emulator lintas akun, admin, mentor, anonim, larangan tulis dan preservasi progres sudah disertakan tetapi BELUM LULUS UJI EMULATOR. Jangan menyatakan akses lintas akun telah dibuktikan hanya dari tes komponen.
+- npm test: 156 tes LULUS dalam 23 file, termasuk 5 tes integrasi server GoAkal.
+- npm run build: BERHASIL.
+- Sintaks empat file server baru: LULUS node --check.
+- npm audit produksi setelah Firebase Admin 14.5: integrasi Admin baru tidak lagi muncul dalam advisory. Empat advisory high lama masih berasal dari rantai Firebase frontend; audit menawarkan downgrade besar ke Firebase 9, jadi tidak diubah dalam revisi ini.
+- npm run test:rules DICOBA tetapi berhenti sebelum tes karena Java tidak tersedia. Tes baru untuk voucher terikat email sudah ditulis, tetapi wajib dijalankan di mesin/staging ber-Java.
 
-SEBELUM RILIS PRODUKSI
-1. Tinjau docs/AUDIT-KONDISI-AWAL.md dan perubahan sumber.
-2. Di lingkungan uji yang mempunyai Java sesuai kebutuhan Firebase CLI, jalankan npm ci, npm run typecheck, npm test, npm run test:rules dan npm run build. Emulator menggunakan proyek demo-genz; jangan arahkan tes ke database produksi.
-3. Pada staging/Firebase proyek uji, masuk sebagai dua akun peserta terpisah dan admin. Simpan kondisi awal akun A, muat ulang, lanjutkan pengisian; akun B tidak boleh membaca/menulis progres A, admin hanya membaca A. Mentor biasa tidak memperoleh akses tambahan.
-4. Periksa catatan Misi, d1–d7, task dan pelajaran akun uji sebelum/sesudah mengubah kondisi awal dan titik masuk. Semuanya harus tetap utuh.
-5. Uji A–E, belum tahu, contoh tanpa lampiran, penawaran tanpa contoh dan pengalaman yang belum jelas kaitannya. Saran tidak boleh terlihat sebagai verifikasi kemampuan.
-6. Ubah jawaban dan pilih titik masuk manual. Buka Misi, pastikan tahap sebelumnya tidak otomatis dicentang. Coba cek bekal tahap lanjutan.
-7. Pastikan peserta lama dapat langsung melanjutkan Misi tanpa mengisi ulang kondisi awal. Tes mobile, keyboard, error jaringan dan buka/tutup sidebar.
+FIREBASE RULES BERUBAH — WAJIB PUBLISH
+Rules sekarang mengizinkan metadata voucher GoAkal dan menolak penukaran bila email akun berbeda dari assignedEmail.
+Setelah lulus emulator/staging, jalankan:
+firebase deploy --only firestore:rules
 
-CARA MEMASANG JIKA REVISI SUDAH AKAN DIGUNAKAN
-1. Ekstrak ZIP di Downloads, buka folder genz-preneur-os di dalamnya.
-2. Upload seluruh ISI folder proyek ke root repo GitHub/branch yang benar, bukan file ZIP atau folder pembungkus baru. Sertakan src, public, docs, tests dan file konfigurasi.
-3. Jangan menimpa environment variables Firebase dengan nilai contoh. Tidak diperlukan variabel baru untuk fitur ini.
-4. Commit changes memicu deployment bila branch terhubung Vercel. Karena langkah itu bisa mempublikasikan perubahan, lakukan setelah review dan pemeriksaan staging selesai.
-5. Di Vercel Deployments, cocokkan commit lalu tunggu status Ready. Periksa URL deployment dan domain yang aktif. Gunakan hard refresh bila cache menampilkan versi lama.
-6. Firebase Rules tidak berubah: tidak perlu Publish ulang. Bila proyek produksi belum memakai Rules baseline, periksa masalah itu terpisah; jangan melemahkan Rules untuk mengatasi error.
+URUTAN RILIS YANG DISARANKAN
+1. Baca docs/GOAKAL-INTEGRATION.md.
+2. Di mesin dengan Java: npm ci, npm run typecheck, npm test, npm run test:rules, npm run build.
+3. Upload isi folder proyek ke branch staging GitHub.
+4. Di Vercel Preview, isi semua environment variables server. Jangan beri prefix VITE_ pada secret.
+5. Publish Firestore Rules ke proyek staging.
+6. Deploy Preview sampai status Ready.
+7. Set webhook GoAkal staging ke https://URL-PREVIEW/api/goakal/webhook.
+8. Bayar satu transaksi uji. Pastikan hanya satu order, satu voucher, satu email.
+9. Kirim ulang event/sync. Pastikan tidak ada voucher atau email kedua.
+10. Pastikan akun dengan email lain ditolak dan email pembeli berhasil menukar voucher.
+11. Setelah semua lolos, ulangi environment variables, Rules, dan deployment pada Production.
 
-BATAS YANG PERLU DIKETAHUI
-- Penyimpanan manual lewat tombol Simpan, bukan autosave/offline. Simpan sebelum Back/Forward SPA; belum ada dialog khusus untuk tombol browser tersebut.
-- Ada peringatan keluar melalui tautan dan saat menutup/memuat ulang ketika perubahan belum disimpan.
-- Satu versi kondisi terbaru disimpan; riwayat jawaban dan penanganan konflik dua perangkat belum ditambahkan.
-- Teks dibatasi panjangnya. Data versi/format tidak dikenal tidak ditimpa melalui form.
-- Materi Business 101 bukan pelatihan skill teknis lengkap. Uji apakah peserta jalur A membutuhkan bantuan tambahan sebelum menambah konten atau layanan baru.
-- Layanan review mentor dan pemantauan AI tidak dibangun dalam revisi ini.
+CATATAN GITHUB → VERCEL
+Upload source, bukan ZIP. Commit pada branch yang terhubung akan memicu Vercel. Tunggu deployment berstatus Ready lalu tes endpoint. Environment variables yang baru ditambahkan memerlukan deployment baru.
 
-DOKUMEN
-docs/AUDIT-KONDISI-AWAL.md: audit dengan rujukan file, aturan, daftar perubahan, akses, batas tes, dan keputusan produk yang masih perlu diuji.
-Dokumen strategi/pilot terdahulu tetap disertakan sebagai konteks. Panduan rilis terbaru ini menggantikan BACA-DULU versi Misi Pertama.
+CATATAN GOAKAL
+Webhook adalah jalur real-time. API key dipakai endpoint sync sebagai pemulihan. Gunakan price scheme cuid, bukan judul, karena judul bisa berubah.
+
+BATASAN
+- Email otomatis baru benar-benar berjalan setelah Resend dan domain sender siap.
+- Sinkronisasi memindai maksimal 2.000 transaksi per service per eksekusi.
+- Price scheme tanpa mapping tidak diberi voucher sampai konfigurasi diperbaiki dan event/sync diulang.
+- Jangan menghapus koleksi goakalOrders karena itu menyimpan idempotensi dan status email.
+- Tidak ada data produksi yang dimigrasikan oleh source ini.
+
+DOKUMENTASI LENGKAP
+docs/GOAKAL-INTEGRATION.md

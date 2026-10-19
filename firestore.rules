@@ -312,7 +312,7 @@ service cloud.firestore {
     match /vouchers/{code} {
       function validVoucher() {
         let d = request.resource.data;
-        return d.keys().hasOnly(['code', 'plan', 'maxUses', 'uses', 'active', 'expiresAt', 'batch', 'note', 'createdBy', 'createdAt', 'updatedAt'])
+        return d.keys().hasOnly(['code', 'plan', 'maxUses', 'uses', 'active', 'expiresAt', 'batch', 'note', 'createdBy', 'createdAt', 'updatedAt', 'assignedEmail', 'source', 'sourcePaymentId'])
           && d.code == code
           && code.matches('^[A-Z0-9-]{4,32}$')
           && d.plan in ['spark', 'boost', 'impact']
@@ -322,6 +322,9 @@ service cloud.firestore {
           && (d.expiresAt == null || d.expiresAt is timestamp)
           && isShortString(d.batch, 60)
           && isShortString(d.note, 300)
+          && (!('assignedEmail' in d) || (isShortString(d.assignedEmail, 120) && d.assignedEmail.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$')))
+          && (!('source' in d) || isShortString(d.source, 30))
+          && (!('sourcePaymentId' in d) || isShortString(d.sourcePaymentId, 120))
           && d.updatedAt == request.time;
       }
       allow get: if signedIn();
@@ -336,6 +339,7 @@ service cloud.firestore {
             && request.resource.data.uses == resource.data.uses + 1
             && request.resource.data.uses <= resource.data.maxUses
             && resource.data.active == true
+            && (!('assignedEmail' in resource.data) || resource.data.assignedEmail == myEmail())
             && (resource.data.expiresAt == null || request.time < resource.data.expiresAt)
             && request.resource.data.updatedAt == request.time
             && existsAfter(/databases/$(database)/documents/redemptions/$(code + '_' + request.auth.uid)));
