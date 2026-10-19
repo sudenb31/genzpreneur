@@ -621,13 +621,18 @@ function toVoucher(id: string, x: Record<string, unknown>): Voucher {
   };
 }
 
-export async function getVoucher(code: string): Promise<Voucher | null> {
+/**
+ * Membaca satu voucher. Mengembalikan 'wrong_email' bila Rules menolak pembacaan —
+ * terjadi untuk voucher GoAkal yang terikat ke email pembeli lain.
+ */
+export async function getVoucher(code: string): Promise<Voucher | null | 'wrong_email'> {
   const id = normalizeCode(code);
   if (!id) return null;
   try {
     const snap = await getDoc(doc(db(), 'vouchers', id));
     return snap.exists() ? toVoucher(id, snap.data()) : null;
-  } catch {
+  } catch (err) {
+    if ((err as { code?: string }).code === 'permission-denied') return 'wrong_email';
     return null;
   }
 }

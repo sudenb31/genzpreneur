@@ -35,7 +35,9 @@ export function RedeemVoucherForm({ initialCode = '', onDone }: { initialCode?: 
     setBusy(true);
     try {
       const email = firebaseUser.email ?? '';
-      const [voucher, membership, userRec] = await Promise.all([getVoucher(c), getMembership(email).catch(() => null), getUserRecord(firebaseUser.uid).catch(() => null)]);
+      const [found, membership, userRec] = await Promise.all([getVoucher(c), getMembership(email).catch(() => null), getUserRecord(firebaseUser.uid).catch(() => null)]);
+      if (found === 'wrong_email') { setError(VOUCHER_PROBLEM_TEXT.wrong_email); return; }
+      const voucher = found;
       const problem = voucherProblem(voucher, membership?.plan ?? 'none', new Date(), email);
       if (problem) { setError(VOUCHER_PROBLEM_TEXT[problem]); return; }
       await redeemVoucher({

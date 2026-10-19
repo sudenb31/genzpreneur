@@ -7,7 +7,7 @@ import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
 import {
   assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, serverTimestamp, setDoc, updateDoc, deleteDoc, writeBatch, collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp, setDoc, updateDoc, deleteDoc, writeBatch, collection, getDocs, increment } from 'firebase/firestore';
 
 let env: RulesTestEnvironment;
 
@@ -345,6 +345,99 @@ describe('voucher', () => {
     await redeemBatch('buyer');
     await assertFails(updateDoc(doc(ctx('buyer'), 'memberships', 'buyer@test.id'), { plan: 'impact', updatedAt: serverTimestamp(), updatedBy: 'buyer' }));
   });
+  // ---- Voucher GoAkal (dibuat server lewat Admin SDK) ----
+  const goakal = { assignedEmail: 'buyer@test.id', source: 'goakal', sourcePaymentId: 'AKL-123', batch: 'goakal-auto', createdBy: 'system:goakal' };
+  function redeemAs(uid: string, email: string) {
+    const db = env.authenticatedContext(uid, { email, email_verified: true }).firestore();
+    const b = writeBatch(db);
+    const rid = `BOOST-ABCD2345_${uid}`;
+    b.update(doc(db, 'vouchers', 'BOOST-ABCD2345'), { uses: increment(1), updatedAt: serverTimestamp() });
+    b.set(doc(db, 'redemptions', rid), { code: 'BOOST-ABCD2345', uid, email, plan: 'boost', createdAt: serverTimestamp() });
+    b.set(doc(db, 'users', uid), { email, displayName: uid, role: 'user', viaVoucher: 'BOOST-ABCD2345', createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+    b.set(doc(db, 'memberships', email), {
+      email, name: uid, plan: 'boost', trial: null, trialsUsed: { boost: false, impact: false }, note: '',
+      updatedAt: serverTimestamp(), updatedBy: uid, lastRedemptionId: rid,
+    });
+    return b.commit();
+  }
+
+  it('GoAkal: email pembeli bisa membaca & menukar; email lain tidak bisa membaca maupun menukar', async () => {
+    await seedVoucher(goakal);
+    const other = env.authenticatedContext('intruder', { email: 'intruder@test.id', email_verified: true }).firestore();
+    await assertFails(getDoc(doc(other, 'vouchers', 'BOOST-ABCD2345')));
+    await assertFails(redeemAs('intruder', 'intruder@test.id'));
+    const buyer = env.authenticatedContext('buyerA', { email: 'buyer@test.id', email_verified: true }).firestore();
+    await assertSucceeds(getDoc(doc(buyer, 'vouchers', 'BOOST-ABCD2345')));
+    await assertSucceeds(redeemAs('buyerA', 'buyer@test.id'));
+  });
+
+  it('GoAkal: email login huruf besar tetap cocok (dibandingkan dalam huruf kecil)', async () => {
+    await seedVoucher(goakal);
+    const buyer = env.authenticatedContext('buyerA', { email: 'Buyer@Test.id', email_verified: true }).firestore();
+    await assertSucceeds(getDoc(doc(buyer, 'vouchers', 'BOOST-ABCD2345')));
+  });
+
+  it('GoAkal: voucher hanya bertambah satu kali — penukaran kedua (akun lain, email sama) ditolak', async () => {
+    await seedVoucher(goakal);
+    await assertSucceeds(redeemAs('buyerA', 'buyer@test.id'));
+    await assertFails(redeemAs('buyerB', 'buyer@test.id'));
+    let uses: unknown;
+    await env.withSecurityRulesDisabled(async (c) => { uses = (await getDoc(doc(c.firestore(), 'vouchers', 'BOOST-ABCD2345'))).data()?.uses; });
+    if (uses !== 1) throw new Error(`uses seharusnya 1, didapat ${String(uses)}`);
+  });
+
+  it('GoAkal: pemakaian tidak bisa dilompati (+2) atau dibuat tanpa catatan penukaran', async () => {
+    await seedVoucher({ ...goakal, maxUses: 5 });
+    const buyer = env.authenticatedContext('buyerA', { email: 'buyer@test.id', email_verified: true }).firestore();
+    await assertFails(updateDoc(doc(buyer, 'vouchers', 'BOOST-ABCD2345'), { uses: 2, updatedAt: serverTimestamp() }));
+    await assertFails(updateDoc(doc(buyer, 'vouchers', 'BOOST-ABCD2345'), { uses: 1, updatedAt: serverTimestamp() }));
+  });
+
+  it('GoAkal: peserta tidak bisa menghapus/mengubah assignedEmail voucher', async () => {
+    await seedVoucher(goakal);
+    const buyer = env.authenticatedContext('buyerA', { email: 'buyer@test.id', email_verified: true }).firestore();
+    await assertFails(updateDoc(doc(buyer, 'vouchers', 'BOOST-ABCD2345'), { assignedEmail: 'lain@test.id', updatedAt: serverTimestamp() }));
+    await assertFails(deleteDoc(doc(buyer, 'vouchers', 'BOOST-ABCD2345')));
+  });
+
+  it('voucher manual lama (tanpa assignedEmail) tetap bisa dibaca & ditukar siapa pun yang login', async () => {
+    await seedVoucher({ maxUses: 10 });
+    await assertSucceeds(getDoc(doc(ctx('alice'), 'vouchers', 'BOOST-ABCD2345')));
+    await assertSucceeds(redeemAs('walkin', 'walkin@test.id'));
+  });
+
+  it('kode yang tidak ada tetap terbaca sebagai "tidak ditemukan" (bukan ditolak)', async () => {
+    await assertSucceeds(getDoc(doc(ctx('alice'), 'vouchers', 'TIDAK-ADA-1234')));
+  });
+
+  it('admin tetap bisa membaca voucher GoAkal milik siapa pun', async () => {
+    await seedVoucher(goakal);
+    await assertSucceeds(getDoc(doc(ctx('adi'), 'vouchers', 'BOOST-ABCD2345')));
+  });
+
+  it('goakalOrders tertutup untuk browser (user & admin), terbuka untuk Admin SDK', async () => {
+    const order = { paymentId: 'AKL-123', state: 'issued', emailStatus: 'sent', payerEmail: 'buyer@test.id' };
+    for (const uid of ['alice', 'adi', 'owner']) {
+      await assertFails(setDoc(doc(ctx(uid), 'goakalOrders', 'o1'), order));
+    }
+    await env.withSecurityRulesDisabled(async (c) => { await setDoc(doc(c.firestore(), 'goakalOrders', 'o1'), order); });
+    for (const uid of ['alice', 'adi', 'owner']) {
+      await assertFails(getDoc(doc(ctx(uid), 'goakalOrders', 'o1')));
+      await assertFails(updateDoc(doc(ctx(uid), 'goakalOrders', 'o1'), { emailStatus: 'pending' }));
+      await assertFails(deleteDoc(doc(ctx(uid), 'goakalOrders', 'o1')));
+      await assertFails(getDocs(collection(ctx(uid), 'goakalOrders')));
+    }
+    await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), 'goakalOrders', 'o1')));
+    // Admin SDK melewati Rules: memperbarui status email tetap bisa.
+    await env.withSecurityRulesDisabled(async (c) => { await updateDoc(doc(c.firestore(), 'goakalOrders', 'o1'), { emailStatus: 'sent' }); });
+  });
+
+  it('peserta tidak bisa membuat voucher GoAkal sendiri', async () => {
+    await assertFails(setDoc(doc(ctx('alice'), 'vouchers', 'IMPACT-ZZZZ2345'), {
+      ...voucher({ code: 'IMPACT-ZZZZ2345', plan: 'impact' }), ...goakal, assignedEmail: 'alice@test.id', createdBy: 'alice', createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+    }));
+  });
+
   it('daftar voucher hanya untuk admin; peserta hanya bisa membaca satu kode', async () => {
     await seedVoucher();
     await assertFails(getDocs(collection(ctx('alice'), 'vouchers')));
