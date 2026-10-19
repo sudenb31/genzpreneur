@@ -31,4 +31,9 @@ describe('validasi penukaran', () => {
     expect(voucherProblem(v, 'boost', now)).toBe('not_higher');
     expect(voucherProblem(v, 'impact', now)).toBe('not_higher');
   });
+  it('voucher pembelian hanya berlaku untuk email pembeli', () => {
+    const assigned = { ...v, assignedEmail: 'buyer@mail.id' };
+    expect(voucherProblem(assigned, 'none', now, 'other@mail.id')).toBe('wrong_email');
+    expect(voucherProblem(assigned, 'none', now, ' Buyer@Mail.ID ')).toBeNull();
+  });
 });

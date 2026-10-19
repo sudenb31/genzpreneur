@@ -614,6 +614,9 @@ function toVoucher(id: string, x: Record<string, unknown>): Voucher {
     expiresAt: toDate(x.expiresAt),
     batch: String(x.batch ?? ''),
     note: String(x.note ?? ''),
+    assignedEmail: typeof x.assignedEmail === 'string' ? x.assignedEmail : undefined,
+    source: typeof x.source === 'string' ? x.source : undefined,
+    sourcePaymentId: typeof x.sourcePaymentId === 'string' ? x.sourcePaymentId : undefined,
     createdAt: toDate(x.createdAt),
   };
 }

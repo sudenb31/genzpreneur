@@ -36,19 +36,23 @@ export interface Voucher {
   expiresAt: Date | null;
   batch: string;
   note: string;
+  assignedEmail?: string;
+  source?: string;
+  sourcePaymentId?: string;
   createdAt: Date | null;
 }
 
-export type VoucherProblem = 'not_found' | 'inactive' | 'expired' | 'used_up' | 'not_higher' | null;
+export type VoucherProblem = 'not_found' | 'inactive' | 'expired' | 'used_up' | 'not_higher' | 'wrong_email' | null;
 
 const RANK: Record<PlanKey, number> = { none: 0, spark: 1, boost: 2, impact: 3 };
 
 /** Cek apakah voucher bisa ditukar oleh peserta dengan paket saat ini. Server tetap memeriksa ulang. */
-export function voucherProblem(v: Voucher | null, currentPlan: PlanKey, now: Date): VoucherProblem {
+export function voucherProblem(v: Voucher | null, currentPlan: PlanKey, now: Date, signedInEmail?: string): VoucherProblem {
   if (!v) return 'not_found';
   if (!v.active) return 'inactive';
   if (v.expiresAt && now >= v.expiresAt) return 'expired';
   if (v.uses >= v.maxUses) return 'used_up';
+  if (v.assignedEmail && v.assignedEmail !== signedInEmail?.trim().toLowerCase()) return 'wrong_email';
   if (RANK[v.plan] <= RANK[currentPlan]) return 'not_higher';
   return null;
 }
@@ -58,5 +62,6 @@ export const VOUCHER_PROBLEM_TEXT: Record<Exclude<VoucherProblem, null>, string>
   inactive: 'Kode voucher ini sudah dinonaktifkan. Hubungi tim GenZ Preneur.',
   expired: 'Kode voucher ini sudah kedaluwarsa.',
   used_up: 'Kuota pemakaian kode voucher ini sudah habis.',
+  wrong_email: 'Voucher ini hanya bisa dipakai dengan email yang digunakan saat membeli di GoAkal.',
   not_higher: 'Paketmu sekarang sudah setara atau lebih tinggi dari isi voucher ini.',
 };
