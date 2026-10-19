@@ -1,33 +1,66 @@
-import { fetchPaidTransactions, fulfillPaidTransaction } from '../_lib/goakal-server.js';
-import { normalizeApiTransaction, safeEqual } from '../_lib/goakal-core.js';
+// POST /api/goakal/sync — pemulihan transaksi lunas yang webhook-nya terlewat.
+// Wajib header: Authorization: Bearer <GOAKAL_SYNC_SECRET>
+// Body JSON opsional:
+//   {}                                 → sinkronisasi normal
+//   {"mode":"dry-run"}                 → hanya laporan, TIDAK menulis Firestore & TIDAK mengirim email
+//   {"mode":"check-config"}            → cocokkan GOAKAL_PRICE_MAP dengan price scheme di GoAkal (read-only)
+//   {"resume":{...}}                   → lanjutkan dari nilai `resume` respons sebelumnya
+import { ConfigError, loadConfig, parseServiceIds, redact, safeEqual } from '../_lib/goakal-core.js';
+import { checkConfig, runSync } from '../_lib/goakal-server.js';
+import { bearer, readJson, send } from '../_lib/http.js';
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-  const bearer = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
-  if (!safeEqual(bearer, process.env.GOAKAL_SYNC_SECRET || '')) return res.status(401).json({ error: 'Unauthorized' });
-  try {
-    const serviceIds = String(process.env.GOAKAL_SERVICE_IDS || '').split(',').map((v) => v.trim()).filter(Boolean);
-    if (!serviceIds.length) throw new Error('GOAKAL_SERVICE_IDS belum diatur.');
-    const summary = { scanned: 0, sent: 0, alreadySent: 0, ignored: 0, failed: 0 };
-    for (const serviceId of serviceIds) {
-      const transactions = await fetchPaidTransactions(serviceId);
-      for (const item of transactions) {
-        summary.scanned += 1;
-        try {
-          const result = await fulfillPaidTransaction(normalizeApiTransaction(item));
-          if (result.status === 'sent') summary.sent += 1;
-          else if (result.status === 'already_sent') summary.alreadySent += 1;
-          else summary.ignored += 1;
-        } catch (error) {
-          summary.failed += 1;
-          console.error('GoAkal sync item failed', item?.paymentId || '(unknown)', error instanceof Error ? error.message : error);
+export function createSyncHandler(deps = {}) {
+  const env = deps.env || process.env;
+  const log = deps.log || console;
+  return async function handler(req, res) {
+    if (req.method !== 'POST') {
+      res.setHeader('Allow', 'POST');
+      return send(res, 405, { error: 'Method not allowed' });
+    }
+    const secret = String(env.GOAKAL_SYNC_SECRET || '').trim();
+    if (!secret) {
+      log.error('[goakal-sync] GOAKAL_SYNC_SECRET kosong');
+      return send(res, 500, { error: 'Server belum dikonfigurasi' });
+    }
+    if (!safeEqual(bearer(req), secret)) return send(res, 401, { error: 'Unauthorized' });
+
+    let body;
+    try { body = await readJson(req); } catch (error) { return send(res, error.statusCode || 400, { error: 'Invalid body' }); }
+    const mode = body?.mode === 'check-config' ? 'check' : body?.mode === 'dry-run' ? 'dry-run' : 'sync';
+
+    let config;
+    try {
+      config = loadConfig(env, mode === 'check' ? 'check' : 'sync');
+    } catch (error) {
+      const detail = error instanceof ConfigError ? error.message : 'Konfigurasi tidak valid';
+      log.error('[goakal-sync] konfigurasi', detail);
+      // Endpoint ini dilindungi secret, jadi nama variabel yang kurang boleh ditampilkan (bukan nilainya).
+      return send(res, 500, { error: 'Server belum dikonfigurasi', detail });
+    }
+
+    try {
+      if (mode === 'check') {
+        const report = await checkConfig(config, deps);
+        return send(res, 200, { mode: 'check-config', ...report });
+      }
+      let resume = null;
+      if (body?.resume && typeof body.resume === 'object') {
+        const { serviceId, status, page } = body.resume;
+        if (parseServiceIds(serviceId).length === 1 && config.serviceIds.includes(serviceId) && ['PAID', 'SETTLED'].includes(status) && Number.isInteger(page) && page >= 1 && page <= 1000) {
+          resume = { serviceId, status, page };
+        } else {
+          return send(res, 400, { error: 'resume tidak valid' });
         }
       }
+      const result = await runSync(config, { ...deps, resume, dryRun: mode === 'dry-run', budgetMs: deps.budgetMs ?? 45_000 });
+      const ok = result.summary.failed === 0;
+      log.info('[goakal-sync]', { mode, complete: result.complete, ...result.summary });
+      return send(res, ok ? 200 : 207, { ok, mode, ...result });
+    } catch (error) {
+      log.error('[goakal-sync] gagal', redact(error instanceof Error ? error.message : error, [config.apiKey, config.resendApiKey]));
+      return send(res, 502, { error: 'Sync failed', detail: redact(error instanceof Error ? error.message : error, [config.apiKey, config.resendApiKey]) });
     }
-    return res.status(summary.failed ? 207 : 200).json({ ok: summary.failed === 0, ...summary });
-  } catch (error) {
-    console.error('GoAkal sync failed', error instanceof Error ? error.message : error);
-    return res.status(500).json({ error: 'Sync failed' });
-  }
+  };
 }
 
+export default createSyncHandler();

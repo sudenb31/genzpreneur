@@ -1,73 +1,86 @@
 GENZ PRENEUR — INTEGRASI GOAKAL & EMAIL VOUCHER
-Revisi 19 Oktober 2026
+Revisi audit 19 Oktober 2026
 
-STATUS
-Kode integrasi sudah dibuat dan lulus tes lokal yang tersedia. Belum diunggah ke GitHub, belum dideploy ke Vercel, belum menerima secret produksi, dan tidak menyentuh transaksi/data produksi.
+STATUS JUJUR
+Kode lulus seluruh tes lokal yang bisa dijalankan. BELUM diuji dengan transaksi GoAkal nyata,
+BELUM di-push ke GitHub, BELUM dideploy, tidak menerima secret apa pun, dan tidak menyentuh
+transaksi/data produksi. Integrasi baru boleh dianggap berjalan setelah checklist staging lolos.
 
-ALUR BARU
-1. Webhook GoAkal mengirim transaksi PAID ke /api/goakal/webhook.
-2. Server memverifikasi token dan memetakan ID price scheme ke spark/boost/impact.
-3. Firestore transaction membuat tepat satu order internal dan satu voucher unik per paymentId.
-4. Voucher maxUses 1, kedaluwarsa default 30 hari, dan terikat ke email pembeli.
-5. Resend mengirim kode serta link aktivasi otomatis ke pembeli.
-6. /api/goakal/sync memakai External API key untuk mengambil ulang transaksi PAID yang mungkin terlewat.
-
-YANG DIPERLUKAN SEBELUM BISA AKTIF
-- API key GoAkal scope external_api.
-- Verification token webhook GoAkal.
-- Service cuid dan price scheme cuid untuk setiap paket.
-- Firebase service-account JSON.
-- Akun/API key Resend dan domain email pengirim yang sudah diverifikasi.
-- Secret acak untuk kode voucher dan endpoint sinkronisasi.
-
-CUID GOAKAL SUDAH DIPETAKAN
-- Service: cmvaf1zib0000l006kjpdm8x4
-- Webinar only: cmvanoylm000vlb0665cgbtq8 → ignore (tidak membuat voucher aplikasi)
-- GenZ Spark: cmvanoyn8000xlb06lfpbcjzs → spark
-- GenZ Boost: cmvanoynx000zlb06tcftyfdw → boost
-- GenZ Impact: cmvanoyon0011lb06e9t9qw43 → impact
-
-JANGAN KIRIM SECRET KE CHAT ATAU COMMIT KE GITHUB.
-Masukkan semuanya sebagai Environment Variables di Vercel. Contoh nama dan format ada di .env.example dan docs/GOAKAL-INTEGRATION.md.
-
-HASIL PEMERIKSAAN
-- npm run typecheck: LULUS.
-- npm test: 157 tes LULUS dalam 23 file, termasuk tes mapping `ignore` untuk webinar only.
-- npm run build: BERHASIL.
-- Sintaks empat file server baru: LULUS node --check.
-- npm audit produksi setelah Firebase Admin 14.5: integrasi Admin baru tidak lagi muncul dalam advisory. Empat advisory high lama masih berasal dari rantai Firebase frontend; audit menawarkan downgrade besar ke Firebase 9, jadi tidak diubah dalam revisi ini.
-- npm run test:rules DICOBA tetapi berhenti sebelum tes karena Java tidak tersedia. Tes baru untuk voucher terikat email sudah ditulis, tetapi wajib dijalankan di mesin/staging ber-Java.
-
+=====================================================================
 FIREBASE RULES BERUBAH — WAJIB PUBLISH
-Rules sekarang mengizinkan metadata voucher GoAkal dan menolak penukaran bila email akun berbeda dari assignedEmail.
-Setelah lulus emulator/staging, jalankan:
-firebase deploy --only firestore:rules
+=====================================================================
+Perubahan di firestore.rules:
+- Voucher GoAkal (punya assignedEmail) hanya bisa DIBACA oleh email pembeli dan admin.
+  Voucher manual lama tanpa assignedEmail tetap bisa dibaca & ditukar seperti sebelumnya.
+- goakalOrders ditulis eksplisit sebagai koleksi tertutup untuk browser (Admin SDK tetap bisa).
+- Penolakan penukaran dari email lain tetap berlaku (dari revisi sebelumnya).
 
-URUTAN RILIS YANG DISARANKAN
-1. Baca docs/GOAKAL-INTEGRATION.md.
-2. Di mesin dengan Java: npm ci, npm run typecheck, npm test, npm run test:rules, npm run build.
-3. Upload isi folder proyek ke branch staging GitHub.
-4. Di Vercel Preview, isi semua environment variables server. Jangan beri prefix VITE_ pada secret.
-5. Publish Firestore Rules ke proyek staging.
-6. Deploy Preview sampai status Ready.
-7. Set webhook GoAkal staging ke https://URL-PREVIEW/api/goakal/webhook.
-8. Bayar satu transaksi uji. Pastikan hanya satu order, satu voucher, satu email.
-9. Kirim ulang event/sync. Pastikan tidak ada voucher atau email kedua.
-10. Pastikan akun dengan email lain ditolak dan email pembeli berhasil menukar voucher.
-11. Setelah semua lolos, ulangi environment variables, Rules, dan deployment pada Production.
+Perintah (setelah tes Rules lulus di komputer ber-Java):
+  npx firebase login
+  npx firebase deploy --only firestore:rules --project genzpreneur-staging   (staging dulu)
+  npx firebase deploy --only firestore:rules --project genzpreneur           (produksi, setelah staging lolos)
+Atau lewat Firebase Console → Firestore → Rules → tempel isi firestore.rules → Publish.
 
-CATATAN GITHUB → VERCEL
-Upload source, bukan ZIP. Commit pada branch yang terhubung akan memicu Vercel. Tunggu deployment berstatus Ready lalu tes endpoint. Environment variables yang baru ditambahkan memerlukan deployment baru.
+=====================================================================
+URL WEBHOOK YANG DIMASUKKAN KE GOAKAL
+=====================================================================
+Produksi : https://genzpreneur-id.vercel.app/api/goakal/webhook
+           (ganti domain bila memakai domain custom)
+Staging  : https://<URL-PREVIEW>.vercel.app/api/goakal/webhook?x-vercel-protection-bypass=<BYPASS>
+Lokasi   : GoAkal → School settings → webhook configuration. Token verifikasi = GOAKAL_WEBHOOK_TOKEN.
 
-CATATAN GOAKAL
-Webhook adalah jalur real-time. API key dipakai endpoint sync sebagai pemulihan. Gunakan price scheme cuid, bukan judul, karena judul bisa berubah.
+=====================================================================
+CUID GOAKAL (dari dashboard webinar-b1)
+=====================================================================
+Service        : cmvaf1zib0000l006kjpdm8x4            → GOAKAL_SERVICE_IDS
+Webinar Only   : cmvanoylm000vlb0665cgbtq8            → ignore
+GenZ Spark     : cmvanoyn8000xlb06lfpbcjzs   (cek!)   → spark
+GENZ BOOST     : cmvanoynx000zlb06tcftyfdw            → boost
+GENZ IMPACT    : cmvanoyon0011lb06e9t9qw43   (cek!)   → impact
+Huruf "l" dan angka "1" sulit dibedakan di screenshot. Salin ulang memakai tombol salin di GoAkal,
+lalu WAJIB jalankan mode check-config setelah deploy (docs/GOAKAL-INTEGRATION.md §7).
 
-BATASAN
-- Email otomatis baru benar-benar berjalan setelah Resend dan domain sender siap.
-- Sinkronisasi memindai maksimal 2.000 transaksi per service per eksekusi.
-- Price scheme tanpa mapping tidak diberi voucher sampai konfigurasi diperbaiki dan event/sync diulang.
-- Jangan menghapus koleksi goakalOrders karena itu menyimpan idempotensi dan status email.
-- Tidak ada data produksi yang dimigrasikan oleh source ini.
+=====================================================================
+ENVIRONMENT VARIABLES VERCEL (isi langsung di Vercel, JANGAN kirim lewat chat)
+=====================================================================
+Rahasia  : GOAKAL_API_KEY, GOAKAL_WEBHOOK_TOKEN, GOAKAL_SYNC_SECRET, VOUCHER_CODE_SECRET,
+           FIREBASE_SERVICE_ACCOUNT_JSON, RESEND_API_KEY
+Biasa    : GOAKAL_PRICE_MAP, GOAKAL_SERVICE_IDS, EMAIL_FROM, APP_URL, VOUCHER_VALID_DAYS
+Panduan lengkap (cara membuat nilai acak, service account, Resend): docs/GOAKAL-INTEGRATION.md §4–5
+Tanpa prefix VITE_. Redeploy setelah mengubah variabel.
 
-DOKUMENTASI LENGKAP
-docs/GOAKAL-INTEGRATION.md
+=====================================================================
+URUTAN RILIS
+=====================================================================
+1. Di komputer ber-Java 11+:  npm ci → npm run typecheck → npm test → npm run test:rules → npm run build
+2. GitHub: upload ISI folder (bukan ZIP) ke branch "staging". Jangan ikutkan .env / file JSON service account.
+3. Vercel Preview: isi env vars (Preview), aktifkan Protection Bypass for Automation, tunggu Ready.
+4. Firebase staging: publish Rules (perintah di atas).
+5. Panggil sync mode check-config → harus ok: true. Lalu mode dry-run.
+6. GoAkal: arahkan URL webhook ke Preview (jam sepi).
+7. Jalankan docs/STAGING-GOAKAL-CHECKLIST.md (10 skenario).
+8. Kembalikan URL webhook ke produksi.
+9. Production: isi env vars Production → merge staging ke main → tunggu Ready → publish Rules produksi.
+10. check-config & dry-run di produksi → 1 transaksi produksi uji → sync terjadwal (mis. tiap 1 jam).
+
+=====================================================================
+HASIL TES REVISI INI
+=====================================================================
+npm ci           : berhasil
+npm run typecheck: LULUS
+npm test         : 190 tes LULUS dalam 24 file (sebelumnya 157/23), termasuk 39 tes GoAkal
+                   (alur webhook/sync dengan Firestore, Resend, dan GoAkal API tiruan)
+npm run build    : BERHASIL (tidak ada nama secret server di bundle frontend)
+Firebase Admin   : inisialisasi diuji di Node 22 ESM dengan key lokal sekali pakai (tanpa jaringan)
+npm run test:rules: TIDAK BISA DIJALANKAN di lingkungan pembuatan — Java tersedia, tetapi unduhan
+                   Firestore emulator dari storage.googleapis.com diblokir. 10 tes Rules baru sudah
+                   ditulis dan WAJIB dijalankan di komputer sendiri sebelum Publish.
+
+=====================================================================
+JANGAN
+=====================================================================
+- Jangan menghapus koleksi goakalOrders (kunci idempotensi).
+- Jangan mengganti VOUCHER_CODE_SECRET setelah voucher GoAkal pertama terbit.
+- Jangan memanggil /api/goakal/sync dari browser atau menyimpan secret di source.
+
+Dokumen: docs/GOAKAL-INTEGRATION.md · docs/STAGING-GOAKAL-CHECKLIST.md

@@ -1,7 +1,10 @@
 {
   "name": "genz-preneur-os",
   "version": "1.0.0",
-  "description": "GenZ Preneur OS \u2014 Entrepreneur Learning-to-Execution platform",
+  "description": "GenZ Preneur OS — Entrepreneur Learning-to-Execution platform",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",

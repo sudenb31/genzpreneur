@@ -327,7 +327,15 @@ service cloud.firestore {
           && (!('sourcePaymentId' in d) || isShortString(d.sourcePaymentId, 120))
           && d.updatedAt == request.time;
       }
-      allow get: if signedIn();
+      // Voucher GoAkal (punya assignedEmail) hanya bisa dibaca pemilik email & admin,
+      // agar email pembeli/ID pembayaran tidak terlihat oleh orang lain yang tahu kodenya.
+      // Voucher manual lama (tanpa assignedEmail) tetap bisa dibaca semua yang login.
+      allow get: if signedIn() && (
+        resource == null
+        || !('assignedEmail' in resource.data)
+        || resource.data.assignedEmail == myEmail()
+        || isAdmin()
+      );
       allow list: if isAdmin();
       allow create: if isAdmin() && validVoucher()
         && request.resource.data.uses == 0
@@ -394,6 +402,12 @@ service cloud.firestore {
       allow update: if isAdmin()
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
         && request.resource.data.status in ['new', 'invited', 'skipped'];
+    }
+
+    // goakalOrders/{id} — catatan order GoAkal (idempotensi & status email).
+    // Hanya ditulis/dibaca server lewat Firebase Admin SDK (melewati Rules). Tertutup untuk browser.
+    match /goakalOrders/{id} {
+      allow read, write: if false;
     }
 
     // Semua koleksi lain tertutup secara default.
