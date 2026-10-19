@@ -1,3 +1,5 @@
+import { PROGRAM_STATUS } from '../config/site';
+import { Link } from 'react-router-dom';
 import { useState, type FormEvent } from 'react';
 import { sendEmailVerification, updateProfile } from 'firebase/auth';
 import { z } from 'zod';
@@ -54,11 +56,12 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <header>
+      <header className="workspace-page-header">
         <p className="text-sm font-medium text-amber-ink">Akun</p>
-        <h1 className="h-page">Profil & Pengaturan</h1>
+        <h1 className="h-page">Akun & Paket</h1>
       </header>
 
+<div className="flex flex-wrap gap-2"><Link to="/voucher" className="btn-accent">Tukar voucher</Link><Link to="/#harga" className="btn-ghost">Lihat pilihan paket ↗</Link><Link to="/app/tersimpan" className="btn-ghost">Hasil tersimpan</Link></div>
       <form onSubmit={saveName} noValidate className="card space-y-4 p-6">
         <h2 className="font-semibold">Nama tampilan</h2>
         <div>
@@ -70,7 +73,7 @@ export default function SettingsPage() {
       </form>
 
       <section className="card p-6">
-        <h2 className="font-semibold">Paket & akses</h2>
+        <h2 className="font-semibold">Paket & akses aplikasi</h2><p className="mt-2 text-xs text-muted">Trial dan paket di sini mengatur fungsi aplikasi. Sesi live, review mentor, dan AI Coach eksternal hanya berlaku jika ada penawaran serta panduan terpisah yang sudah dikonfirmasi tim.</p>
         {access.loading ? <p className="mt-2 text-sm text-muted">Memuat…</p> : access.isAdmin ? (
           <p className="mt-3 text-sm">♾️ <strong>Akses penuh.</strong> Sebagai Admin/Super Admin kamu bisa membuka semua fitur tanpa paket, supaya bisa mengecek dan mendampingi peserta.</p>
         ) : (
@@ -85,6 +88,12 @@ export default function SettingsPage() {
         )}
       </section>
 
+      <section className="card space-y-3 p-6">
+        <h2 className="font-semibold">AI Coach · Heybinder</h2>
+        <p className="text-sm text-muted">Buka undangan yang disediakan tim, lalu ikuti instruksi Heybinder. Layanan ini berjalan di luar GenZ Preneur; akun, ketentuan akses, dan percakapan dikelola di Heybinder. Percakapan tidak otomatis masuk ke Misi Pertama.</p>
+        <a href={PROGRAM_STATUS.coachAccessUrl} target="_blank" rel="noopener noreferrer" className="btn-accent">Buka undangan AI Coach ↗</a>
+        <p className="text-xs text-muted">Hindari data pribadi pelanggan. Periksa jawaban AI sebelum digunakan. Jika undangan tidak dapat diakses, hubungi tim melalui jalur undanganmu.</p>
+      </section>
       <section className="card p-6">
         <h2 className="font-semibold">Informasi akun</h2>
         <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-3">

@@ -1,3 +1,4 @@
+import { ENTRY_PATH, ENTRY_PREREQUISITES, entryMissionStage, type StageId } from '../lib/entry';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
@@ -14,9 +15,9 @@ export default function MissionPage() {
   const toast = useToast();
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const step = MISSION_STEPS.find((s) => s.id === params.get('tahap')) ?? MISSION_STEPS[0];
-  const index = MISSION_STEPS.indexOf(step);
   const { data: progress, setData: setProgress, loading, error, reload } = useAsync(() => getProgress(profile!.uid), [profile?.uid]);
+  const step = MISSION_STEPS.find((s) => s.id === (params.get('tahap') ?? entryMissionStage(progress?.notes ?? {}))) ?? MISSION_STEPS[0];
+  const index = MISSION_STEPS.indexOf(step);
   const raw = progress?.notes[missionKey(step.id)];
   const persisted = useMemo(() => readMissionDraft(raw), [raw]);
   const [draft, setDraft] = useState(persisted);
@@ -73,6 +74,7 @@ export default function MissionPage() {
         <p className="max-w-2xl leading-relaxed text-muted">Tidak ada batas wajib tujuh hari. Pilih tahap sesuai kebutuhan. Penilaian kriteria diisi sendiri dan belum diverifikasi mentor.</p>
         <button type="button" className="btn-ghost" disabled={dirty || busy || !summary.written} onClick={download}>Unduh hasil tersimpan ↓</button>
       </div>
+      <p className="text-sm"><Link className="font-bold underline" to={ENTRY_PATH}>Tinjau kondisi awal / pilih titik masuk lain ↗</Link> · Minat, saran awal, dan progres pekerjaan disimpan terpisah.</p>
       <div className="mission-layout grid gap-5 lg:grid-cols-[225px_minmax(0,1fr)]">
         <nav aria-label="Tahap Misi Pertama" className="mission-stages grid grid-cols-3 gap-2 lg:sticky lg:top-20 lg:flex lg:flex-col lg:self-start">
           {MISSION_STEPS.map((s, i) => {
@@ -82,6 +84,7 @@ export default function MissionPage() {
         </nav>
         <section className="card min-w-0 space-y-5 p-5 sm:p-7" aria-labelledby="mission-title">
           <div><p className="eyebrow">Tahap {index + 1} / {MISSION_STEPS.length}</p><h2 id="mission-title" className="mt-2 font-display text-2xl font-extrabold">{step.title}</h2><p className="mt-2 text-sm leading-relaxed"><strong>Hasil yang dibuat:</strong> {step.outcome}</p></div>
+          {(ENTRY_PREREQUISITES[step.id as StageId]?.length ?? 0) > 0 && <details className="rounded-xl border border-line bg-lilac/20 p-4"><summary className="cursor-pointer text-sm font-bold">Cek singkat bekal untuk tahap ini</summary><p className="mt-3 text-xs leading-relaxed">Bisa berasal dari pekerjaan di luar aplikasi. Jika belum ada, buka tahap terkait atau ringkas bekalnya di hasil kerja tahap ini. Tidak wajib mencentang atau menyelesaikan ulang tahap sebelumnya.</p><ul className="mt-3 space-y-2 text-sm">{ENTRY_PREREQUISITES[step.id as StageId]!.map(id=>{const needed=MISSION_STEPS.find(s=>s.id===id)!;return <li key={id}><Link className="font-bold underline" to={`${MISSION_PATH}?tahap=${id}`}>{needed.title} ↗</Link><span> · {readMissionDraft(progress.notes[missionKey(id)]).text.trim() ? 'Ada draf; periksa isinya' : 'Belum ada draf di aplikasi'}</span><p className="mt-1 text-xs text-muted">{needed.outcome}</p></li>;})}</ul></details>}
           <details className="rounded-xl border-2 border-ink bg-sky/40 p-4"><summary className="cursor-pointer text-sm font-bold">Lihat contoh ilustrasi</summary><p className="mt-3 text-sm leading-relaxed">{step.example}</p></details>
           <div>
             <label htmlFor="mission-draft" className="label">Hasil kerjamu</label>

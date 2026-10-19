@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { Logo } from '../components/ui';
@@ -7,21 +7,17 @@ import { isFirebaseConfigured } from '../lib/firebase';
 import { PATH_FAMILIES, pathsByFamily } from '../content/paths';
 import type { TrackKey } from '../content/assessment';
 
-const PATHS = [
-  'Sales partner komisi', 'Jasa konten UMKM', 'Admin online', 'Affiliate', 'Lead generation',
-  'Desain Canva', 'Pre-order merch', 'Les privat', 'UGC creator', 'Event sponsorship',
-];
-
+const PATHS = ['Deskripsi menu', 'Draf konten sederhana', 'Foto produk dasar', 'Rapi katalog', 'Catatan pertanyaan pelanggan'];
 const STEPS = [
-  { k: 'Kenali diri', d: 'Isi Passport + Assessment → tahu industri, jalur, dan Profil Cuan-mu.' },
-  { k: 'Belajar cepat', d: 'Mulai dari Business 101, lanjut Mindset, Sales & Marketing, sampai Business Partner.' },
-  { k: 'Susun penawaran', d: 'Hitung HPP & harga jual, susun proposal, dan simulasikan komisi.' },
-  { k: 'Chat duluan', d: 'Outreach Studio bikin pesan personal ke mentor & calon klien.' },
-  { k: 'Eksekusi 7 hari', d: 'Action Plan harian sampai kamu benar-benar bergerak.' },
+  { k: 'Amati satu masalah', d: 'Mulai dari waktu dan skill yang tersedia. Pisahkan pengamatan dari dugaan tentang kebutuhan bisnis.' },
+  { k: 'Buat satu contoh', d: 'Pilih bantuan kecil dengan batas jelas, lalu buat contoh yang bisa diperiksa.' },
+  { k: 'Jelaskan penawaran', d: 'Tulis hasil, harga berbasis waktu/biaya, durasi, revisi, dan pengecualiannya.' },
+  { k: 'Coba secara etis', d: 'Siapkan pendekatan personal. Kirim sendiri melalui saluran yang wajar, tanpa broadcast.' },
+  { k: 'Evaluasi & perbaiki', d: 'Catat respons apa adanya, termasuk belum dibalas atau ditolak. Perbaiki satu hal.' },
 ];
-
 export default function Home() {
   const { firebaseUser } = useAuth();
+  const [mobileMenu, setMobileMenu] = useState(false);
   const loggedIn = isFirebaseConfigured && !!firebaseUser;
   const cta = loggedIn ? { to: '/app', label: 'Buka dashboard' } : { to: '/daftar', label: 'Gabung daftar tunggu' };
   const { hash } = useLocation();
@@ -35,80 +31,74 @@ export default function Home() {
   }, [hash]);
 
   return (
-    <div className="overflow-x-hidden bg-paper text-ink">
+    <div className="public-home overflow-x-hidden bg-paper text-ink">
       {/* Nav */}
       <header className="sticky top-0 z-30 border-b-2 border-ink/10 bg-paper/85 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
-          <Logo />
+          <Link to="/" aria-label="GenZ Preneur — Beranda"><Logo /></Link>
           <nav aria-label="Navigasi publik" className="flex items-center gap-1 sm:gap-2">
-            <a href="#benefit" className="hidden rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2 md:block">Benefit</a>
+            <button type="button" aria-expanded={mobileMenu} aria-controls="public-mobile-menu" className="btn-ghost px-3 py-2 text-xs md:hidden" onClick={() => setMobileMenu(!mobileMenu)}>Menu</button>
+<a href="#benefit" className="hidden rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2 md:block">Benefit</a>
             <a href="#jalur" className="hidden rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2 md:block">Jalur</a>
             <a href="#harga" className="hidden rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2 md:block">Harga</a>
             <Link to="/voucher" className="hidden rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2 md:block">Tukar voucher</Link>
             <a href="#faq" className="hidden rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2 md:block">FAQ</a>
-            {!loggedIn && <Link to="/masuk" className="rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2">Masuk</Link>}
-            <Link to={cta.to} className="btn-primary py-2">{loggedIn ? 'Dashboard' : 'Gabung'}</Link>
+            {!loggedIn && <Link to="/masuk" className="hidden rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2 sm:inline-flex">Masuk</Link>}
+            <Link to={cta.to} className="btn-primary hidden py-2 sm:inline-flex">{loggedIn ? 'Dashboard' : 'Gabung'}</Link>
           </nav>
         </div>
+        {mobileMenu && <nav id="public-mobile-menu" aria-label="Menu situs di HP" className="grid grid-cols-2 gap-2 border-t border-line px-4 py-3 md:hidden">
+          {[{ to: '/#benefit', label: 'Isi program' }, { to: '/#jalur', label: 'Jalur mulai' }, { to: '/#harga', label: 'Paket & harga' }, { to: '/#faq', label: 'Pertanyaan umum' }, { to: '/voucher', label: 'Tukar voucher' }, { to: loggedIn ? '/app' : '/masuk', label: loggedIn ? 'Dashboard' : 'Masuk' }].map((item) => <Link key={item.to} to={item.to} className="rounded-xl bg-white px-3 py-3 text-sm font-semibold" onClick={() => setMobileMenu(false)}>{item.label}</Link>)}
+        </nav>}
       </header>
 
-      <main>
+<main id="public-content">
         {/* Hero */}
         <section className="mx-auto grid max-w-6xl gap-12 px-4 pb-16 pt-12 sm:px-6 lg:grid-cols-[1.15fr_1fr] lg:items-center lg:pt-20">
           <div>
             <div className="flex flex-wrap gap-2">
-              <span className="chip bg-lime" style={{ transform: 'rotate(-3deg)' }}>✦ Modal Rp0</span>
-              <span className="chip bg-lilac" style={{ transform: 'rotate(2deg)' }}>⚡ AI Toolkit</span>
-              <span className="chip bg-sky" style={{ transform: 'rotate(-1deg)' }}>✅ 7-day plan</span>
+              <span className="chip bg-lime" style={{ transform: 'rotate(-3deg)' }}>Mulai dari skill yang kamu punya</span>
+              <span className="chip bg-lilac" style={{ transform: 'rotate(2deg)' }}>Belajar + alat bisnis</span>
+              <span className="chip bg-sky" style={{ transform: 'rotate(-1deg)' }}>Misi Pertama</span>
             </div>
-            <h1 className="mt-6 font-display text-[2.75rem] font-extrabold leading-[0.95] tracking-tight sm:text-7xl">
-              Nggak punya bisnis?<br />
+            <h1 className="mt-6 font-display text-[2.75rem] font-extrabold leading-[0.95] tracking-tight sm:text-6xl">
+              Bantu bisnis orang.<br />
               <span className="relative inline-block">
-                <span className="relative z-10">Mulai aja dulu.</span>
+                <span className="relative z-10">Mulai dari skillmu.</span>
                 <span aria-hidden className="absolute inset-x-0 bottom-1 z-0 h-4 -rotate-1 bg-amber sm:h-6" />
               </span>
             </h1>
             <p className="mt-6 max-w-xl text-lg text-ink/75">
-              GenZ Preneur bantu kamu nemuin industri yang paling cocok, belajar jualan, dan chat duluan ke mentor & bisnis yang udah jalan —
-              <strong className="text-ink"> tanpa modal uang.</strong>
+              Untuk pemula yang belum punya usaha: siapkan bantuan kecil untuk bisnis yang sudah berjalan, buat contohnya, susun harga dan penawaran, lalu coba pendekatan personal.
+              <strong className="text-ink"> Targetnya hasil kerja dan percobaan yang bisa kamu kendalikan.</strong>
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link to={cta.to} className="btn-accent px-7 py-3.5 text-base">{cta.label} →</Link>
-              <a href="#benefit" className="btn-ghost px-7 py-3.5 text-base">Lihat isinya</a>
+              <a href="#benefit" className="btn-ghost px-7 py-3.5 text-base">Jelajahi isi program ↓</a>
             </div>
             <p className="mt-4 text-xs text-muted">Akses lewat undangan — gabung daftar tunggu, link masuk dikirim ke emailmu. Tidak ada jaminan penghasilan.</p>
           </div>
 
-          {/* Visual: contoh kartu hasil (ilustrasi produk, bukan data pengguna) */}
-          <div className="relative mx-auto w-full max-w-md" aria-label="Contoh tampilan hasil assessment">
+          <div className="relative mx-auto w-full max-w-md" aria-label="Ilustrasi hasil kerja, bukan hasil peserta">
             <div className="card-pop rotate-2 bg-white p-5">
-              <p className="text-[11px] font-extrabold uppercase tracking-wider text-muted">Contoh hasil assessment</p>
-              <div className="mt-3 flex items-center gap-3 rounded-2xl border-2 border-ink bg-lime p-3">
-                <span className="text-3xl" aria-hidden>👕</span>
-                <div className="flex-1"><p className="text-xs font-bold">🥇 Peringkat 1</p><p className="font-display font-extrabold">Fashion & Custom Apparel</p></div>
-              </div>
-              <div className="mt-2 flex items-center gap-3 rounded-2xl border-2 border-ink/20 bg-sky p-3">
-                <span className="text-2xl" aria-hidden>🤝</span>
-                <p className="flex-1 font-display text-sm font-extrabold">Sales & Distribusi B2B</p>
-              </div>
-              <div className="mt-2 flex items-center gap-3 rounded-2xl border-2 border-ink/20 bg-lilac p-3">
-                <span className="text-2xl" aria-hidden>🎤</span>
-                <p className="flex-1 font-display text-sm font-extrabold">Event & Komunitas</p>
-              </div>
-              <p className="mt-4 rounded-2xl bg-ink px-3 py-2 text-xs font-bold text-lime">Jalur cocok: Sales Partner 🤝</p>
-            </div>
-            <div className="card-pop absolute -bottom-8 -left-4 w-56 -rotate-3 bg-amber p-4 sm:-left-10">
-              <p className="text-[11px] font-extrabold uppercase">Outreach Studio</p>
-              <p className="mt-1 text-sm font-semibold leading-snug">"Halo Kak! 👋 Aku perhatiin menu di GoFood belum ada fotonya…"</p>
+              <p className="text-[11px] font-extrabold uppercase tracking-wider text-muted">Ilustrasi alur · bukan hasil peserta</p>
+              <h2 className="mt-3 font-display text-2xl font-extrabold">Satu bantuan yang jelas.</h2>
+              <div className="mt-4 rounded-2xl border-2 border-ink bg-lime p-4"><p className="text-xs font-extrabold">01 · PENGAMATAN</p><p className="mt-1 text-sm">Tiga menu publik belum punya deskripsi. Kebutuhannya masih perlu ditanyakan.</p></div>
+              <div className="mt-3 rounded-2xl border-2 border-ink bg-lilac p-4"><p className="text-xs font-extrabold">02 · CONTOH & PENAWARAN</p><p className="mt-1 text-sm">Contoh teks menu, batas revisi, waktu kerja, dan dasar harga.</p></div>
+              <div className="mt-3 rounded-2xl border-2 border-ink bg-sky p-4"><p className="text-xs font-extrabold">03 · PERCOBAAN & CATATAN</p><p className="mt-1 text-sm">Tanya satu pemilik yang relevan, catat respons, lalu perbaiki.</p></div>
+              <p className="mt-4 text-xs font-semibold">Tanpa janji pelanggan, omzet, atau hasil instan.</p>
             </div>
           </div>
         </section>
 
-        {/* Marquee */}
+        <section aria-label="Hasil yang bisa kamu kerjakan" className="mx-auto mb-12 grid max-w-6xl gap-3 px-4 sm:grid-cols-3 sm:px-6">
+          {[{ no: '01', title: 'Pilih bantuan kecil', desc: 'Satu masalah dan cakupan pekerjaan sesuai skill serta waktumu.' }, { no: '02', title: 'Bawa pulang hasil kerja', desc: 'Latihan, perhitungan harga, dan penawaran yang bisa dipakai.' }, { no: '03', title: 'Lakukan langkah nyata', desc: 'Catat satu percobaan etis dan perbaikan yang ingin kamu uji.' }].map((item) => <div key={item.no} className="flex gap-4 rounded-2xl border border-line bg-white p-5"><span className="font-display text-sm font-extrabold text-amber-ink">{item.no}</span><div><h2 className="text-sm font-bold">{item.title}</h2><p className="mt-1 text-xs leading-relaxed text-muted">{item.desc}</p></div></div>)}
+        </section>
+        {/* Jalur mulai — statis agar nyaman dibaca */}
         <section aria-label="Contoh jalur mulai" className="border-y-2 border-ink bg-ink py-3 text-paper">
-          <div className="flex w-max gap-8 whitespace-nowrap" style={{ animation: 'marquee 28s linear infinite' }}>
-            {[...PATHS, ...PATHS].map((p, i) => (
-              <span key={i} className="font-display text-lg font-extrabold">{p} <span className="text-amber" aria-hidden>✦</span></span>
+          <div className="mx-auto flex max-w-6xl flex-wrap justify-center gap-x-6 gap-y-3 px-4">
+            {PATHS.map((p, i) => (
+              <span key={i} className="font-display text-sm font-bold">{p} <span className="text-amber" aria-hidden>✦</span></span>
             ))}
           </div>
         </section>
@@ -132,13 +122,13 @@ export default function Home() {
         <section id="benefit" className="scroll-mt-20 bg-white py-20">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <p className="eyebrow">Yang kamu dapat</p>
-            <h2 className="mt-1 font-display text-4xl font-extrabold tracking-tight sm:text-5xl">5 benefit, 1 sistem.</h2>
+            <h2 className="mt-1 font-display text-4xl font-extrabold tracking-tight sm:text-5xl">Dari pengamatan ke percobaan.</h2>
             <div className="mt-10 grid gap-4 md:grid-cols-6">
               {SITE.benefits.map((b, i) => (
                 <article key={b.no}
-                  className={`card-pop p-6 ${b.tile} ${i < 2 ? 'md:col-span-3' : 'md:col-span-2'}`}>
+                  className={`public-benefit card-pop p-6 ${i < 2 ? 'md:col-span-3' : 'md:col-span-2'}`}>
                   <div className="flex items-start justify-between">
-                    <span className="text-4xl" aria-hidden>{b.emoji}</span>
+                    <span className="benefit-icon" aria-hidden>{b.emoji}</span>
                     <span className="chip bg-white">#{b.no}</span>
                   </div>
                   <h3 className="mt-6 font-display text-2xl font-extrabold leading-tight">{b.title}</h3>
@@ -148,9 +138,9 @@ export default function Home() {
             </div>
             <div className="mt-4 grid gap-4 md:grid-cols-3">
               <article className="card-pop bg-ink p-6 text-paper">
-                <p className="text-xs font-extrabold uppercase tracking-wider text-lime">Bonus · Assessment Industri</p>
-                <h3 className="mt-2 font-display text-2xl font-extrabold">Bingung mau bisnis apa?</h3>
-                <p className="mt-1 text-paper/70">36 pertanyaan → 3 industri paling cocok, jalurmu, cara mulai modal Rp0, plus Profil Cuan (8 tipe) dengan contoh tokoh dunia & tokoh Muslim.</p>
+                <p className="text-xs font-extrabold uppercase tracking-wider text-lime">Opsional · Assessment</p>
+                <h3 className="mt-2 font-display text-2xl font-extrabold">Butuh arah awal?</h3>
+                <p className="mt-1 text-paper/70">Assessment memberi saran refleksi dari jawabanmu. Tidak perlu diselesaikan sebelum praktik, dan hasilnya belum membuktikan kebutuhan pasar.</p>
               </article>
               <article className="card-pop bg-amber p-6">
                 <p className="text-xs font-extrabold uppercase tracking-wider">Bonus · Outreach Studio</p>
@@ -158,7 +148,7 @@ export default function Home() {
                 <p className="mt-1 text-ink/80">Pesan siap kirim untuk minta waktu ke mentor, jadi sales partner, atau nawarin jasa ke UMKM.</p>
               </article>
               <article className="card-pop bg-lime p-6">
-                <p className="text-xs font-extrabold uppercase tracking-wider">Final Boss · Dream Pact</p>
+                <p className="text-xs font-extrabold uppercase tracking-wider">Opsional · Dream Pact</p>
                 <h3 className="mt-2 font-display text-2xl font-extrabold">Mimpi yang ditulis &amp; ditandatangani.</h3>
                 <p className="mt-1 text-ink/80">WHY, Edge, Dream Statement, 6 level milestone, dan rencana 12 bulan — siap dicetak dan ditempel.</p>
               </article>
@@ -184,10 +174,10 @@ export default function Home() {
         <section id="jalur" className="scroll-mt-20 bg-ink py-20 text-paper">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-lime">10 jalur · 3 gaya main</p>
-            <h2 className="mt-2 font-display text-4xl font-extrabold tracking-tight sm:text-5xl">Banyak jalan ke cuan pertama.</h2>
-            <p className="mt-3 max-w-2xl text-paper/70">Nggak harus langsung punya brand sendiri. Pilih gaya main yang paling pas sama kondisimu sekarang — Assessment bantu kamu memilih.</p>
+            <h2 className="mt-2 font-display text-4xl font-extrabold tracking-tight sm:text-5xl">Jalur referensi untuk dieksplorasi.</h2>
+            <p className="mt-3 max-w-2xl text-paper/70">Fokus awal program ini adalah bantuan kecil untuk bisnis yang sudah berjalan. Pilihan di bawah merupakan referensi lebih luas; kamu tidak perlu mencoba semuanya.</p>
 
-            <div className="mt-10 space-y-10">
+            <details className="mt-8"><summary className="cursor-pointer text-sm font-bold text-lime">Lihat 10 jalur referensi (opsional)</summary><div className="mt-6 space-y-10">
               {(Object.keys(PATH_FAMILIES) as TrackKey[]).map((fam) => {
                 const F = PATH_FAMILIES[fam];
                 return (
@@ -215,9 +205,9 @@ export default function Home() {
               })}
             </div>
 
-            <div className="mt-10 flex flex-col gap-3 rounded-3xl border-2 border-lime p-6 sm:flex-row sm:items-center sm:justify-between">
-              <p className="font-display text-xl font-extrabold">Bingung pilih yang mana? <span className="text-lime">36 soal Assessment</span> bantu mengarahkan.</p>
-              <Link to={cta.to} className="btn-accent shrink-0">{loggedIn ? 'Buka Assessment' : 'Gabung daftar tunggu'} →</Link>
+            </details><div className="mt-10 flex flex-col gap-3 rounded-3xl border-2 border-lime p-6 sm:flex-row sm:items-center sm:justify-between">
+              <p className="font-display text-xl font-extrabold">Butuh titik mulai? <span className="text-lime">Misi Pertama</span> mengajakmu memilih satu bantuan kecil.</p>
+              <Link to={loggedIn ? '/app/action-plan' : cta.to} className="btn-accent shrink-0">{loggedIn ? 'Buka Misi Pertama' : 'Gabung daftar tunggu'} →</Link>
             </div>
           </div>
         </section>
@@ -240,11 +230,11 @@ export default function Home() {
         {/* Pricing */}
         <section id="harga" className="scroll-mt-20 border-y-2 border-ink/10 bg-white py-20">
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
-            <p className="eyebrow">3 level · naik kapan pun siap</p>
-            <h2 className="mt-1 font-display text-4xl font-extrabold tracking-tight sm:text-5xl">Pilih levelmu.</h2>
-            <p className="mt-3 max-w-2xl text-muted">Harga perkenalan untuk batch pertama. Ragu mau naik level? Coba dulu level berikutnya gratis — tanpa tagihan otomatis.</p>
-            <div className="mt-10 grid gap-5 md:grid-cols-3">
-              {SITE.plans.map((p) => {
+            <p className="eyebrow">Fungsi aplikasi · pendampingan dipisahkan</p>
+            <h2 className="mt-1 font-display text-4xl font-extrabold tracking-tight sm:text-5xl">Pilih alat bantu yang dibutuhkan.</h2>
+            <p className="mt-3 max-w-2xl text-muted">Misi Pertama dapat dikerjakan manual di Spark. Boost menambah alat bantu; kamu tidak wajib memakai semua alat. Pendaftaran dan aktivasi akses dikonfirmasi tim.</p>
+            <div className="mt-10 grid gap-5 md:grid-cols-2">
+              {SITE.plans.filter((p) => p.saleReady).map((p) => {
                 const hot = p.key === 'boost';
                 return (
                   <div key={p.key} className={`relative flex flex-col rounded-3xl border-2 border-ink p-6 ${hot ? 'bg-ink text-paper shadow-[6px_6px_0_0_#ff5a1f]' : 'bg-paper shadow-[4px_4px_0_0_#111112]'}`}>
@@ -254,7 +244,6 @@ export default function Home() {
                     </div>
                     <h3 className="mt-3 font-display text-2xl font-extrabold">{p.name} <span aria-hidden>{p.emoji}</span></h3>
                     <p className="mt-3 font-display text-4xl font-extrabold">{formatRupiah(p.price)}</p>
-                    <p className={`text-xs ${hot ? 'text-paper/60' : 'text-muted'}`}>Harga normal <s>{formatRupiah(p.refPrice)}</s> · harga perkenalan batch pertama</p>
                     <p className="mt-4 font-display text-lg font-extrabold">{p.tagline}</p>
                     <p className={`text-sm ${hot ? 'text-paper/75' : 'text-ink/75'}`}>{p.desc}</p>
                     <ul className="mt-5 flex-1 space-y-2 text-sm">
@@ -262,7 +251,7 @@ export default function Home() {
                     </ul>
                     {'trial' in p && p.trial && (
                       <p className={`mt-5 rounded-2xl border-2 border-dashed p-3 text-sm font-semibold ${hot ? 'border-lime text-lime' : 'border-ink bg-lime/50'}`}>
-                        🎁 Bonus: coba <strong>{p.trial.to}</strong> gratis {p.trial.days} hari
+                        Trial aplikasi dapat diberikan admin: <strong>{p.trial.to}</strong> {p.trial.days} hari. Tidak termasuk layanan pendampingan.
                       </p>
                     )}
                     <Link to={cta.to} className={`mt-6 ${hot ? 'btn-accent' : 'btn-primary'}`}>{loggedIn ? 'Buka dashboard' : `Minta akses ${p.name}`}</Link>
@@ -270,10 +259,11 @@ export default function Home() {
                 );
               })}
             </div>
-            <p className="mt-6 text-xs text-muted">Pembelian dibuka bersamaan dengan batch pertama. Setelah masa perkenalan, harga kembali ke harga normal. Free trial berlaku sekali per akun dan berakhir otomatis tanpa tagihan. Sudah membeli? <Link to="/voucher" className="font-semibold text-ink underline">Tukarkan kode vouchermu</Link>.</p>
+            <p className="mt-6 text-xs text-muted">Trial aplikasi diaktifkan admin, sekali per akun, dan berakhir tanpa tagihan otomatis. Harga tidak mencakup live, konsultasi, atau AI Coach eksternal. Sudah menerima voucher? <Link to="/voucher" className="font-semibold text-ink underline">Tukarkan kode vouchermu</Link>.</p>
           </div>
         </section>
 
+        <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6" aria-labelledby="support-status"><div className="card-pop bg-lilac p-6"><p className="eyebrow">Pendampingan terpisah · belum dibuka</p><h2 id="support-status" className="mt-2 font-display text-2xl font-extrabold">GenZ Impact: sesi kerja, bukan tambahan janji.</h2><p className="mt-3 max-w-3xl text-sm leading-relaxed">Rancangan awal: dua sesi kerja, satu per pekan, bersama Bung Suden. Jadwal, kuota, batas review, dan panduan akses layanan eksternal akan diumumkan sebelum pendaftaran dibuka. Paket aplikasi dan trial tidak menjanjikan konsultasi harian atau review individual.</p><Link to="/daftar?minat=impact" className="btn-primary mt-5">Catat minat pendampingan →</Link><p className="mt-3 text-xs">Pencatatan minat bukan pembelian atau kepastian jadwal.</p></div></section>
         {/* FAQ */}
         <section id="faq" className="mx-auto max-w-3xl scroll-mt-20 px-4 py-20 sm:px-6">
           <p className="eyebrow">Sebelum kamu daftar</p>
@@ -294,7 +284,7 @@ export default function Home() {
         <section className="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
           <div className="card-pop bg-amber px-8 py-14 text-center">
             <h2 className="font-display text-4xl font-extrabold tracking-tight sm:text-6xl">Mulai dari yang kamu punya hari ini.</h2>
-            <p className="mx-auto mt-3 max-w-xl text-ink/80">Gabung daftar tunggu, terima link masuk, lalu ikuti Assessment dan kirim outreach pertamamu.</p>
+            <p className="mx-auto mt-3 max-w-xl text-ink/80">Gabung daftar tunggu. Setelah mendapat akses, mulai dari satu masalah, buat contoh bantuan, lalu tentukan percobaan yang pantas dicoba.</p>
             <Link to={cta.to} className="btn-primary mt-8 px-8 py-3.5 text-base">{cta.label} →</Link>
           </div>
         </section>

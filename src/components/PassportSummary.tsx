@@ -33,18 +33,19 @@ export default function PassportSummary({ passport: p, completion, assessment, o
     <div className="space-y-6">
       {completion < 100 && (
         <div role="status" className="card flex flex-wrap items-center justify-between gap-3 bg-paper-2 p-4 text-sm">
-          <span>Passport baru {completion}% lengkap — ringkasan makin akurat kalau semua bagian terisi.</span>
+          <span>Isian {completion}% lengkap. Lengkapi jika berguna; kamu tetap boleh mulai Misi Pertama.</span>
           <button type="button" className="btn-ghost py-1.5" onClick={onEdit}>Lengkapi</button>
         </div>
       )}
 
-      {/* Hero: skor kesiapan */}
+      <details><summary className="mb-3 cursor-pointer text-sm font-bold">Indeks isian opsional · bukan ukuran kesiapan bisnis</summary>
+      {/* Indeks lama dipertahankan untuk refleksi, bukan tujuan belajar. */}
       <section className="card-pop overflow-hidden">
         <div className={`flex flex-wrap items-center gap-5 border-b-2 border-ink p-6 ${lvl.tile}`}>
           <span className="text-6xl" aria-hidden>{lvl.emoji}</span>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-extrabold uppercase tracking-wider">Rangkuman Passport · {firstName}</p>
-            <h2 className="font-display text-3xl font-extrabold">Level kesiapan: {lvl.name}</h2>
+            <h2 className="font-display text-3xl font-extrabold">Ringkasan bekal: {lvl.name}</h2>
             <p className="mt-1 text-sm text-ink/80">{lvl.desc}</p>
           </div>
           <div className="text-right">
@@ -57,11 +58,12 @@ export default function PassportSummary({ passport: p, completion, assessment, o
             <ProgressBar key={x.key} value={Math.round((x.score / x.max) * 100)} label={`${x.label} (${x.score}/${x.max})`} />
           ))}
           <p className="text-xs text-muted sm:col-span-2">
-            Skor kesiapan mengukur modal waktu, alat, dan jam terbang untuk <em>mulai</em> — bukan bakat. Starter bukan berarti kalah; semua orang mulai dari sini.
+            Indeks ini dihitung dari bobot isian yang ditentukan produk dan belum divalidasi sebagai ukuran kesiapan. Bukan tes bakat, penentu akses, atau prediksi penghasilan.
           </p>
         </div>
       </section>
 
+      </details>
       {/* Langkah berikutnya */}
       <section className="card-pop bg-ink p-6 text-paper">
         <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-lime">Abis ini ngapain?</p>

@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
 import { authErrorMessage, useAuth } from '../auth/AuthProvider';
 import { Logo } from '../components/ui';
@@ -9,19 +9,19 @@ import { readPendingVoucher, RedeemVoucherForm } from './VoucherPage';
 
 export function AuthShell({ title, subtitle, children, footer }: { title: string; subtitle: string; children: ReactNode; footer: ReactNode }) {
   return (
-    <main className="grid min-h-screen lg:grid-cols-2">
+    <main className="auth-shell grid min-h-screen lg:grid-cols-[0.9fr_1.1fr]">
       <section className="hidden flex-col justify-between bg-ink p-10 text-paper lg:flex">
         <Link to="/" className="text-paper"><Logo /></Link>
         <div>
-          <p className="font-display text-5xl font-extrabold leading-[0.95]">Learn.<br />Execute.<br /><span className="text-brand-2">Grow.</span></p>
+          <p className="font-display text-5xl font-extrabold leading-[0.95]">Learn.<br />Execute.<br /><span className="text-amber">Build.</span></p>
           <p className="mt-4 max-w-md text-paper/70">Kamu tidak harus punya bisnis untuk mulai menjadi entrepreneur. Mulai dari skill yang kamu punya hari ini.</p>
         </div>
         <p className="text-xs text-paper/50">© {new Date().getFullYear()} GenZ Preneur</p>
       </section>
       <section className="flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-sm">
+        <div className="w-full max-w-md">
           <Link to="/" className="mb-8 inline-block lg:hidden"><Logo /></Link>
-          <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+          <Link to="/" className="mb-6 inline-flex min-h-10 items-center text-sm font-semibold text-muted hover:text-ink">← Kembali ke Beranda</Link><h1 className="font-display text-3xl font-extrabold tracking-tight">{title}</h1>
           <p className="mt-1 text-sm text-muted">{subtitle}</p>
           <div className="mt-8">{children}</div>
           <div className="mt-6 text-sm text-muted">{footer}</div>
@@ -211,12 +211,15 @@ export const waitlistSchema = z.object({
 const INTEREST_OPTIONS = [
   { v: 'spark', l: '⚡ GenZ Spark' },
   { v: 'boost', l: '🚀 GenZ Boost' },
-  { v: 'impact', l: '🎯 GenZ Impact' },
+  { v: 'impact', l: '🎯 Impact · catat minat' },
   { v: 'unsure', l: '🤔 Belum tahu' },
 ] as const;
 
 export function WaitlistPage() {
-  const [form, setForm] = useState({ name: '', email: '', whatsapp: '', interest: 'boost' as 'spark' | 'boost' | 'impact' | 'unsure', message: '', consent: false });
+  const [interestParams] = useSearchParams();
+  const requestedInterest = interestParams.get('minat');
+  const initialInterest = requestedInterest === 'spark' || requestedInterest === 'boost' || requestedInterest === 'impact' || requestedInterest === 'unsure' ? requestedInterest : 'boost';
+  const [form, setForm] = useState({ name: '', email: '', whatsapp: '', interest: initialInterest as 'spark' | 'boost' | 'impact' | 'unsure', message: '', consent: false });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState('');
   const [done, setDone] = useState(false);
@@ -267,7 +270,8 @@ export function WaitlistPage() {
           {field('email', 'Email', 'email', 'email', 'Link masuk akan dikirim ke email ini.')}
           {field('whatsapp', 'Nomor WhatsApp', 'tel', 'tel')}
           <fieldset>
-            <legend className="label">Paket yang kamu minati</legend>
+            <legend className="label">Akses yang kamu minati</legend>
+            {form.interest === 'impact' && <p className="mb-3 text-xs text-muted">Pendampingan belum dibuka. Ini pencatatan minat, bukan pembelian atau kepastian jadwal.</p>}
             <div className="grid grid-cols-2 gap-2">
               {INTEREST_OPTIONS.map((o) => (
                 <button key={o.v} type="button" aria-pressed={form.interest === o.v} onClick={() => setForm({ ...form, interest: o.v })}
@@ -278,7 +282,7 @@ export function WaitlistPage() {
           <div>
             <label htmlFor="message" className="label">Pesan (opsional)</label>
             <textarea id="message" rows={3} maxLength={300} className="input" value={form.message}
-              placeholder="Ceritakan singkat kondisimu atau pertanyaanmu" onChange={(e) => setForm({ ...form, message: e.target.value })} />
+              placeholder="Skill yang sudah bisa dipakai, waktu yang tersedia, dan bantuan yang ingin dicoba" onChange={(e) => setForm({ ...form, message: e.target.value })} />
             {errors.message && <p className="err">{errors.message}</p>}
           </div>
           <div>

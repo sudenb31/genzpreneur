@@ -56,9 +56,9 @@ export default function AssessmentPage() {
   /* ------------------------------ Intro ------------------------------ */
   if (showIntro) {
     return (
-      <div className="space-y-6">
-        <PageHeader eyebrow="Assessment Industri + Profil Cuan" title={<>Bisnis apa yang paling <span className="text-amber">kamu banget</span>?</>}
-          desc={`${QUESTIONS.length} pertanyaan (±8 menit) dalam 2 bagian. Hasilnya: 3 industri paling cocok, jalur mulai, cara mulai modal Rp0, dan Profil Cuan-mu — lengkap dengan contoh tokoh dunia & tokoh Muslim.`} />
+      <div className="space-y-6"><p className="rounded-xl bg-sky/40 p-4 text-sm">Assessment ini mengeksplorasi minat dan arah, bukan mengukur kesiapan mengerjakan bantuan. <Link to="/app/kondisi-awal" className="font-bold underline">Petakan kondisi awal secara terpisah ↗</Link></p>
+        <PageHeader eyebrow="Temukan Jalurmu · Assessment" title={<>Cari arah untuk <span className="text-amber">dicoba</span>.</>}
+          desc={`${QUESTIONS.length} pertanyaan (±8 menit) dalam 2 bagian. Hasilnya: 3 industri untuk dipertimbangkan, jalur mulai, cara mulai modal Rp0, dan Profil Cuan-mu — lengkap dengan contoh tokoh dunia & tokoh Muslim.`} />
         <div className="grid gap-4 sm:grid-cols-2">
           {(['industry', 'profile'] as const).map((sec) => (
             <div key={sec} className="card p-5">
@@ -76,6 +76,7 @@ export default function AssessmentPage() {
           </ul>
           <button type="button" className="btn-accent px-7 py-3 text-base" onClick={start}>Mulai sekarang →</button>
         </div>
+        <Link to="/app/action-plan" className="btn-ghost">Langsung praktik di Misi Pertama →</Link>
         <p className="text-xs text-muted">Ini alat bantu refleksi untuk memilih titik mulai, bukan tes psikologi terstandar dan bukan jaminan keberhasilan di industri tertentu.</p>
       </div>
     );
@@ -142,14 +143,14 @@ export default function AssessmentPage() {
   const track = TRACKS[r.track];
   return (
     <div className="space-y-8">
-      <PageHeader eyebrow="Hasil Assessment" title="Ini arah yang paling masuk akal buatmu 🔥"
+      <PageHeader eyebrow="Hasil Assessment" title="Ini saran refleksi dari jawabanmu"
         desc={r.completedAt ? `Diperbarui ${r.completedAt.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}` : undefined}
         right={<button type="button" className="btn-ghost" onClick={start}>Ulangi assessment</button>} />
 
       <section className="card-pop flex flex-col gap-4 bg-ink p-6 text-paper sm:flex-row sm:items-center">
         <span className="text-5xl" aria-hidden>{track.emoji}</span>
         <div className="flex-1">
-          <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-lime">Gaya main yang cocok · {PATH_FAMILIES[r.track].emoji} {PATH_FAMILIES[r.track].title}</p>
+          <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-lime">Gaya main untuk dipertimbangkan · {PATH_FAMILIES[r.track].emoji} {PATH_FAMILIES[r.track].title}</p>
           <h2 className="font-display text-3xl font-extrabold">{track.name}</h2>
           <p className="mt-1 text-paper/75">{track.desc}</p>
         </div>
@@ -158,7 +159,7 @@ export default function AssessmentPage() {
       <section className="space-y-4">
         <div>
           <h2 className="font-display text-2xl font-extrabold">Jalur mulai yang bisa kamu coba</h2>
-          <p className="text-sm text-muted">Turunan konkret dari gaya main {PATH_FAMILIES[r.track].title}. Pilih satu, jalankan 7 hari, lalu evaluasi.</p>
+          <p className="text-sm text-muted">Turunan konkret dari gaya main {PATH_FAMILIES[r.track].title}. Pilih satu jika relevan; buat contoh dan uji kebutuhannya, tanpa tenggat wajib.</p>
         </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {pathsByFamily(r.track).map((p) => (
@@ -237,9 +238,9 @@ export default function AssessmentPage() {
       <section className="card-pop flex flex-col gap-3 bg-lime p-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="font-display text-xl font-extrabold">Langkah berikutnya</h2>
-          <p className="text-sm">Ikuti Action Plan 7 hari supaya hasil ini jadi aksi nyata.</p>
+          <p className="text-sm">Pilih satu masalah dan bantuan kecil di Misi Pertama. Hasil assessment belum membuktikan kebutuhan pelanggan.</p>
         </div>
-        <Link to="/app/action-plan" className="btn-primary">Buka Action Plan →</Link>
+        <Link to="/app/action-plan" className="btn-primary">Buka Misi Pertama →</Link>
       </section>
     </div>
   );

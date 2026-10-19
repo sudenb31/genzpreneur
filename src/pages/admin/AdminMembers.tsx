@@ -1,3 +1,4 @@
+import AdminEntrySummary from '../../components/AdminEntrySummary';
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
@@ -376,6 +377,7 @@ export default function AdminMembers() {
                     )}
                   </div>
                 </div>
+                {r.user && <AdminEntrySummary key={r.user.uid} uid={r.user.uid} />}
               </article>
             );
           })}
