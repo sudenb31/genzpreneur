@@ -392,42 +392,6 @@ service cloud.firestore {
         && request.resource.data.status in ['new', 'invited', 'skipped'];
     }
 
-    // ---------- baselines/{uid} ----------
-    // Kondisi awal & titik masuk. Jawaban dilaporkan peserta sendiri (bukan penilaian mentor).
-    // Hanya pemilik yang menulis; admin boleh membaca untuk keperluan layanan. Tidak menyentuh progres.
-    match /baselines/{uid} {
-      function optStr(m, k, max) {
-        return !(k in m) || (m[k] is string && m[k].size() <= max);
-      }
-      function validAnswers(a) {
-        return a is map && a.size() <= 20
-          && optStr(a, 'goal', 30) && optStr(a, 'goalNote', 300)
-          && (!('skills' in a) || (a.skills is list && a.skills.size() <= 12))
-          && optStr(a, 'skillsOther', 150) && optStr(a, 'smallTask', 300) && optStr(a, 'taskConfidence', 30)
-          && optStr(a, 'exampleStatus', 30) && optStr(a, 'exampleDesc', 400) && optStr(a, 'exampleRelevance', 30)
-          && optStr(a, 'customerType', 200) && optStr(a, 'customerProblem', 300) && optStr(a, 'customerClarity', 30)
-          && optStr(a, 'experience', 30) && optStr(a, 'experienceNote', 300)
-          && optStr(a, 'hours', 30) && (!('devices' in a) || (a.devices is list && a.devices.size() <= 5))
-          && optStr(a, 'constraints', 300);
-      }
-      function validBaseline() {
-        let d = request.resource.data;
-        return d.keys().hasOnly(['ownerUid', 'answers', 'step', 'status', 'chosenEntry', 'result', 'questionsVersion', 'rulesVersion', 'createdAt', 'updatedAt'])
-          && d.ownerUid == uid
-          && (!('answers' in d) || validAnswers(d.answers))
-          && (!('step' in d) || (d.step is int && d.step >= 0 && d.step <= 6))
-          && (!('status' in d) || d.status in ['draft', 'complete'])
-          && (!('chosenEntry' in d) || d.chosenEntry == null || d.chosenEntry in ['A', 'B', 'C', 'D', 'E'])
-          && (!('result' in d) || d.result == null || (d.result is map && d.result.entry in ['A', 'B', 'C', 'D', 'E']))
-          && d.updatedAt == request.time;
-      }
-      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
-      allow create: if isMember() && request.auth.uid == uid && validBaseline();
-      allow update: if isMember() && request.auth.uid == uid && validBaseline()
-        && (!('createdAt' in resource.data) || request.resource.data.createdAt == resource.data.createdAt);
-      allow delete: if signedIn() && request.auth.uid == uid;
-    }
-
     // Semua koleksi lain tertutup secara default.
     match /{document=**} {
       allow read, write: if false;
