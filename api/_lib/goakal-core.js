@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 
 export const PLANS = new Set(['spark', 'boost', 'impact']);
+const PRICE_ACTIONS = new Set([...PLANS, 'ignore']);
 const CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 
 export function safeEqual(received, expected) {
@@ -17,9 +18,9 @@ export function parsePriceMap(raw) {
   const entries = Object.entries(value);
   if (!entries.length) throw new Error('GOAKAL_PRICE_MAP belum diisi.');
   const result = {};
-  for (const [priceSchemeId, plan] of entries) {
-    if (!priceSchemeId.trim() || !PLANS.has(plan)) throw new Error(`Mapping price scheme ${priceSchemeId || '(kosong)'} tidak valid.`);
-    result[priceSchemeId.trim()] = plan;
+  for (const [priceSchemeId, action] of entries) {
+    if (!priceSchemeId.trim() || !PRICE_ACTIONS.has(action)) throw new Error(`Mapping price scheme ${priceSchemeId || '(kosong)'} tidak valid.`);
+    result[priceSchemeId.trim()] = action;
   }
   return result;
 }
@@ -80,6 +81,7 @@ export function validatePaidTransaction(tx, priceMap) {
   if (!tx.paymentId || !tx.payerEmail || !tx.priceSchemeId) throw new Error('Transaksi PAID tidak memiliki paymentId, email, atau price scheme.');
   const plan = priceMap[tx.priceSchemeId];
   if (!plan) throw new Error(`Price scheme ${tx.priceSchemeId} belum dipetakan ke paket.`);
+  if (plan === 'ignore') return { ignored: true };
   return { ignored: false, plan };
 }
 

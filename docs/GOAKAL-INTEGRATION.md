@@ -45,8 +45,8 @@ Integrasi memakai Resend API langsung, tanpa SDK tambahan.
 ```text
 GOAKAL_API_KEY=ak_...
 GOAKAL_WEBHOOK_TOKEN=rahasia-webhook-yang-panjang
-GOAKAL_PRICE_MAP={"PRICE_SCHEME_CUID_SPARK":"spark","PRICE_SCHEME_CUID_BOOST":"boost","PRICE_SCHEME_CUID_IMPACT":"impact"}
-GOAKAL_SERVICE_IDS=SERVICE_CUID_UTAMA
+GOAKAL_PRICE_MAP={"cmvanoylm000vlb0665cgbtq8":"ignore","cmvanoyn8000xlb06lfpbcjzs":"spark","cmvanoynx000zlb06tcftyfdw":"boost","cmvanoyon0011lb06e9t9qw43":"impact"}
+GOAKAL_SERVICE_IDS=cmvaf1zib0000l006kjpdm8x4
 VOUCHER_CODE_SECRET=rahasia-acak-minimal-24-karakter
 GOAKAL_SYNC_SECRET=rahasia-sync-yang-berbeda
 FIREBASE_SERVICE_ACCOUNT_JSON={...}
@@ -56,7 +56,7 @@ APP_URL=https://genzpreneur-id.vercel.app
 VOUCHER_VALID_DAYS=30
 ```
 
-Gunakan ID price scheme, bukan judul paket. Judul dapat diubah di GoAkal; ID menjadi pengenal yang stabil.
+Gunakan ID price scheme, bukan judul paket. Judul dapat diubah di GoAkal; ID menjadi pengenal yang stabil. Nilai `ignore` dipakai untuk **webinar only**, sehingga transaksi tersebut dilewati tanpa membuat voucher aplikasi dan tanpa memicu retry webhook.
 
 ## 5. Publish dan tes staging
 

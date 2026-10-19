@@ -20,12 +20,19 @@ YANG DIPERLUKAN SEBELUM BISA AKTIF
 - Akun/API key Resend dan domain email pengirim yang sudah diverifikasi.
 - Secret acak untuk kode voucher dan endpoint sinkronisasi.
 
+CUID GOAKAL SUDAH DIPETAKAN
+- Service: cmvaf1zib0000l006kjpdm8x4
+- Webinar only: cmvanoylm000vlb0665cgbtq8 → ignore (tidak membuat voucher aplikasi)
+- GenZ Spark: cmvanoyn8000xlb06lfpbcjzs → spark
+- GenZ Boost: cmvanoynx000zlb06tcftyfdw → boost
+- GenZ Impact: cmvanoyon0011lb06e9t9qw43 → impact
+
 JANGAN KIRIM SECRET KE CHAT ATAU COMMIT KE GITHUB.
 Masukkan semuanya sebagai Environment Variables di Vercel. Contoh nama dan format ada di .env.example dan docs/GOAKAL-INTEGRATION.md.
 
 HASIL PEMERIKSAAN
 - npm run typecheck: LULUS.
-- npm test: 156 tes LULUS dalam 23 file, termasuk 5 tes integrasi server GoAkal.
+- npm test: 157 tes LULUS dalam 23 file, termasuk tes mapping `ignore` untuk webinar only.
 - npm run build: BERHASIL.
 - Sintaks empat file server baru: LULUS node --check.
 - npm audit produksi setelah Firebase Admin 14.5: integrasi Admin baru tidak lagi muncul dalam advisory. Empat advisory high lama masih berasal dari rantai Firebase frontend; audit menawarkan downgrade besar ke Firebase 9, jadi tidak diubah dalam revisi ini.

@@ -3,7 +3,7 @@ import { normalizeApiTransaction, normalizeWebhook, parsePriceMap, safeEqual, va
 
 describe('GoAkal server integration', () => {
   it('memetakan price scheme hanya ke paket yang dikenal', () => {
-    expect(parsePriceMap('{"ps1":"boost"}')).toEqual({ ps1: 'boost' });
+    expect(parsePriceMap('{"ps1":"boost","webinar":"ignore"}')).toEqual({ ps1: 'boost', webinar: 'ignore' });
     expect(() => parsePriceMap('{"ps1":"vip"}')).toThrow(/tidak valid/);
   });
 
@@ -24,6 +24,11 @@ describe('GoAkal server integration', () => {
   it('menormalkan respons API transaksi untuk jalur sinkronisasi', () => {
     const tx = normalizeApiTransaction({ paymentId: 'AKL-2', status: 'SETTLED', payerEmail: 'a@b.id', priceSchemeCuid: 'ps2' });
     expect(tx).toMatchObject({ paymentId: 'AKL-2', status: 'SETTLED', payerEmail: 'a@b.id', priceSchemeId: 'ps2' });
+  });
+
+  it('mengabaikan price scheme non-aplikasi yang ditandai eksplisit', () => {
+    const tx = normalizeApiTransaction({ paymentId: 'AKL-WEBINAR', status: 'PAID', payerEmail: 'a@b.id', priceSchemeCuid: 'webinar' });
+    expect(validatePaidTransaction(tx, { webinar: 'ignore' })).toEqual({ ignored: true });
   });
 
   it('membandingkan token tanpa menerima nilai kosong', () => {
