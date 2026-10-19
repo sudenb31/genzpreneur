@@ -49,6 +49,7 @@ POST /api/goakal/sync (Bearer GOAKAL_SYNC_SECRET)
 9. **Sync realistis untuk Vercel.** Batas waktu internal 45 detik (function 60 detik), retry 429/5xx dengan `Retry-After`, satu `getAll` per 100 order, dan `resume` untuk melanjutkan. Mode `dry-run` (tanpa menulis) dan `check-config` (mencocokkan mapping dengan GoAkal).
 10. **Firebase Admin & Vercel.** `firebase-admin` 14 butuh Node ≥ 22 → `package.json` kini `"engines": {"node": ">=22"}`. Inisialisasi malas & di-cache per instance, `private_key` dengan `\n` didukung, field wajib divalidasi. `vercel.json` menetapkan `maxDuration` 30 dtk (webhook) dan 60 dtk (sync).
 11. **Rules:** voucher GoAkal hanya bisa **dibaca** oleh email pembeli & admin (sebelumnya semua orang yang login dan tahu kodenya dapat melihat email pembeli & paymentId). Voucher manual lama tanpa `assignedEmail` tetap terbaca semua peserta. `goakalOrders` dinyatakan eksplisit tertutup untuk browser.
+13. **Payload nyata ≠ dokumentasi.** Webhook asli GoAkal (19 Okt 2026) mengirim pembeli di `data.payer` {name, email, phoneNumber}, bukan `data.user`. Keduanya kini didukung.
 12. **Email** memakai nama paket resmi (GenZ Spark/Boost/Impact), tanggal kedaluwarsa, versi teks polos, dan warna brand.
 
 ## 3. Siapkan GoAkal
