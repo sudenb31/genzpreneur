@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { INDUSTRIES, INDUSTRY_KEYS, type IndustryKey } from '../content/industries';
-import { SIM_LEVELS, SIM_LEVEL_ORDER, findScenario, type SimLevelKey, type SimScenario, type SimStats } from '../content/simulator';
-import { blueprintText, displayOrder, evaluate, formatDelta, formatJuta, playThrough } from '../lib/simulator';
+import { SIM_LEVELS, SIM_LEVEL_ORDER, findScenario, type SimExecution, type SimLevelKey, type SimOps, type SimRole, type SimScenario, type SimStats } from '../content/simulator';
+import { blueprintText, displayOrder, evaluate, formatDelta, formatJuta, playThrough, runwayBulan } from '../lib/simulator';
 import { CopyButton, PageHeader } from '../components/ui';
 
 const isIndustry = (v: string | null): v is IndustryKey => !!v && (INDUSTRY_KEYS as readonly string[]).includes(v);
@@ -26,7 +26,7 @@ export default function SimulatorPage() {
   return (
     <div className="space-y-6">
       <PageHeader eyebrow="Simulasi Founder · 30 skenario" title={<>Bayangkan bisnismu <span className="headline-marker">naik level.</span></>}
-        desc="Pilih industri dan level modal. Kamu akan berperan sebagai founder, mengambil 3 keputusan sulit, lalu melihat dampaknya ke kas, reputasi, dan energi tim. Di akhir, kamu mendapat blueprint: siapa yang direkrut, operasional, alokasi modal, dan KPI."
+        desc="Pilih industri dan level modal. Kamu masuk ke bisnis yang sedang berjalan: lihat laporan keuangan per bulan, kenali timmu dan job desk masing-masing (sales cari prospek ke mana, gudang ngapain, manager ngapain), lalu ambil 3 keputusan sulit. Setiap keputusan dilengkapi rencana eksekusi: siapa mengerjakan apa. Di akhir kamu dapat playbook tim lengkap."
         right={<span aria-hidden className="brand-sticker">ROLEPLAY ✦</span>} />
 
       <section aria-labelledby="pick-industry" className="space-y-3">
@@ -138,20 +138,10 @@ function ScenarioPlayer({ scenario, onExit, onSwitchLevel }: { scenario: SimScen
           <h1 ref={headingRef} tabIndex={-1} className="h-page mt-1 outline-none">{scenario.title}</h1>
           <p className="mt-3 max-w-3xl text-[15px] leading-relaxed">{scenario.persona}</p>
         </section>
-        <div className="grid gap-4 md:grid-cols-2">
-          <section className="card p-5">
-            <h2 className="font-display text-lg font-extrabold">💼 Modal</h2>
-            <p className="mt-1">{scenario.modal}</p>
-          </section>
-          <section className="card p-5">
-            <h2 className="font-display text-lg font-extrabold">👥 Tim saat ini</h2>
-            <ul className="mt-1 list-disc space-y-1 pl-5 text-sm">{scenario.team.map((t) => <li key={t}>{t}</li>)}</ul>
-          </section>
-        </div>
-        <StatsBar stats={scenario.start} start={scenario.start} />
+        <BriefTabs scenario={scenario} />
         <section className="card bg-paper p-5 text-sm">
           <h2 className="font-bold">Cara main</h2>
-          <p className="mt-1">Ada 3 situasi. Pilih keputusan yang menurutmu paling tepat. Tidak ada tombol kembali, sama seperti di dunia nyata. Setiap pilihan mengubah <strong>kas</strong>, <strong>reputasi</strong>, dan <strong>energi tim</strong>. Di akhir kamu mendapat skor, pembahasan, dan blueprint bisnis untuk level ini.</p>
+          <p className="mt-1">Pelajari dulu laporan bisnis dan timmu di atas. Lalu ada 3 situasi nyata. Pilih keputusan yang menurutmu paling tepat (tidak ada tombol kembali, sama seperti di dunia nyata). Setiap pilihan mengubah <strong>kas</strong>, <strong>reputasi</strong>, dan <strong>energi tim</strong>, dan kamu akan melihat <strong>siapa di tim mengerjakan apa</strong> untuk menjalankannya.</p>
         </section>
         <button type="button" className="btn-accent" onClick={() => setStarted(true)}>Mulai sebagai founder →</button>
       </div>
@@ -194,9 +184,24 @@ function ScenarioPlayer({ scenario, onExit, onSwitchLevel }: { scenario: SimScen
                 <p className="mt-2 text-sm"><strong>Pilihanmu:</strong> {mine.label} {mine.best ? '✅' : ''}</p>
                 {!mine.best && <p className="mt-1 text-sm"><strong>Pilihan terbaik:</strong> {best.label}</p>}
                 <p className="mt-3 rounded-2xl bg-lilac/50 p-3 text-sm"><strong>Pelajaran:</strong> {d.lesson}</p>
+                <div className="mt-3"><ExecutionPlan steps={d.execution} title="Rencana eksekusi tim" compact /></div>
               </article>
             );
           })}
+        </section>
+
+        <section aria-labelledby="playbook" className="card-pop space-y-5 bg-white p-6">
+          <div>
+            <p className="eyebrow">Playbook tim</p>
+            <h2 id="playbook" className="font-display text-2xl font-extrabold">Siapa ngapain di bisnis ini</h2>
+            <p className="text-sm text-muted">Job desk harian & mingguan, KPI, ke mana mencari prospek, ritme rapat, dan funnel penjualan. Ikut tersalin di tombol &quot;Salin blueprint&quot;.</p>
+          </div>
+          <BusinessReport scenario={scenario} />
+          <TeamBoard roles={scenario.ops.roles} openAll />
+          <div className="grid gap-4 lg:grid-cols-2">
+            <RhythmTable ops={scenario.ops} />
+            <FunnelChart ops={scenario.ops} />
+          </div>
         </section>
 
         <section aria-labelledby="blueprint" className="card-pop space-y-5 bg-white p-6">
@@ -258,6 +263,16 @@ function ScenarioPlayer({ scenario, onExit, onSwitchLevel }: { scenario: SimScen
     <div className="space-y-5">
       {header}
       <StatsBar stats={current} start={scenario.start} compact />
+      <details className="card group p-4">
+        <summary className="cursor-pointer list-none font-bold">
+          <span className="group-open:hidden">👥 Lihat laporan bisnis & timmu (contekan sebelum memutuskan) ▾</span>
+          <span className="hidden group-open:inline">👥 Tutup contekan ▴</span>
+        </summary>
+        <div className="mt-4 space-y-4">
+          <BusinessReport scenario={scenario} />
+          <TeamBoard roles={scenario.ops.roles} />
+        </div>
+      </details>
       <section className="card-pop space-y-4 bg-white p-6">
         <div className="flex items-center justify-between gap-3">
           <p className="eyebrow">Keputusan {step + 1} dari 3</p>
@@ -290,6 +305,8 @@ function ScenarioPlayer({ scenario, onExit, onSwitchLevel }: { scenario: SimScen
                 <Delta label="Energi tim" value={picked.effect.tim} unit="poin" />
               </div>
             </div>
+            {!picked.best && <p className="text-sm"><strong>Pilihan yang lebih tepat:</strong> {decision.options.find((x) => x.best)!.label}</p>}
+            <ExecutionPlan steps={decision.execution} title={picked.best ? '🛠️ Begini timmu menjalankannya' : '🛠️ Cara yang lebih tepat — dan siapa mengerjakan apa'} />
             <button type="button" className="btn-accent" onClick={() => setRevealed(false)}>
               {choices.length === 3 ? 'Lihat hasil & blueprint →' : 'Lanjut ke keputusan berikutnya →'}
             </button>
@@ -305,6 +322,192 @@ function BlueprintList({ title, items, tile }: { title: string; items: string[];
     <div className={`card p-4 ${tile}`}>
       <h3 className="font-bold">{title}</h3>
       <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">{items.map((x) => <li key={x}>{x}</li>)}</ul>
+    </div>
+  );
+}
+
+/* ───────────────────────── v2: laporan bisnis, tim, ritme, funnel, eksekusi ───────────────────────── */
+
+const BRIEF_TABS = [
+  { key: 'laporan', label: '📊 Laporan bisnis' },
+  { key: 'tim', label: '👥 Tim & job desk' },
+  { key: 'ritme', label: '🗓️ Ritme & funnel' },
+] as const;
+
+function BriefTabs({ scenario }: { scenario: SimScenario }) {
+  const [tab, setTab] = useState<(typeof BRIEF_TABS)[number]['key']>('laporan');
+  return (
+    <section className="space-y-4" aria-label="Kenali bisnismu">
+      <div role="tablist" aria-label="Kenali bisnismu" className="flex flex-wrap gap-2">
+        {BRIEF_TABS.map((t) => (
+          <button key={t.key} type="button" role="tab" id={`tab-${t.key}`} aria-selected={tab === t.key} aria-controls={`panel-${t.key}`}
+            onClick={() => setTab(t.key)}
+            className={`rounded-full border-2 border-ink px-4 py-2 text-sm font-bold transition ${tab === t.key ? 'bg-ink text-white' : 'bg-white hover:-translate-y-0.5'}`}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+      <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
+        {tab === 'laporan' && (
+          <div className="space-y-4">
+            <BusinessReport scenario={scenario} />
+            <section className="card p-5">
+              <h2 className="font-display text-lg font-extrabold">💼 Modal & kondisi awal simulasi</h2>
+              <p className="mt-1 text-sm">{scenario.modal}</p>
+            </section>
+            <StatsBar stats={scenario.start} start={scenario.start} />
+          </div>
+        )}
+        {tab === 'tim' && <TeamBoard roles={scenario.ops.roles} />}
+        {tab === 'ritme' && (
+          <div className="grid gap-4 lg:grid-cols-2">
+            <RhythmTable ops={scenario.ops} />
+            <FunnelChart ops={scenario.ops} />
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function BusinessReport({ scenario }: { scenario: SimScenario }) {
+  const n = scenario.ops.snapshot;
+  const runway = runwayBulan(scenario);
+  const labaKotor = Math.round(n.omzetBulan * n.marginKotor) / 100;
+  const rows: { label: string; value: string; hint: string; tone?: string }[] = [
+    { label: 'Omzet', value: formatJuta(n.omzetBulan), hint: 'per bulan · total penjualan kotor' },
+    { label: 'Laba kotor', value: formatJuta(labaKotor), hint: `per bulan · margin ${n.marginKotor}%` },
+    { label: 'Biaya tetap', value: formatJuta(n.biayaTetapBulan), hint: 'per bulan · gaji, sewa, langganan' },
+    { label: n.labaBulan < 0 ? 'Rugi bersih (burn)' : 'Laba bersih', value: formatJuta(n.labaBulan), hint: 'per bulan · yang benar-benar tersisa', tone: n.labaBulan < 0 ? 'bg-pink' : 'bg-lime' },
+  ];
+  const posisi: { label: string; value: string }[] = [{ label: 'Kas di rekening', value: formatJuta(n.kas) }];
+  if (n.piutang !== undefined) posisi.push({ label: 'Piutang (belum dibayar pelanggan)', value: formatJuta(n.piutang) });
+  if (n.stok !== undefined) posisi.push({ label: 'Nilai stok di gudang', value: formatJuta(n.stok) });
+  return (
+    <section className="card p-5" aria-labelledby="laporan-bisnis">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 id="laporan-bisnis" className="font-display text-lg font-extrabold">📊 Laporan bisnis — rata-rata PER BULAN</h2>
+        <span className="chip bg-paper text-xs">Semua angka estimasi, rupiah</span>
+      </div>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {rows.map((r) => (
+          <div key={r.label} className={`rounded-2xl border-2 border-ink p-3 ${r.tone ?? 'bg-white'}`}>
+            <p className="text-xs font-bold">{r.label}</p>
+            <p className="font-display text-xl font-extrabold">{r.value}</p>
+            <p className="text-xs text-muted">{r.hint}</p>
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 rounded-2xl bg-paper p-3">
+        <p className="text-xs font-extrabold uppercase tracking-wider">Posisi hari ini (bukan per bulan)</p>
+        <dl className="mt-2 grid gap-2 text-sm sm:grid-cols-3">
+          {posisi.map((p) => (<div key={p.label}><dt className="text-muted">{p.label}</dt><dd className="font-bold">{p.value}</dd></div>))}
+        </dl>
+        {runway !== null && <p className="mt-2 text-sm font-bold text-danger">⏳ Runway ±{runway.toLocaleString('id-ID')} bulan: kas habis dalam waktu itu jika rugi tidak berubah.</p>}
+      </div>
+      <p className="mt-3 text-sm"><strong>Pelanggan:</strong> {n.pelanggan}</p>
+      {n.catatan && <p className="mt-1 text-sm text-muted">{n.catatan}</p>}
+    </section>
+  );
+}
+
+function TeamBoard({ roles, openAll = false }: { roles: SimRole[]; openAll?: boolean }) {
+  return (
+    <section aria-label="Struktur tim & job desk" className="space-y-3">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="font-display text-lg font-extrabold">👥 Struktur tim & job desk</h2>
+        {!openAll && <span className="text-xs text-muted">Klik tiap peran untuk melihat tugas harian, mingguan, KPI, dan sumber prospek.</span>}
+      </div>
+      <div className="grid items-start gap-3 md:grid-cols-2">
+        {roles.map((r) => <RoleCard key={r.role} role={r} open={openAll} />)}
+      </div>
+    </section>
+  );
+}
+
+function RoleCard({ role: r, open }: { role: SimRole; open: boolean }) {
+  const list = (title: string, items: string[] | undefined, cls = '') => (items && items.length > 0 ? (
+    <div className={cls}>
+      <p className="text-xs font-extrabold uppercase tracking-wider">{title}</p>
+      <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm">{items.map((x) => <li key={x}>{x}</li>)}</ul>
+    </div>
+  ) : null);
+  return (
+    <details className="card group border-2 border-ink/15 p-4 open:border-ink" open={open || undefined}>
+      <summary className="flex cursor-pointer list-none items-start justify-between gap-3">
+        <span>
+          <span className="block font-bold leading-tight">{r.role}</span>
+          <span className="mt-0.5 block text-xs text-muted">{/^\d+$/.test(r.jumlah) ? `${r.jumlah} orang` : r.jumlah}{r.atasan ? ` · lapor ke ${r.atasan}` : ''}</span>
+          <span className="mt-1 block text-sm">{r.misi}</span>
+        </span>
+        <span aria-hidden className="chip shrink-0 bg-paper group-open:rotate-180">▾</span>
+      </summary>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        {list('Harian', r.harian)}
+        {list('Mingguan', r.mingguan)}
+        {list('🎯 KPI', r.kpi, 'rounded-2xl bg-lilac/50 p-2.5')}
+        {list('🧭 Cari prospek di', r.prospek, 'rounded-2xl bg-lime/60 p-2.5')}
+        {r.tools && r.tools.length > 0 && <p className="text-sm sm:col-span-2"><strong>Tools:</strong> {r.tools.join(' · ')}</p>}
+      </div>
+    </details>
+  );
+}
+
+function RhythmTable({ ops }: { ops: SimOps }) {
+  return (
+    <section className="card p-5" aria-labelledby="ritme">
+      <h2 id="ritme" className="font-display text-lg font-extrabold">🗓️ Ritme kerja</h2>
+      <p className="text-xs text-muted">Kapan rapat, kapan eksekusi, siapa yang terlibat.</p>
+      <table className="mt-3 w-full text-left text-sm">
+        <thead><tr className="border-b-2 border-ink text-xs uppercase"><th className="py-1.5 pr-2">Kapan</th><th className="py-1.5 pr-2">Agenda</th><th className="py-1.5">Siapa</th></tr></thead>
+        <tbody>
+          {ops.ritme.map((x) => (
+            <tr key={x.kapan + x.agenda} className="border-b border-ink/10 align-top last:border-0">
+              <td className="py-2 pr-2 font-bold">{x.kapan}</td><td className="py-2 pr-2">{x.agenda}</td><td className="py-2 text-muted">{x.siapa}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+  );
+}
+
+function FunnelChart({ ops }: { ops: SimOps }) {
+  const { steps, periode } = ops.funnel;
+  const top = Math.log10(Math.max(steps[0].angka, 10));
+  return (
+    <section className="card p-5" aria-labelledby="funnel">
+      <h2 id="funnel" className="font-display text-lg font-extrabold">🔻 Funnel penjualan <span className="text-sm font-bold text-muted">({periode})</span></h2>
+      <p className="text-xs text-muted">Dari banyak orang yang dijangkau, hanya sebagian kecil yang membayar. Ini angka yang harus dikejar tim sales/marketing.</p>
+      <ol className="mt-3 space-y-2.5">
+        {steps.map((st, i) => {
+          const width = Math.max(14, (Math.log10(Math.max(st.angka, 1)) / top) * 100);
+          const conv = i > 0 && steps[i - 1].angka > 0 ? Math.round((st.angka / steps[i - 1].angka) * 1000) / 10 : null;
+          return (
+            <li key={st.tahap}>
+              <div className="flex justify-between gap-2 text-sm"><span>{st.tahap}</span><strong>{st.angka.toLocaleString('id-ID')}</strong></div>
+              <div className="mt-1 h-3 overflow-hidden rounded-full border border-ink bg-white"><div className="h-full bg-sky" style={{ width: `${width}%` }} /></div>
+              {conv !== null && <p className="mt-0.5 text-xs text-muted">{conv.toLocaleString('id-ID')}% dari tahap sebelumnya</p>}
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  );
+}
+
+function ExecutionPlan({ steps, title, compact = false }: { steps: SimExecution; title: string; compact?: boolean }) {
+  return (
+    <div className={`rounded-3xl border-2 border-ink ${compact ? 'bg-paper p-3' : 'bg-sky p-4'}`}>
+      <p className="text-xs font-extrabold uppercase tracking-wider">{title}</p>
+      <ol className="mt-2 space-y-2">
+        {steps.map((e, i) => (
+          <li key={e.siapa + e.tugas} className="flex gap-3 text-sm">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-ink bg-white text-xs font-bold">{i + 1}</span>
+            <span><span className="chip mr-1.5 bg-white py-0 text-xs">{e.siapa}</span>{e.tugas}</span>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }
