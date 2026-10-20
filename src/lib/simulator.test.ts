@@ -1,0 +1,115 @@
+import { describe, expect, it } from 'vitest';
+import { SIM_LEVEL_ORDER, SIM_SCENARIOS, findScenario } from '../content/simulator';
+import { INDUSTRY_KEYS } from '../content/industries';
+import { applyEffect, blueprintText, evaluate, formatDelta, formatJuta, playThrough } from './simulator';
+
+describe('Founder Simulator — konten', () => {
+  it('tepat 30 skenario: 10 industri × 3 level, tanpa duplikat', () => {
+    expect(SIM_SCENARIOS).toHaveLength(30);
+    for (const ind of INDUSTRY_KEYS) for (const lvl of SIM_LEVEL_ORDER) expect(findScenario(ind, lvl), `${ind}/${lvl}`).toBeDefined();
+    expect(new Set(SIM_SCENARIOS.map((s) => `${s.industry}-${s.level}`)).size).toBe(30);
+  });
+
+  it.each(SIM_SCENARIOS.map((s) => [`${s.industry}/${s.level}`, s] as const))('%s: struktur lengkap & konsisten', (_, s) => {
+    expect(s.title.length).toBeGreaterThan(5);
+    expect(s.persona.length).toBeGreaterThan(60);
+    expect(s.team.length).toBeGreaterThan(0);
+    expect(s.decisions).toHaveLength(3);
+    for (const d of s.decisions) {
+      expect(d.options).toHaveLength(3);
+      expect(d.options.filter((x) => x.best)).toHaveLength(1);
+      expect(d.lesson.length).toBeGreaterThan(40);
+      for (const opt of d.options) expect(opt.result.length).toBeGreaterThan(30);
+      // Opsi terbaik tidak boleh merusak reputasi DAN energi tim sekaligus.
+      const best = d.options.find((x) => x.best)!;
+      expect(best.effect.reputasi + best.effect.tim).toBeGreaterThanOrEqual(0);
+    }
+    const b = s.blueprint;
+    expect(b.modal.reduce((n, m) => n + m.pct, 0)).toBe(100);
+    for (const key of ['prioritas', 'rekrutSekarang', 'rekrutNanti', 'operasional', 'kpi', 'risiko', 'naikLevel'] as const) expect(b[key].length).toBeGreaterThan(0);
+    expect(b.modal.some((m) => /darurat|runway/i.test(m.pos))).toBe(true);
+  });
+
+  it.each(SIM_SCENARIOS.map((s) => [`${s.industry}/${s.level}`, s] as const))('%s: jalur keputusan terbaik = bisnis sehat (kas tak pernah minus, skor ≥85)', (_, s) => {
+    const bestChoices = s.decisions.map((d) => d.options.findIndex((x) => x.best));
+    expect(playThrough(s, bestChoices).every((st) => st.kas >= 0)).toBe(true);
+    const r = evaluate(s, bestChoices);
+    expect(r.bestCount).toBe(3);
+    expect(r.score).toBeGreaterThanOrEqual(85);
+    expect(r.verdict.key).toBe('founder');
+  });
+
+  it('level skala selalu bermodal lebih besar dari tumbuh, dan tumbuh dari rintis', () => {
+    for (const ind of INDUSTRY_KEYS) {
+      const [a, b, c] = SIM_LEVEL_ORDER.map((l) => findScenario(ind, l)!.start.kas);
+      expect(a).toBeLessThan(b);
+      expect(b).toBeLessThan(c);
+    }
+  });
+});
+
+describe('Founder Simulator — engine', () => {
+  it('membatasi reputasi & tim 0–100, kas boleh minus', () => {
+    expect(applyEffect({ kas: 1, reputasi: 95, tim: 3 }, { kas: -3, reputasi: 10, tim: -10 })).toEqual({ kas: -2, reputasi: 100, tim: 0 });
+  });
+
+  it('pilihan terburuk menghasilkan skor rendah & peringatan', () => {
+    const s = findScenario('fashion', 'tumbuh')!;
+    const worst = s.decisions.map((d) => {
+      let idx = 0; let min = Infinity;
+      d.options.forEach((x, i) => { const v = x.effect.reputasi + x.effect.tim + (x.best ? 100 : 0); if (v < min) { min = v; idx = i; } });
+      return idx;
+    });
+    const r = evaluate(s, worst);
+    expect(r.bestCount).toBe(0);
+    expect(r.score).toBeLessThan(60);
+    expect(r.warnings.length).toBeGreaterThan(0);
+  });
+
+  it('format rupiah', () => {
+    expect(formatJuta(1.5)).toBe('Rp1,5 juta');
+    expect(formatJuta(0.4)).toBe('Rp400 ribu');
+    expect(formatJuta(1200)).toBe('Rp1,2 miliar');
+    expect(formatJuta(-3.6)).toBe('−Rp3,6 juta');
+    expect(formatDelta(2.5, 'kas')).toBe('+Rp2,5 juta');
+    expect(formatDelta(-4, 'poin')).toBe('−4');
+    expect(formatDelta(0, 'poin')).toBe('±0');
+  });
+
+  it('blueprint bisa disalin sebagai teks', () => {
+    const text = blueprintText(findScenario('fnb', 'rintis')!);
+    expect(text).toContain('BLUEPRINT BISNIS');
+    expect(text).toContain('ALOKASI MODAL');
+    expect(text).toContain('Catatan: angka adalah estimasi');
+  });
+});
+
+describe('Founder Simulator — urutan opsi', () => {
+  it('posisi jawaban terbaik di layar tersebar (tidak selalu di tempat yang sama)', async () => {
+    const { displayOrder } = await import('./simulator');
+    const positions = [0, 0, 0];
+    for (const s of SIM_SCENARIOS) s.decisions.forEach((d, i) => {
+      const order = displayOrder(s, i);
+      expect([...order].sort()).toEqual([0, 1, 2]);
+      positions[order.indexOf(d.options.findIndex((x) => x.best))] += 1;
+    });
+    // 90 kartu: setiap posisi minimal 20% dari total.
+    for (const p of positions) expect(p).toBeGreaterThanOrEqual(18);
+  });
+});
+
+describe('Founder Simulator — jawaban tidak bisa ditebak dari panjang teks', () => {
+  it('opsi terbaik tidak selalu paling panjang/pendek, dan panjangnya seimbang', () => {
+    let longest = 0; let shortest = 0;
+    for (const s of SIM_SCENARIOS) for (const d of s.decisions) {
+      const lens = d.options.map((x) => x.label.length);
+      const bi = d.options.findIndex((x) => x.best);
+      if (lens[bi] === Math.max(...lens)) longest += 1;
+      if (lens[bi] === Math.min(...lens)) shortest += 1;
+      const others = lens.filter((_, j) => j !== bi);
+      expect(lens[bi] / ((others[0] + others[1]) / 2), `${s.industry}/${s.level}: ${d.title}`).toBeLessThanOrEqual(1.4);
+    }
+    expect(longest).toBeLessThanOrEqual(36); // ≤40% dari 90 kartu
+    expect(shortest).toBeLessThanOrEqual(45); // ≤50%
+  });
+});
