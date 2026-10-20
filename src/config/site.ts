@@ -28,7 +28,7 @@ export const SITE = {
     { key: 'spark', saleReady: true, level: 'Mulai praktik', name: 'GenZ Spark', emoji: '⚡', price: 49_000,
       tagline: 'Siapkan bantuan pertamamu.',
       desc: 'Untuk pemula yang ingin membuat draf, contoh kerja, dan penawaran sederhana dengan kerangka yang bisa dikerjakan manual.',
-      features: ['Misi Pertama: 9 tahap, draf tersimpan & unduh hasil', 'Business 101 dan Season 1 sebagai materi pendukung', 'Passport & assessment opsional untuk refleksi', 'Dream Pact opsional + versi cetak', 'Coba 1 skenario Simulasi Founder (F&B Level 1) gratis', 'Bukan layanan review individual atau jaminan pelanggan'],
+      features: ['Misi Pertama: 9 tahap, draf tersimpan & unduh hasil', 'Business 101 dan Season 1 sebagai materi pendukung', 'Passport & assessment opsional untuk refleksi', 'Dream Pact opsional + versi cetak', 'Simulasi Founder Level 1 gratis di 10 industri', 'Bukan layanan review individual atau jaminan pelanggan'],
       trial: { to: 'GenZ Boost', days: 3 },
     },
     { key: 'boost', saleReady: true, level: 'Tambahan alat kerja', name: 'GenZ Boost', emoji: '🚀', price: 149_000,

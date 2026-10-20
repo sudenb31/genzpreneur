@@ -12,9 +12,9 @@ export function applyEffect(stats: SimStats, effect: SimStats): SimStats {
   return { kas: round1(stats.kas + effect.kas), reputasi: clamp(stats.reputasi + effect.reputasi), tim: clamp(stats.tim + effect.tim) };
 }
 
-/** Skenario percobaan gratis untuk semua paket (sisanya khusus GenZ Impact). */
-export const SIM_TEASER = { industry: 'fnb', level: 'rintis' } as const;
-export const isTeaserScenario = (s: { industry: string; level: string }) => s.industry === SIM_TEASER.industry && s.level === SIM_TEASER.level;
+/** Level percobaan gratis untuk semua paket: Level 1 Rintis di 10 industri. Level 2–3 khusus GenZ Impact. */
+export const SIM_TEASER_LEVEL = 'rintis' as const;
+export const isTeaserScenario = (s: { level: string }) => s.level === SIM_TEASER_LEVEL;
 
 /** Riwayat stat setelah setiap pilihan (indeks 0 = kondisi awal). */
 export function playThrough(scenario: SimScenario, choices: number[]): SimStats[] {

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { INDUSTRIES, INDUSTRY_KEYS, type IndustryKey } from '../content/industries';
 import { SIM_AREAS, SIM_LEVELS, SIM_LEVEL_ORDER, SIM_PHASES, findScenario, phaseOf, type SimDecisionFull, type SimExecution, type SimLevelKey, type SimOps, type SimRole, type SimScenario, type SimStats } from '../content/simulator';
-import { SIM_TEASER, isTeaserScenario, blueprintText, displayOrder, evaluate, formatDelta, formatJuta, playThrough, runwayBulan } from '../lib/simulator';
+import { SIM_TEASER_LEVEL, isTeaserScenario, blueprintText, displayOrder, evaluate, formatDelta, formatJuta, playThrough, runwayBulan } from '../lib/simulator';
 import { CopyButton, PageHeader } from '../components/ui';
 import { useMaybeAccess } from '../auth/AccessProvider';
 import { SITE } from '../config/site';
@@ -12,7 +12,7 @@ const isLevel = (v: string | null): v is SimLevelKey => !!v && (SIM_LEVEL_ORDER 
 
 /**
  * `fullAccess` hanya untuk tes. Di aplikasi, akses penuh = boleh fitur `simulator` (GenZ Impact/admin);
- * selain itu peserta hanya bisa memainkan skenario percobaan (SIM_TEASER).
+ * selain itu peserta hanya bisa memainkan Level 1 Rintis (gratis) di semua industri.
  */
 export default function SimulatorPage({ fullAccess }: { fullAccess?: boolean } = {}) {
   const access = useMaybeAccess();
@@ -30,7 +30,7 @@ export default function SimulatorPage({ fullAccess }: { fullAccess?: boolean } =
   }
 
   if (scenario && !full && !isTeaserScenario(scenario)) {
-    return <UpsellCard locked={scenario} onTry={() => choose({ industri: SIM_TEASER.industry, level: SIM_TEASER.level })} onBack={() => choose({ level: null })} />;
+    return <UpsellCard locked={scenario} onTry={() => choose({ level: SIM_TEASER_LEVEL })} onBack={() => choose({ level: null })} />;
   }
   if (scenario) return <ScenarioPlayer teaser={!full} key={`${scenario.industry}-${scenario.level}`} scenario={scenario} onExit={() => choose({ level: null })} onSwitchLevel={(l) => choose({ level: l })} />;
 
@@ -41,18 +41,21 @@ export default function SimulatorPage({ fullAccess }: { fullAccess?: boolean } =
         right={<span aria-hidden className="brand-sticker">ROLEPLAY ✦</span>} />
 
       {!full && (
-        <section className="card-pop flex flex-wrap items-center justify-between gap-4 bg-amber-soft p-5">
+        <section className="card-pop flex flex-wrap items-center justify-between gap-4 bg-amber-soft p-5" aria-label="Akses gratis">
           <div className="max-w-2xl">
-            <p className="eyebrow">Mode percobaan</p>
-            <p className="font-display text-lg font-extrabold">Kamu bisa memainkan 1 skenario penuh gratis: Kuliner & F&B · Level 1 Rintis.</p>
-            <p className="text-sm">29 skenario lainnya (10 industri × 3 level modal) dan playbook lengkapnya ada di 🎯 GenZ Impact.</p>
+            <p className="eyebrow">✨ Gratis untuk paketmu</p>
+            <p className="font-display text-lg font-extrabold">Level 1 Rintis bisa kamu mainkan GRATIS di 10 industri.</p>
+            <p className="text-sm">Level 2 Tumbuh & Level 3 Skala (20 skenario saat bisnis sudah punya tim & modal besar) ada di 🎯 GenZ Impact.</p>
           </div>
-          <button type="button" className="btn-accent" onClick={() => choose({ industri: SIM_TEASER.industry, level: SIM_TEASER.level })}>Main skenario gratis →</button>
+          <button type="button" className="btn-accent" onClick={() => document.getElementById('pick-industry')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>Pilih industri ↓</button>
         </section>
       )}
 
       <section aria-labelledby="pick-industry" className="space-y-3">
-        <h2 id="pick-industry" className="font-display text-xl font-extrabold">1. Pilih industri</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="pick-industry" className="font-display text-xl font-extrabold">1. Pilih industri</h2>
+          {!full && <span className="chip bg-lime">✨ Level 1 gratis di semua industri</span>}
+        </div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {INDUSTRY_KEYS.map((k) => {
             const ind = INDUSTRIES[k];
@@ -62,6 +65,7 @@ export default function SimulatorPage({ fullAccess }: { fullAccess?: boolean } =
                 className={`card-pop flex flex-col items-start gap-2 p-4 text-left transition hover:-translate-y-0.5 ${active ? 'bg-lime' : 'bg-white'}`}>
                 <span className="text-2xl" aria-hidden>{ind.emoji}</span>
                 <span className="font-bold leading-tight">{ind.name}</span>
+                {!full && <span className="chip mt-auto bg-amber-soft text-xs">✨ Level 1 gratis</span>}
               </button>
             );
           })}
@@ -69,7 +73,10 @@ export default function SimulatorPage({ fullAccess }: { fullAccess?: boolean } =
       </section>
 
       <section aria-labelledby="pick-level" className="space-y-3">
-        <h2 id="pick-level" className="font-display text-xl font-extrabold">2. Pilih level modal</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 id="pick-level" className="font-display text-xl font-extrabold">2. Pilih level modal</h2>
+          {!full && <span className="text-sm font-semibold">✨ Level 1 = gratis · 🔒 Level 2–3 = GenZ Impact</span>}
+        </div>
         {!industry && <p className="text-sm text-muted">Pilih industri dulu, lalu tentukan level yang ingin kamu mainkan.</p>}
         <div className="grid gap-3 md:grid-cols-3">
           {SIM_LEVEL_ORDER.map((l) => {
@@ -78,12 +85,13 @@ export default function SimulatorPage({ fullAccess }: { fullAccess?: boolean } =
             const locked = !full && !!sc && !isTeaserScenario(sc);
             return (
               <button key={l} type="button" disabled={!industry} onClick={() => choose({ level: l })}
-                className={`card-pop flex flex-col items-start gap-2 p-5 text-left transition enabled:hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 ${info.tile}`}>
-                <span className="chip bg-white">Level {info.no} · {info.name}{locked ? ' · 🔒 Impact' : sc && !full ? ' · ✨ Gratis' : ''}</span>
+                className={`card-pop relative flex flex-col items-start gap-2 p-5 text-left transition enabled:hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 ${info.tile}`}>
+                {!full && l === SIM_TEASER_LEVEL && <span aria-hidden className="brand-sticker absolute -top-3 right-4">GRATIS ✦</span>}
+                <span className="chip bg-white">Level {info.no} · {info.name}{!full ? (l === SIM_TEASER_LEVEL ? ' · ✨ Gratis' : ' · 🔒 Impact') : ''}</span>
                 <span className="font-display text-lg font-extrabold">{info.modal}</span>
                 <span className="text-sm font-semibold">{info.team}</span>
                 <span className="text-sm">{sc ? sc.title : info.desc}</span>
-                {industry && <span className="mt-1 text-sm font-bold underline">{locked ? 'Lihat isi di GenZ Impact →' : 'Mulai skenario →'}</span>}
+                {industry && <span className="mt-1 text-sm font-bold underline">{locked ? 'Lihat isi di GenZ Impact →' : !full ? 'Main gratis →' : 'Mulai skenario →'}</span>}
               </button>
             );
           })}
@@ -203,7 +211,7 @@ function ScenarioPlayer({ scenario, onExit, onSwitchLevel, teaser = false }: { s
           </div>
         </section>
         <StatsBar stats={result.final} start={scenario.start} />
-        {teaser && <ImpactUpsell />}
+        {teaser && <ImpactUpsell next={nextLevel ? findScenario(scenario.industry, nextLevel) : undefined} />}
         {result.warnings.length > 0 && (
           <section className="card border-2 border-danger/30 bg-danger-soft p-5">
             <h2 className="font-bold text-danger">Perhatikan</h2>
@@ -699,18 +707,19 @@ function ImpactCta() {
 }
 
 const IMPACT_GETS = [
-  '29 skenario lain: 10 industri × 3 level modal (Rintis, Tumbuh, Skala)',
+  '20 skenario Level 2 Tumbuh & Level 3 Skala di 10 industri: saat bisnis sudah punya tim, gudang, dan modal puluhan juta sampai miliaran',
   'Laporan bisnis, struktur tim & job desk tiap divisi untuk setiap skenario',
   '300 keputusan dengan rencana eksekusi siapa-ngapain',
   'Blueprint & playbook tim lengkap yang bisa disalin',
 ];
 
-function ImpactUpsell() {
+function ImpactUpsell({ next }: { next?: SimScenario }) {
   const open = IMPACT_OPEN;
   return (
     <section className="card-pop space-y-3 bg-lilac p-6" aria-labelledby="upsell">
-      <p className="eyebrow">Kamu baru mencoba 1 dari 30 skenario</p>
-      <h2 id="upsell" className="font-display text-2xl font-extrabold">29 skenario lain + playbook lengkap ada di 🎯 GenZ Impact</h2>
+      <p className="eyebrow">Level 1 gratis · Level 2–3 di GenZ Impact</p>
+      <h2 id="upsell" className="font-display text-2xl font-extrabold">Siap naik level? 20 skenario lanjutan + playbook lengkap ada di 🎯 GenZ Impact</h2>
+      {next && <p className="rounded-2xl bg-white p-3 text-sm"><strong>Lanjutan ceritamu — Level {SIM_LEVELS[next.level].no} {SIM_LEVELS[next.level].name}:</strong> {next.title}. {next.persona}</p>}
       <ul className="list-disc space-y-1 pl-5 text-sm">{IMPACT_GETS.map((x) => <li key={x}>{x}</li>)}</ul>
       {!open && <p className="text-sm">Pendaftaran GenZ Impact belum dibuka. Masuk daftar tunggu supaya kamu dikabari lebih dulu. Pemilik GenZ Boost juga bisa meminta trial Impact 7 hari ke tim GenZ Preneur.</p>}
       <ImpactCta />
@@ -732,8 +741,8 @@ function UpsellCard({ locked, onTry, onBack }: { locked: SimScenario; onTry: () 
       </section>
       <ImpactUpsell />
       <section className="card flex flex-wrap items-center justify-between gap-3 p-5">
-        <p className="text-sm">Belum yakin? Rasakan dulu satu skenario penuh, gratis.</p>
-        <button type="button" className="btn-primary" onClick={onTry}>Main Kuliner & F&B · Level 1 gratis →</button>
+        <p className="text-sm">Belum yakin? Mainkan dulu Level 1 Rintis di industri ini, gratis dan lengkap 10 keputusan.</p>
+        <button type="button" className="btn-primary" onClick={onTry}>Main {ind.name} · Level 1 gratis →</button>
       </section>
     </div>
   );

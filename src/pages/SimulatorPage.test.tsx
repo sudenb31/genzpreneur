@@ -86,26 +86,34 @@ describe('SimulatorPage', () => {
 describe('SimulatorPage — mode percobaan (Spark/Boost)', () => {
   beforeEach(() => { localStorage.clear(); });
 
-  it('skenario Impact terkunci dan mengarah ke daftar tunggu GenZ Impact', () => {
+  it('Level 2–3 terkunci dan mengarah ke daftar tunggu GenZ Impact; tombol coba membuka Level 1 industri yang sama', () => {
     render(<MemoryRouter initialEntries={['/app/simulasi?industri=tech&level=skala']}><SimulatorPage fullAccess={false} /></MemoryRouter>);
     expect(screen.getByRole('heading', { name: findScenario('tech', 'skala')!.title })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Mulai sebagai founder/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /29 skenario lain \+ playbook lengkap/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /20 skenario lanjutan \+ playbook lengkap/ })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /daftar tunggu GenZ Impact/ })).toHaveAttribute('href', '/daftar?minat=impact');
-    fireEvent.click(screen.getByRole('button', { name: /Main Kuliner & F&B · Level 1 gratis/ }));
-    expect(screen.getByRole('heading', { name: findScenario('fnb', 'rintis')!.title })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Main Teknologi & Produk Digital · Level 1 gratis/ }));
+    expect(screen.getByRole('heading', { name: findScenario('tech', 'rintis')!.title })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Mulai sebagai founder/ })).toBeInTheDocument();
   });
 
-  it('pemilih skenario menandai yang gratis & yang terkunci', () => {
-    render(<MemoryRouter initialEntries={['/app/simulasi?industri=fnb']}><SimulatorPage fullAccess={false} /></MemoryRouter>);
-    expect(screen.getByText(/Mode percobaan/)).toBeInTheDocument();
+  it('notice gratis terlihat: banner, tiap industri, dan tiap kartu level', () => {
+    render(<MemoryRouter initialEntries={['/app/simulasi?industri=fashion']}><SimulatorPage fullAccess={false} /></MemoryRouter>);
+    expect(screen.getByText(/Level 1 Rintis bisa kamu mainkan GRATIS di 10 industri/)).toBeInTheDocument();
+    expect(screen.getAllByText('✨ Level 1 gratis')).toHaveLength(10);
     expect(screen.getByRole('button', { name: /Level 1 · Rintis · ✨ Gratis/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Level 2 · Tumbuh · 🔒 Impact/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Level 3 · Skala · 🔒 Impact/ })).toBeInTheDocument();
   });
 
-  it('skenario gratis bisa dimainkan penuh, lalu ditutup ajakan ke GenZ Impact', () => {
-    const s = findScenario('fnb', 'rintis')!;
-    render(<MemoryRouter initialEntries={['/app/simulasi?industri=fnb&level=rintis']}><SimulatorPage fullAccess={false} /></MemoryRouter>);
+  it.each(['fashion', 'fnb', 'digital_services', 'creator', 'education', 'event', 'beauty', 'b2b_sales', 'tech', 'retail'] as const)('%s Level 1 bisa dimulai gratis', (ind) => {
+    render(<MemoryRouter initialEntries={[`/app/simulasi?industri=${ind}&level=rintis`]}><SimulatorPage fullAccess={false} /></MemoryRouter>);
+    expect(screen.getByRole('button', { name: /Mulai sebagai founder/ })).toBeInTheDocument();
+  });
+
+  it('Level 1 bisa dimainkan penuh, lalu ditutup ajakan ke lanjutan ceritanya di GenZ Impact', () => {
+    const s = findScenario('fashion', 'rintis')!;
+    render(<MemoryRouter initialEntries={['/app/simulasi?industri=fashion&level=rintis']}><SimulatorPage fullAccess={false} /></MemoryRouter>);
     fireEvent.click(screen.getByRole('button', { name: /Mulai sebagai founder/ }));
     s.decisions.forEach((d, i) => {
       const best = d.options.find((o) => o.best)!;
@@ -116,7 +124,8 @@ describe('SimulatorPage — mode percobaan (Spark/Boost)', () => {
       else fireEvent.click(screen.getByRole('button', { name: /Lanjut ke keputusan berikutnya/ }));
     });
     expect(screen.getByRole('heading', { name: /Founder Mode/ })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /29 skenario lain \+ playbook lengkap/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /20 skenario lanjutan/ })).toBeInTheDocument();
+    expect(screen.getByText(new RegExp(esc(findScenario('fashion', 'tumbuh')!.title)))).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Coba Level 2/ })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Salin blueprint/ })).toBeInTheDocument();
   });

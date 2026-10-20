@@ -111,7 +111,7 @@ export const FEATURE_MIN: Record<FeatureKey, PlanKey> = {
   outreach: 'boost',
   season4: 'impact',
   simulator: 'impact',
-  /** 1 skenario percobaan Simulasi Founder untuk semua paket (alat upsell ke Impact). */
+  /** Simulasi Founder Level 1 Rintis (10 industri) untuk semua paket — alat upsell ke Impact. */
   simulatorTeaser: 'spark',
 };
 
@@ -128,7 +128,7 @@ export const FEATURE_LABEL: Record<FeatureKey, string> = {
   outreach: 'Outreach Studio',
   season4: 'Season 4 — Lead & Last',
   simulator: 'Simulasi Founder',
-  simulatorTeaser: 'Simulasi Founder (1 skenario percobaan)',
+  simulatorTeaser: 'Simulasi Founder (Level 1 gratis)',
 };
 
 export function moduleFeature(mod: { slug: string; season: number }): FeatureKey {
