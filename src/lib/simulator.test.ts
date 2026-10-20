@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { SIM_LEVEL_ORDER, SIM_SCENARIOS, findScenario } from '../content/simulator';
 import { INDUSTRY_KEYS } from '../content/industries';
-import { applyEffect, blueprintText, evaluate, formatDelta, formatJuta, playThrough } from './simulator';
+import { applyEffect, blueprintText, evaluate, formatDelta, formatJuta, playThrough, runwayBulan } from './simulator';
 
 describe('Founder Simulator — konten', () => {
   it('tepat 30 skenario: 10 industri × 3 level, tanpa duplikat', () => {
@@ -111,5 +111,61 @@ describe('Founder Simulator — jawaban tidak bisa ditebak dari panjang teks', (
     }
     expect(longest).toBeLessThanOrEqual(36); // ≤40% dari 90 kartu
     expect(shortest).toBeLessThanOrEqual(45); // ≤50%
+  });
+});
+
+describe('Founder Simulator — operasional tim (v2)', () => {
+  it.each(SIM_SCENARIOS.map((s) => [`${s.industry}/${s.level}`, s] as const))('%s: laporan bisnis per bulan konsisten', (_, s) => {
+    const n = s.ops.snapshot;
+    // Kas di laporan = kas awal simulasi.
+    expect(n.kas).toBe(s.start.kas);
+    expect(n.omzetBulan).toBeGreaterThanOrEqual(0);
+    expect(n.marginKotor).toBeGreaterThan(0);
+    expect(n.marginKotor).toBeLessThanOrEqual(100);
+    expect(n.biayaTetapBulan).toBeGreaterThan(0);
+    // Laba bersih tidak boleh melebihi laba kotor dikurangi biaya tetap (toleransi pembulatan).
+    expect(n.labaBulan).toBeLessThanOrEqual(n.omzetBulan * n.marginKotor / 100 - n.biayaTetapBulan + 0.05);
+    expect(n.pelanggan.length).toBeGreaterThan(5);
+  });
+
+  it.each(SIM_SCENARIOS.map((s) => [`${s.industry}/${s.level}`, s] as const))('%s: job desk, ritme, funnel, eksekusi lengkap', (_, s) => {
+    const { roles, ritme, funnel } = s.ops;
+    expect(roles.length).toBeGreaterThanOrEqual(3);
+    for (const r of roles) {
+      expect(r.misi.length).toBeGreaterThan(15);
+      expect(r.harian.length + r.mingguan.length).toBeGreaterThanOrEqual(2);
+      expect(r.kpi.length).toBeGreaterThan(0);
+    }
+    // Minimal satu peran tahu ke mana mencari prospek.
+    expect(roles.some((r) => (r.prospek?.length ?? 0) >= 3)).toBe(true);
+    expect(ritme.length).toBeGreaterThanOrEqual(4);
+    expect(funnel.steps.length).toBeGreaterThanOrEqual(3);
+    for (let i = 1; i < funnel.steps.length; i += 1) expect(funnel.steps[i].angka).toBeLessThanOrEqual(funnel.steps[i - 1].angka);
+    for (const d of s.decisions) {
+      expect(d.execution.length).toBeGreaterThanOrEqual(2);
+      for (const e of d.execution) { expect(e.siapa.length).toBeGreaterThan(2); expect(e.tugas.length).toBeGreaterThan(20); }
+    }
+  });
+
+  it('level lebih tinggi punya omzet bulanan & tim lebih besar', () => {
+    for (const ind of INDUSTRY_KEYS) {
+      const [a, b, c] = SIM_LEVEL_ORDER.map((l) => findScenario(ind, l)!.ops);
+      expect(a.snapshot.omzetBulan).toBeLessThan(b.snapshot.omzetBulan);
+      expect(b.snapshot.omzetBulan).toBeLessThan(c.snapshot.omzetBulan);
+      expect(c.roles.length).toBeGreaterThanOrEqual(a.roles.length);
+    }
+  });
+
+  it('runway dihitung untuk bisnis yang masih rugi (startup)', () => {
+    expect(runwayBulan(findScenario('tech', 'skala')!)).toBeCloseTo(6.2, 1);
+    expect(runwayBulan(findScenario('fnb', 'tumbuh')!)).toBeNull();
+  });
+
+  it('teks salin memuat periode eksplisit & playbook tim', () => {
+    const text = blueprintText(findScenario('b2b_sales', 'tumbuh')!);
+    expect(text).toContain('PER BULAN');
+    expect(text).toContain('PLAYBOOK TIM');
+    expect(text).toContain('Cari prospek di:');
+    expect(text).toContain('RENCANA EKSEKUSI KEPUTUSAN');
   });
 });

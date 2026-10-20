@@ -91,6 +91,8 @@ export function blueprintText(s: SimScenario): string {
     `BLUEPRINT BISNIS — ${INDUSTRIES[s.industry].name} · Level ${lvl.no} ${lvl.name} (${lvl.modal})`,
     s.title,
     '',
+    ...snapshotLines(s),
+    '',
     'PRIORITAS 90 HARI', ...b.prioritas.map((x) => `• ${x}`),
     '',
     'REKRUT SEKARANG', ...b.rekrutSekarang.map((x) => `• ${x}`),
@@ -106,7 +108,56 @@ export function blueprintText(s: SimScenario): string {
     '',
     'SYARAT NAIK LEVEL', ...b.naikLevel.map((x) => `• ${x}`),
     '',
+    ...playbookText(s),
+    '',
     'Catatan: angka adalah estimasi edukatif (Jabodetabek, 2026). Sesuaikan dengan kondisi usahamu. — GenZ Preneur',
   ];
   return lines.join('\n');
+}
+
+
+/** Baris laporan bisnis dengan periode eksplisit (PER BULAN vs posisi HARI INI). */
+export function snapshotLines(s: SimScenario): string[] {
+  const n = s.ops.snapshot;
+  const lines = [
+    'LAPORAN BISNIS SAAT INI',
+    `• Omzet: ${formatJuta(n.omzetBulan)} PER BULAN`,
+    `• Margin kotor: ${n.marginKotor}%`,
+    `• Biaya tetap: ${formatJuta(n.biayaTetapBulan)} PER BULAN`,
+    `• Laba bersih: ${formatJuta(n.labaBulan)} PER BULAN`,
+    `• Kas di rekening hari ini: ${formatJuta(n.kas)}`,
+  ];
+  if (n.piutang !== undefined) lines.push(`• Piutang (belum dibayar pelanggan): ${formatJuta(n.piutang)}`);
+  if (n.stok !== undefined) lines.push(`• Nilai stok di gudang: ${formatJuta(n.stok)}`);
+  lines.push(`• Pelanggan: ${n.pelanggan}`);
+  if (n.catatan) lines.push(`• Catatan: ${n.catatan}`);
+  return lines;
+}
+
+/** Berapa bulan kas bertahan jika rugi terus (null jika tidak rugi). */
+export function runwayBulan(s: SimScenario): number | null {
+  const { labaBulan, kas } = s.ops.snapshot;
+  if (labaBulan >= 0) return null;
+  return Math.round((kas / -labaBulan) * 10) / 10;
+}
+
+/** Playbook tim: job desk, ritme mingguan, funnel, dan rencana eksekusi tiap keputusan. */
+export function playbookText(s: SimScenario): string[] {
+  const { roles, ritme, funnel } = s.ops;
+  const out: string[] = ['PLAYBOOK TIM — SIAPA NGAPAIN'];
+  roles.forEach((r) => {
+    out.push('', `▸ ${r.role} (${r.jumlah})${r.atasan ? ` — lapor ke ${r.atasan}` : ''}`, `  Misi: ${r.misi}`);
+    if (r.harian.length) out.push('  Harian:', ...r.harian.map((x) => `   - ${x}`));
+    if (r.mingguan.length) out.push('  Mingguan:', ...r.mingguan.map((x) => `   - ${x}`));
+    out.push('  KPI:', ...r.kpi.map((x) => `   - ${x}`));
+    if (r.prospek?.length) out.push('  Cari prospek di:', ...r.prospek.map((x) => `   - ${x}`));
+    if (r.tools?.length) out.push(`  Tools: ${r.tools.join(', ')}`);
+  });
+  out.push('', 'RITME KERJA', ...ritme.map((x) => `• ${x.kapan}: ${x.agenda} (${x.siapa})`));
+  out.push('', `FUNNEL PENJUALAN (${funnel.periode})`, funnel.steps.map((x) => `${x.tahap} ${x.angka.toLocaleString('id-ID')}`).join(' → '));
+  out.push('', 'RENCANA EKSEKUSI KEPUTUSAN');
+  s.decisions.forEach((d, i) => {
+    out.push(`${i + 1}. ${d.title}`, ...d.execution.map((e) => `   - ${e.siapa}: ${e.tugas}`));
+  });
+  return out;
 }
