@@ -18,6 +18,30 @@ export interface SimOption {
   best?: true;
 }
 
+/** Divisi/area bisnis yang diuji oleh keputusan. */
+export type SimArea = 'sales' | 'operasional' | 'tim' | 'keuangan' | 'krisis' | 'strategi';
+
+export const SIM_AREAS: Record<SimArea, { label: string; emoji: string }> = {
+  sales: { label: 'Sales & prospek', emoji: '🎯' },
+  operasional: { label: 'Operasional & gudang', emoji: '⚙️' },
+  tim: { label: 'Tim & manajer', emoji: '👥' },
+  keuangan: { label: 'Keuangan & kas', emoji: '💰' },
+  krisis: { label: 'Krisis', emoji: '🚨' },
+  strategi: { label: 'Strategi naik level', emoji: '🚀' },
+};
+
+/** 90 hari = 10 keputusan: Bulan 1 (3), Bulan 2 (3), Bulan 3 (4). `to` inklusif. */
+export const SIM_DECISION_COUNT = 10;
+export const SIM_PHASES = [
+  { no: 1, name: 'Bulan 1', label: 'Bereskan fondasi', from: 0, to: 2 },
+  { no: 2, name: 'Bulan 2', label: 'Gerakkan tim & cari traksi', from: 3, to: 5 },
+  { no: 3, name: 'Bulan 3', label: 'Uji ketahanan & naik level', from: 6, to: 9 },
+] as const;
+
+export function phaseOf(decisionIndex: number) {
+  return SIM_PHASES.find((p) => decisionIndex >= p.from && decisionIndex <= p.to) ?? SIM_PHASES[SIM_PHASES.length - 1];
+}
+
 export interface SimDecision {
   title: string;
   situation: string;
@@ -103,12 +127,29 @@ export interface SimOps {
 /** Siapa di tim mengerjakan apa untuk menjalankan keputusan terbaik. */
 export type SimExecution = { siapa: string; tugas: string }[];
 
-export interface SimDecisionFull extends SimDecision { execution: SimExecution }
+export interface SimDecisionFull extends SimDecision { area: SimArea; execution: SimExecution }
 
 export interface SimScenario extends Omit<SimScenarioContent, 'decisions'> {
-  decisions: [SimDecisionFull, SimDecisionFull, SimDecisionFull];
+  /** 10 keputusan berurutan selama 90 hari (lihat SIM_PHASES). */
+  decisions: SimDecisionFull[];
+  /** Target/fokus tiap bulan: [Bulan 1, Bulan 2, Bulan 3]. */
+  fase: [string, string, string];
   ops: SimOps;
 }
+
+/**
+ * Perjalanan 90 hari per level.
+ * - areas: area untuk 3 keputusan dasar (di file konten).
+ * - extra: 7 keputusan tambahan, lengkap dengan area & eksekusi.
+ * - order: urutan 10 keputusan; 'b0'–'b2' = keputusan dasar, 'e0'–'e6' = tambahan.
+ */
+export interface SimJourneyLevel {
+  fase: [string, string, string];
+  areas: [SimArea, SimArea, SimArea];
+  extra: SimDecisionFull[];
+  order: string[];
+}
+export type SimIndustryJourney = Record<SimLevelKey, SimJourneyLevel>;
 
 export interface SimIndustryOps {
   ops: Record<SimLevelKey, SimOps>;
