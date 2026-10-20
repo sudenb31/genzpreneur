@@ -11,7 +11,7 @@ const NAV_GROUPS = [
     { to: '/app', label: 'Dashboard', icon: '🏠', end: true },
     { to: '/app/action-plan', label: 'Misi Pertama', icon: '✅', feature: 'actionPlan' as FeatureKey },
     { to: '/app/kurikulum', label: 'Belajar', icon: '📚' },
-    { to: '/app/simulasi', label: 'Simulasi Founder', icon: '🎮', feature: 'simulator' as FeatureKey },
+    { to: '/app/simulasi', label: 'Simulasi Founder', icon: '🎮', feature: 'simulatorTeaser' as FeatureKey },
     { to: '/app/toolkit', label: 'Alat Bisnis', icon: '⚡', feature: 'toolkit' as FeatureKey },
     { to: '/app/outreach', label: 'Cari Pelanggan', icon: '💬', feature: 'outreach' as FeatureKey },
   ] },
