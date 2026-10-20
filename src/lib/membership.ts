@@ -95,7 +95,7 @@ export type FeatureKey =
   | 'passport' | 'assessment'
   | 'business101' | 'season1' | 'actionPlan' | 'dreamPact'
   | 'season2' | 'season3' | 'toolkit' | 'outreach'
-  | 'season4';
+  | 'season4' | 'simulator';
 
 /** Paket minimum untuk setiap fitur — harus sama dengan isi paket di landing (src/config/site.ts). */
 export const FEATURE_MIN: Record<FeatureKey, PlanKey> = {
@@ -110,6 +110,7 @@ export const FEATURE_MIN: Record<FeatureKey, PlanKey> = {
   toolkit: 'boost',
   outreach: 'boost',
   season4: 'impact',
+  simulator: 'impact',
 };
 
 export const FEATURE_LABEL: Record<FeatureKey, string> = {
@@ -124,6 +125,7 @@ export const FEATURE_LABEL: Record<FeatureKey, string> = {
   toolkit: 'AI Business Toolkit',
   outreach: 'Outreach Studio',
   season4: 'Season 4 — Lead & Last',
+  simulator: 'Simulasi Founder',
 };
 
 export function moduleFeature(mod: { slug: string; season: number }): FeatureKey {

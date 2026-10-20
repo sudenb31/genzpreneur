@@ -69,5 +69,14 @@ describe('akses fitur', () => {
     expect(FEATURE_MIN.toolkit).toBe('boost');
     expect(SITE.plans[1].features.join(' ')).toMatch(/Toolkit/);
     expect(SITE.plans[2].features.join(' ')).toMatch(/Season 4/);
+    // Simulasi Founder hanya untuk GenZ Impact (termasuk trial Impact dari Boost).
+    expect(FEATURE_MIN.simulator).toBe('impact');
+    expect(SITE.plans[2].features.join(' ')).toMatch(/Simulasi Founder/);
+    expect(SITE.plans[1].features.join(' ')).not.toMatch(/Simulasi Founder/);
+  });
+  it('Simulasi Founder terkunci untuk Spark & Boost, terbuka untuk Impact', () => {
+    expect(canUse('simulator', { gatingEnabled: true, isAdmin: false, plan: 'spark' })).toBe(false);
+    expect(canUse('simulator', { gatingEnabled: true, isAdmin: false, plan: 'boost' })).toBe(false);
+    expect(canUse('simulator', { gatingEnabled: true, isAdmin: false, plan: 'impact' })).toBe(true);
   });
 });

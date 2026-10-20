@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SIM_LEVEL_ORDER, SIM_SCENARIOS, findScenario } from '../content/simulator';
+import { SIM_AREAS, SIM_DECISION_COUNT, SIM_LEVEL_ORDER, SIM_PHASES, SIM_SCENARIOS, findScenario } from '../content/simulator';
 import { INDUSTRY_KEYS } from '../content/industries';
 import { applyEffect, blueprintText, evaluate, formatDelta, formatJuta, playThrough, runwayBulan } from './simulator';
 
@@ -14,7 +14,12 @@ describe('Founder Simulator — konten', () => {
     expect(s.title.length).toBeGreaterThan(5);
     expect(s.persona.length).toBeGreaterThan(60);
     expect(s.team.length).toBeGreaterThan(0);
-    expect(s.decisions).toHaveLength(3);
+    expect(s.decisions).toHaveLength(SIM_DECISION_COUNT);
+    expect(new Set(s.decisions.map((d) => d.title)).size).toBe(SIM_DECISION_COUNT);
+    // 90 hari harus menyentuh minimal 5 dari 6 area bisnis.
+    expect(new Set(s.decisions.map((d) => d.area)).size).toBeGreaterThanOrEqual(5);
+    for (const d of s.decisions) expect(SIM_AREAS[d.area]).toBeDefined();
+    expect(s.fase).toHaveLength(3);
     for (const d of s.decisions) {
       expect(d.options).toHaveLength(3);
       expect(d.options.filter((x) => x.best)).toHaveLength(1);
@@ -34,7 +39,7 @@ describe('Founder Simulator — konten', () => {
     const bestChoices = s.decisions.map((d) => d.options.findIndex((x) => x.best));
     expect(playThrough(s, bestChoices).every((st) => st.kas >= 0)).toBe(true);
     const r = evaluate(s, bestChoices);
-    expect(r.bestCount).toBe(3);
+    expect(r.bestCount).toBe(SIM_DECISION_COUNT);
     expect(r.score).toBeGreaterThanOrEqual(85);
     expect(r.verdict.key).toBe('founder');
   });
@@ -93,8 +98,9 @@ describe('Founder Simulator — urutan opsi', () => {
       expect([...order].sort()).toEqual([0, 1, 2]);
       positions[order.indexOf(d.options.findIndex((x) => x.best))] += 1;
     });
-    // 90 kartu: setiap posisi minimal 20% dari total.
-    for (const p of positions) expect(p).toBeGreaterThanOrEqual(18);
+    // Setiap posisi (A/B/C) minimal 20% dari total kartu.
+    const total = positions[0] + positions[1] + positions[2];
+    for (const p of positions) expect(p).toBeGreaterThanOrEqual(Math.floor(total * 0.2));
   });
 });
 
@@ -109,8 +115,9 @@ describe('Founder Simulator — jawaban tidak bisa ditebak dari panjang teks', (
       const others = lens.filter((_, j) => j !== bi);
       expect(lens[bi] / ((others[0] + others[1]) / 2), `${s.industry}/${s.level}: ${d.title}`).toBeLessThanOrEqual(1.4);
     }
-    expect(longest).toBeLessThanOrEqual(36); // ≤40% dari 90 kartu
-    expect(shortest).toBeLessThanOrEqual(45); // ≤50%
+    const total = SIM_SCENARIOS.reduce((n, s) => n + s.decisions.length, 0);
+    expect(longest).toBeLessThanOrEqual(Math.floor(total * 0.4));
+    expect(shortest).toBeLessThanOrEqual(Math.floor(total * 0.5));
   });
 });
 
@@ -166,6 +173,7 @@ describe('Founder Simulator — operasional tim (v2)', () => {
     expect(text).toContain('PER BULAN');
     expect(text).toContain('PLAYBOOK TIM');
     expect(text).toContain('Cari prospek di:');
-    expect(text).toContain('RENCANA EKSEKUSI KEPUTUSAN');
+    expect(text).toContain('RENCANA EKSEKUSI 90 HARI');
+    for (const p of SIM_PHASES) expect(text).toContain(p.name.toUpperCase());
   });
 });

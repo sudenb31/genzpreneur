@@ -2,7 +2,7 @@
  * Founder Simulator — logika murni (tanpa React/Firebase) supaya mudah dites.
  * Kas dalam JUTA rupiah; reputasi & energi tim 0–100.
  */
-import { SIM_LEVELS, type SimScenario, type SimStats } from '../content/simulator';
+import { SIM_AREAS, SIM_LEVELS, SIM_PHASES, type SimScenario, type SimStats } from '../content/simulator';
 import { INDUSTRIES } from '../content/industries';
 
 const clamp = (n: number) => Math.max(0, Math.min(100, n));
@@ -33,7 +33,7 @@ export interface SimResult {
 }
 
 /**
- * Skor 0–100: 60 poin dari keputusan terbaik (20/keputusan) + 40 poin kesehatan bisnis
+ * Skor 0–100: 60 poin dari proporsi keputusan terbaik (6/keputusan untuk 10 keputusan) + 40 poin kesehatan bisnis
  * (kas tidak minus, reputasi tidak turun, energi tim ≥40, kas tidak lebih kecil dari separuh modal awal).
  */
 export function evaluate(scenario: SimScenario, choices: number[]): SimResult {
@@ -46,7 +46,8 @@ export function evaluate(scenario: SimScenario, choices: number[]): SimResult {
   if (final.kas >= scenario.start.kas / 2) health += 10; else warnings.push('Kas tinggal kurang dari separuh modal awal. Hati-hati dengan keputusan yang mengunci uang.');
   if (final.reputasi >= scenario.start.reputasi) health += 10; else warnings.push('Reputasi turun. Pelanggan dan mitra mulai ragu, dan biaya mendapatkan pelanggan baru akan naik.');
   if (final.tim >= 40) health += 10; else warnings.push('Energi tim/founder di bawah 40. Risiko burnout dan orang terbaik resign.');
-  const score = Math.min(100, bestCount * 20 + health);
+  const total = scenario.decisions.length || 1;
+  const score = Math.min(100, Math.round((bestCount / total) * 60) + health);
   const verdict = score >= 85
     ? { key: 'founder' as const, title: 'Founder Mode 🔥', desc: 'Keputusanmu menjaga kas, kepercayaan, dan tim sekaligus. Ini cara berpikir yang membuat bisnis bisa naik level.' }
     : score >= 60
@@ -155,9 +156,13 @@ export function playbookText(s: SimScenario): string[] {
   });
   out.push('', 'RITME KERJA', ...ritme.map((x) => `• ${x.kapan}: ${x.agenda} (${x.siapa})`));
   out.push('', `FUNNEL PENJUALAN (${funnel.periode})`, funnel.steps.map((x) => `${x.tahap} ${x.angka.toLocaleString('id-ID')}`).join(' → '));
-  out.push('', 'RENCANA EKSEKUSI KEPUTUSAN');
-  s.decisions.forEach((d, i) => {
-    out.push(`${i + 1}. ${d.title}`, ...d.execution.map((e) => `   - ${e.siapa}: ${e.tugas}`));
+  out.push('', 'RENCANA EKSEKUSI 90 HARI');
+  SIM_PHASES.forEach((p, pi) => {
+    out.push('', `${p.name.toUpperCase()} — ${p.label} · Target: ${s.fase[pi]}`);
+    s.decisions.slice(p.from, p.to + 1).forEach((d, k) => {
+      const i = p.from + k;
+      out.push(`${i + 1}. [${SIM_AREAS[d.area].label}] ${d.title}`, ...d.execution.map((e) => `   - ${e.siapa}: ${e.tugas}`));
+    });
   });
   return out;
 }
