@@ -1,11 +1,15 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import SimulatorPage from './SimulatorPage';
-import { findScenario } from '../content/simulator';
+import { SIM_DECISION_COUNT, SIM_PHASES, findScenario, phaseOf } from '../content/simulator';
+
+const esc = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 describe('SimulatorPage', () => {
-  it('peserta memilih industri & level, mengambil 3 keputusan, lalu melihat skor dan blueprint', () => {
+  beforeEach(() => { localStorage.clear(); });
+
+  it('peserta menjalankan 90 hari (10 keputusan + laporan tiap bulan), lalu melihat skor dan blueprint', () => {
     render(<MemoryRouter initialEntries={['/app/simulasi']}><SimulatorPage /></MemoryRouter>);
     expect(screen.getByRole('heading', { name: /Bayangkan bisnismu/i })).toBeInTheDocument();
 
@@ -13,10 +17,13 @@ describe('SimulatorPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Level 1 · Rintis/ }));
 
     const s = findScenario('fnb', 'rintis')!;
+    expect(s.decisions).toHaveLength(SIM_DECISION_COUNT);
     expect(screen.getByRole('heading', { name: s.title })).toBeInTheDocument();
     // Laporan bisnis dengan periode eksplisit
     expect(screen.getByRole('heading', { name: /Laporan bisnis — rata-rata PER BULAN/ })).toBeInTheDocument();
     expect(screen.getAllByText(/per bulan · total penjualan kotor/).length).toBeGreaterThan(0);
+    // Peta perjalanan 90 hari
+    expect(screen.getByRole('heading', { name: /Perjalanan 90 hari · 10 keputusan/ })).toBeInTheDocument();
     // Tab tim & ritme
     fireEvent.click(screen.getByRole('tab', { name: /Tim & job desk/ }));
     expect(screen.getByText(s.ops.roles[0].role)).toBeInTheDocument();
@@ -27,20 +34,46 @@ describe('SimulatorPage', () => {
 
     s.decisions.forEach((d, i) => {
       expect(screen.getByRole('heading', { name: d.title })).toBeInTheDocument();
+      expect(screen.getByText(new RegExp(`Keputusan ${i + 1} dari ${SIM_DECISION_COUNT}`))).toBeInTheDocument();
       const best = d.options.find((o) => o.best)!;
-      fireEvent.click(screen.getByRole('button', { name: new RegExp(best.label.slice(0, 25).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) }));
+      fireEvent.click(screen.getByRole('button', { name: new RegExp(esc(best.label.slice(0, 25))) }));
       expect(screen.getByText(best.result)).toBeInTheDocument();
       expect(screen.getByText(/Begini timmu menjalankannya/)).toBeInTheDocument();
       expect(screen.getByText(d.execution[0].tugas)).toBeInTheDocument();
-      fireEvent.click(screen.getByRole('button', { name: i === 2 ? /Lihat hasil & blueprint/ : /Lanjut ke keputusan berikutnya/ }));
+      const ph = phaseOf(i);
+      if (i === s.decisions.length - 1) {
+        fireEvent.click(screen.getByRole('button', { name: /Lihat hasil & blueprint/ }));
+      } else if (ph.to === i) {
+        fireEvent.click(screen.getByRole('button', { name: new RegExp(`Lihat laporan akhir ${ph.name}`) }));
+        expect(screen.getByRole('heading', { name: new RegExp(`${ph.name} selesai`) })).toBeInTheDocument();
+        expect(screen.getByText(`${ph.to - ph.from + 1}/${ph.to - ph.from + 1} keputusan tepat`)).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: new RegExp(`Mulai ${(SIM_PHASES as readonly { name: string }[])[ph.no].name}`) }));
+      } else {
+        fireEvent.click(screen.getByRole('button', { name: /Lanjut ke keputusan berikutnya/ }));
+      }
     });
 
     expect(screen.getByRole('heading', { name: /Founder Mode/ })).toBeInTheDocument();
-    expect(screen.getByText('3/3 keputusan terbaik')).toBeInTheDocument();
+    expect(screen.getByText(`${SIM_DECISION_COUNT}/${SIM_DECISION_COUNT} keputusan terbaik`)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Rapor per area bisnis/ })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Pembahasan 90 hari/ })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Blueprint|Kuliner & F&B · Level 1 Rintis/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Salin blueprint/ })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Siapa ngapain di bisnis ini/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Coba Level 2 · Tumbuh/ })).toBeInTheDocument();
+  });
+
+  it('progres tersimpan: setelah halaman dibuka ulang, peserta lanjut dari keputusan terakhir', () => {
+    const s = findScenario('retail', 'tumbuh')!;
+    const url = '/app/simulasi?industri=retail&level=tumbuh';
+    const first = render(<MemoryRouter initialEntries={[url]}><SimulatorPage /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: /Mulai sebagai founder/ }));
+    const best = s.decisions[0].options.find((o) => o.best)!;
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(esc(best.label.slice(0, 25))) }));
+    first.unmount();
+
+    render(<MemoryRouter initialEntries={[url]}><SimulatorPage /></MemoryRouter>);
+    expect(screen.getByRole('heading', { name: s.decisions[1].title })).toBeInTheDocument();
   });
 
   it('tautan langsung ke skenario lewat parameter URL', () => {

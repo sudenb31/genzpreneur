@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { INDUSTRIES, INDUSTRY_KEYS, type IndustryKey } from '../content/industries';
-import { SIM_LEVELS, SIM_LEVEL_ORDER, findScenario, type SimExecution, type SimLevelKey, type SimOps, type SimRole, type SimScenario, type SimStats } from '../content/simulator';
+import { SIM_AREAS, SIM_LEVELS, SIM_LEVEL_ORDER, SIM_PHASES, findScenario, phaseOf, type SimDecisionFull, type SimExecution, type SimLevelKey, type SimOps, type SimRole, type SimScenario, type SimStats } from '../content/simulator';
 import { blueprintText, displayOrder, evaluate, formatDelta, formatJuta, playThrough, runwayBulan } from '../lib/simulator';
 import { CopyButton, PageHeader } from '../components/ui';
 
@@ -26,7 +26,7 @@ export default function SimulatorPage() {
   return (
     <div className="space-y-6">
       <PageHeader eyebrow="Simulasi Founder · 30 skenario" title={<>Bayangkan bisnismu <span className="headline-marker">naik level.</span></>}
-        desc="Pilih industri dan level modal. Kamu masuk ke bisnis yang sedang berjalan: lihat laporan keuangan per bulan, kenali timmu dan job desk masing-masing (sales cari prospek ke mana, gudang ngapain, manager ngapain), lalu ambil 3 keputusan sulit. Setiap keputusan dilengkapi rencana eksekusi: siapa mengerjakan apa. Di akhir kamu dapat playbook tim lengkap."
+        desc="Pilih industri dan level modal. Kamu masuk ke bisnis yang sedang berjalan: lihat laporan keuangan per bulan, kenali timmu dan job desk masing-masing (sales cari prospek ke mana, gudang ngapain, manager ngapain), lalu jalankan bisnis selama 90 hari lewat 10 keputusan sulit: sales & prospek, gudang & operasional, tim, keuangan, krisis, sampai strategi naik level. Setiap akhir bulan ada laporan, dan setiap keputusan dilengkapi rencana eksekusi: siapa mengerjakan apa. Di akhir kamu dapat playbook tim lengkap."
         right={<span aria-hidden className="brand-sticker">ROLEPLAY ✦</span>} />
 
       <section aria-labelledby="pick-industry" className="space-y-3">
@@ -101,25 +101,38 @@ function Delta({ label, value, unit }: { label: string; value: number; unit: 'ka
 }
 
 function ScenarioPlayer({ scenario, onExit, onSwitchLevel }: { scenario: SimScenario; onExit: () => void; onSwitchLevel: (l: SimLevelKey) => void }) {
-  const [started, setStarted] = useState(false);
-  const [choices, setChoices] = useState<number[]>([]);
+  const total = scenario.decisions.length;
+  const storeKey = `gzp-sim:${scenario.industry}:${scenario.level}`;
+  const saved = useMemo(() => loadProgress(storeKey, total), [storeKey, total]);
+  const [started, setStarted] = useState(saved.started);
+  const [choices, setChoices] = useState<number[]>(saved.choices);
   const [revealed, setRevealed] = useState(false);
+  /** Indeks fase yang baru selesai → tampilkan laporan akhir bulan. */
+  const [checkpoint, setCheckpoint] = useState<number | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const ind = INDUSTRIES[scenario.industry];
   const lvl = SIM_LEVELS[scenario.level];
   const history = useMemo(() => playThrough(scenario, choices), [scenario, choices]);
   const current = history[history.length - 1];
   const step = revealed ? choices.length - 1 : choices.length;
-  const done = choices.length === 3 && !revealed;
+  const done = choices.length === total && !revealed;
 
-  useEffect(() => { headingRef.current?.focus(); }, [started, step, done]);
+  useEffect(() => { headingRef.current?.focus(); }, [started, step, done, checkpoint]);
+  useEffect(() => { saveProgress(storeKey, { started, choices }); }, [storeKey, started, choices]);
 
   function pick(optionIndex: number) {
     setChoices((c) => [...c, optionIndex]);
     setRevealed(true);
   }
 
-  function restart() { setChoices([]); setRevealed(false); setStarted(true); }
+  function next() {
+    const i = choices.length - 1;
+    setRevealed(false);
+    const ph = phaseOf(i);
+    if (i < total - 1 && ph.to === i) setCheckpoint(ph.no - 1);
+  }
+
+  function restart() { setChoices([]); setRevealed(false); setCheckpoint(null); setStarted(true); }
 
   const header = (
     <div className="flex flex-wrap items-center gap-2">
@@ -139,10 +152,12 @@ function ScenarioPlayer({ scenario, onExit, onSwitchLevel }: { scenario: SimScen
           <p className="mt-3 max-w-3xl text-[15px] leading-relaxed">{scenario.persona}</p>
         </section>
         <BriefTabs scenario={scenario} />
+        <Roadmap scenario={scenario} />
         <section className="card bg-paper p-5 text-sm">
           <h2 className="font-bold">Cara main</h2>
-          <p className="mt-1">Pelajari dulu laporan bisnis dan timmu di atas. Lalu ada 3 situasi nyata. Pilih keputusan yang menurutmu paling tepat (tidak ada tombol kembali, sama seperti di dunia nyata). Setiap pilihan mengubah <strong>kas</strong>, <strong>reputasi</strong>, dan <strong>energi tim</strong>, dan kamu akan melihat <strong>siapa di tim mengerjakan apa</strong> untuk menjalankannya.</p>
+          <p className="mt-1">Pelajari dulu laporan bisnis dan timmu di atas. Lalu jalankan bisnis selama <strong>90 hari: 10 keputusan nyata</strong>, dengan laporan di setiap akhir bulan. Pilih keputusan yang menurutmu paling tepat (tidak ada tombol kembali, sama seperti di dunia nyata). Setiap pilihan mengubah <strong>kas</strong>, <strong>reputasi</strong>, dan <strong>energi tim</strong>, dan kamu akan melihat <strong>siapa di tim mengerjakan apa</strong> untuk menjalankannya.</p>
         </section>
+        <p className="text-sm text-muted">Waktu main ±15–20 menit. Progresmu tersimpan otomatis di perangkat ini.</p>
         <button type="button" className="btn-accent" onClick={() => setStarted(true)}>Mulai sebagai founder →</button>
       </div>
     );
@@ -161,7 +176,7 @@ function ScenarioPlayer({ scenario, onExit, onSwitchLevel }: { scenario: SimScen
           <p className="mt-2 max-w-2xl">{result.verdict.desc}</p>
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <span className="chip bg-white text-base">Skor {result.score}/100</span>
-            <span className="chip bg-white">{result.bestCount}/3 keputusan terbaik</span>
+            <span className="chip bg-white">{result.bestCount}/{total} keputusan terbaik</span>
           </div>
         </section>
         <StatsBar stats={result.final} start={scenario.start} />
@@ -172,22 +187,20 @@ function ScenarioPlayer({ scenario, onExit, onSwitchLevel }: { scenario: SimScen
           </section>
         )}
 
-        <section aria-labelledby="debrief" className="space-y-3">
-          <h2 id="debrief" className="font-display text-2xl font-extrabold">Pembahasan keputusan</h2>
-          {scenario.decisions.map((d, i) => {
-            const mine = d.options[choices[i]];
-            const best = d.options.find((x) => x.best)!;
-            return (
-              <article key={d.title} className="card p-5">
-                <p className="text-xs font-extrabold uppercase tracking-wider text-muted">Keputusan {i + 1}</p>
-                <h3 className="font-display text-lg font-extrabold">{d.title}</h3>
-                <p className="mt-2 text-sm"><strong>Pilihanmu:</strong> {mine.label} {mine.best ? '✅' : ''}</p>
-                {!mine.best && <p className="mt-1 text-sm"><strong>Pilihan terbaik:</strong> {best.label}</p>}
-                <p className="mt-3 rounded-2xl bg-lilac/50 p-3 text-sm"><strong>Pelajaran:</strong> {d.lesson}</p>
-                <div className="mt-3"><ExecutionPlan steps={d.execution} title="Rencana eksekusi tim" compact /></div>
-              </article>
-            );
-          })}
+        <AreaScore scenario={scenario} choices={choices} />
+
+        <section aria-labelledby="debrief" className="space-y-4">
+          <div>
+            <h2 id="debrief" className="font-display text-2xl font-extrabold">Pembahasan 90 hari</h2>
+            <p className="text-sm text-muted">Klik tiap keputusan untuk melihat pelajaran dan rencana eksekusi timnya.</p>
+          </div>
+          {SIM_PHASES.map((p, pi) => (
+            <div key={p.no} className="space-y-2">
+              <h3 className="font-display text-lg font-extrabold">{p.name} · {p.label}</h3>
+              <p className="text-sm text-muted">Target: {scenario.fase[pi]}</p>
+              {scenario.decisions.slice(p.from, p.to + 1).map((d, k) => <DebriefItem key={d.title} no={p.from + k + 1} d={d} choice={choices[p.from + k]} />)}
+            </div>
+          ))}
         </section>
 
         <section aria-labelledby="playbook" className="card-pop space-y-5 bg-white p-6">
@@ -255,8 +268,46 @@ function ScenarioPlayer({ scenario, onExit, onSwitchLevel }: { scenario: SimScen
     );
   }
 
+  if (checkpoint !== null) {
+    const ph = SIM_PHASES[checkpoint];
+    const nextPh = SIM_PHASES[checkpoint + 1];
+    const before = history[ph.from];
+    const after = history[ph.to + 1];
+    const monthBest = choices.slice(ph.from, ph.to + 1).filter((c, k) => scenario.decisions[ph.from + k].options[c]?.best).length;
+    const count = ph.to - ph.from + 1;
+    return (
+      <div className="space-y-5">
+        {header}
+        <section className="card-pop space-y-4 bg-amber-soft p-6" aria-live="polite">
+          <p className="eyebrow">Laporan akhir {ph.name}</p>
+          <h1 ref={headingRef} tabIndex={-1} className="h-page outline-none">{ph.name} selesai: {ph.label}</h1>
+          <p className="text-sm"><strong>Target bulan ini:</strong> {scenario.fase[checkpoint]}</p>
+          <div className="flex flex-wrap gap-2">
+            <span className="chip bg-white">{monthBest}/{count} keputusan tepat</span>
+            <Delta label="Kas" value={Math.round((after.kas - before.kas) * 10) / 10} unit="kas" />
+            <Delta label="Reputasi" value={after.reputasi - before.reputasi} unit="poin" />
+            <Delta label="Energi tim" value={after.tim - before.tim} unit="poin" />
+          </div>
+          <p className="text-sm">{monthBest === count ? 'Bulan yang solid. Fondasi ini membuat bulan berikutnya lebih ringan.' : monthBest >= count - 1 ? 'Cukup baik, tapi ada satu keputusan yang mahal. Lihat lagi di pembahasan akhir.' : 'Bulan yang berat. Di dunia nyata, kesalahan seperti ini biasanya terasa di kas dan tim pada bulan berikutnya.'}</p>
+        </section>
+        <StatsBar stats={after} start={scenario.start} />
+        {nextPh && (
+          <section className="card p-5">
+            <p className="eyebrow">Berikutnya · {nextPh.name}</p>
+            <h2 className="font-display text-lg font-extrabold">{nextPh.label}</h2>
+            <p className="mt-1 text-sm"><strong>Target:</strong> {scenario.fase[checkpoint + 1]}</p>
+            <p className="mt-1 text-sm text-muted">{nextPh.to - nextPh.from + 1} keputusan menunggu.</p>
+          </section>
+        )}
+        <button type="button" className="btn-accent" onClick={() => setCheckpoint(null)}>Mulai {nextPh?.name ?? 'bulan berikutnya'} →</button>
+      </div>
+    );
+  }
+
   const decision = scenario.decisions[step];
   const order = displayOrder(scenario, step);
+  const phase = phaseOf(step);
+  const area = SIM_AREAS[decision.area];
   const picked = revealed ? decision.options[choices[step]] : null;
 
   return (
@@ -274,9 +325,17 @@ function ScenarioPlayer({ scenario, onExit, onSwitchLevel }: { scenario: SimScen
         </div>
       </details>
       <section className="card-pop space-y-4 bg-white p-6">
-        <div className="flex items-center justify-between gap-3">
-          <p className="eyebrow">Keputusan {step + 1} dari 3</p>
-          <div className="flex gap-1.5" aria-hidden>{[0, 1, 2].map((i) => <span key={i} className={`h-2.5 w-8 rounded-full border border-ink ${i < choices.length ? 'bg-ink' : 'bg-white'}`} />)}</div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="eyebrow">{phase.name} · Keputusan {step + 1} dari {total}</p>
+          <div className="flex gap-1" aria-hidden>
+            {scenario.decisions.map((_, i) => (
+              <span key={i} className={`h-2.5 w-4 rounded-full border border-ink sm:w-6 ${i < choices.length ? 'bg-ink' : 'bg-white'} ${SIM_PHASES.some((p) => p.from === i && i > 0) ? 'ml-1.5' : ''}`} />
+            ))}
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <span className="chip bg-sky">{area.emoji} {area.label}</span>
+          <span className="chip bg-paper">Target {phase.name}: {scenario.fase[phase.no - 1]}</span>
         </div>
         <h1 ref={headingRef} tabIndex={-1} className="font-display text-2xl font-extrabold outline-none">{decision.title}</h1>
         <p className="text-[15px] leading-relaxed">{decision.situation}</p>
@@ -307,8 +366,8 @@ function ScenarioPlayer({ scenario, onExit, onSwitchLevel }: { scenario: SimScen
             </div>
             {!picked.best && <p className="text-sm"><strong>Pilihan yang lebih tepat:</strong> {decision.options.find((x) => x.best)!.label}</p>}
             <ExecutionPlan steps={decision.execution} title={picked.best ? '🛠️ Begini timmu menjalankannya' : '🛠️ Cara yang lebih tepat — dan siapa mengerjakan apa'} />
-            <button type="button" className="btn-accent" onClick={() => setRevealed(false)}>
-              {choices.length === 3 ? 'Lihat hasil & blueprint →' : 'Lanjut ke keputusan berikutnya →'}
+            <button type="button" className="btn-accent" onClick={next}>
+              {choices.length === total ? 'Lihat hasil & blueprint →' : phaseOf(step).to === step ? `Lihat laporan akhir ${phaseOf(step).name} →` : 'Lanjut ke keputusan berikutnya →'}
             </button>
           </div>
         )}
@@ -509,5 +568,91 @@ function ExecutionPlan({ steps, title, compact = false }: { steps: SimExecution;
         ))}
       </ol>
     </div>
+  );
+}
+
+/* ───────────────────────── v3: perjalanan 90 hari ───────────────────────── */
+
+function loadProgress(key: string, total: number): { started: boolean; choices: number[] } {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return { started: false, choices: [] };
+    const v = JSON.parse(raw) as { started?: unknown; choices?: unknown };
+    const choices = Array.isArray(v.choices) ? v.choices.filter((c): c is number => Number.isInteger(c) && c >= 0 && c <= 2).slice(0, total) : [];
+    return { started: v.started === true, choices };
+  } catch { return { started: false, choices: [] }; }
+}
+
+function saveProgress(key: string, v: { started: boolean; choices: number[] }) {
+  try {
+    if (!v.started && v.choices.length === 0) localStorage.removeItem(key);
+    else localStorage.setItem(key, JSON.stringify(v));
+  } catch { /* penyimpanan tidak tersedia — abaikan */ }
+}
+
+function Roadmap({ scenario }: { scenario: SimScenario }) {
+  return (
+    <section className="card p-5" aria-labelledby="roadmap">
+      <h2 id="roadmap" className="font-display text-lg font-extrabold">🗺️ Perjalanan 90 hari · {scenario.decisions.length} keputusan</h2>
+      <ol className="mt-3 grid gap-3 md:grid-cols-3">
+        {SIM_PHASES.map((p, pi) => {
+          const ds = scenario.decisions.slice(p.from, p.to + 1);
+          return (
+            <li key={p.no} className="rounded-2xl border-2 border-ink bg-white p-4">
+              <p className="text-xs font-extrabold uppercase tracking-wider">{p.name} · {ds.length} keputusan</p>
+              <p className="font-bold">{p.label}</p>
+              <p className="mt-1 text-sm"><strong>Target:</strong> {scenario.fase[pi]}</p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {ds.map((d, k) => <span key={k} className="chip bg-paper text-xs">{SIM_AREAS[d.area].emoji} {SIM_AREAS[d.area].label}</span>)}
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  );
+}
+
+function AreaScore({ scenario, choices }: { scenario: SimScenario; choices: number[] }) {
+  const rows = (Object.keys(SIM_AREAS) as (keyof typeof SIM_AREAS)[]).map((a) => {
+    const idx = scenario.decisions.map((d, i) => (d.area === a ? i : -1)).filter((i) => i >= 0);
+    const ok = idx.filter((i) => scenario.decisions[i].options[choices[i]]?.best).length;
+    return { a, n: idx.length, ok };
+  }).filter((r) => r.n > 0);
+  return (
+    <section className="card p-5" aria-labelledby="area-score">
+      <h2 id="area-score" className="font-display text-lg font-extrabold">📈 Rapor per area bisnis</h2>
+      <p className="text-xs text-muted">Area dengan skor terendah adalah titik buta yang perlu kamu latih atau delegasikan ke orang yang lebih kuat.</p>
+      <ul className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-3">
+        {rows.map((r) => (
+          <li key={r.a} className={`rounded-2xl border-2 border-ink p-3 ${r.ok === r.n ? 'bg-lime' : r.ok === 0 ? 'bg-pink' : 'bg-white'}`}>
+            <p className="text-sm font-bold">{SIM_AREAS[r.a].emoji} {SIM_AREAS[r.a].label}</p>
+            <p className="font-display text-xl font-extrabold">{r.ok}/{r.n}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function DebriefItem({ no, d, choice }: { no: number; d: SimDecisionFull; choice: number }) {
+  const mine = d.options[choice];
+  const best = d.options.find((x) => x.best)!;
+  return (
+    <details className="card group border-2 border-ink/15 p-4 open:border-ink">
+      <summary className="flex cursor-pointer list-none items-start justify-between gap-3">
+        <span>
+          <span className="block text-xs font-extrabold uppercase tracking-wider text-muted">Keputusan {no} · {SIM_AREAS[d.area].emoji} {SIM_AREAS[d.area].label}</span>
+          <span className="block font-bold">{mine?.best ? '✅' : '❌'} {d.title}</span>
+        </span>
+        <span aria-hidden className="chip shrink-0 bg-paper group-open:rotate-180">▾</span>
+      </summary>
+      <div className="mt-3 space-y-2">
+        <p className="text-sm"><strong>Pilihanmu:</strong> {mine?.label ?? '—'}</p>
+        {!mine?.best && <p className="text-sm"><strong>Pilihan terbaik:</strong> {best.label}</p>}
+        <p className="rounded-2xl bg-lilac/50 p-3 text-sm"><strong>Pelajaran:</strong> {d.lesson}</p>
+        <ExecutionPlan steps={d.execution} title="Rencana eksekusi tim" compact />
+      </div>
+    </details>
   );
 }
