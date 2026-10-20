@@ -1,0 +1,238 @@
+import type { SimIndustryOps } from '../types';
+
+export const FASHION_OPS: SimIndustryOps = {
+  ops: {
+    rintis: {
+      snapshot: {
+        omzetBulan: 8.5, labaBulan: 2.2, marginKotor: 30, biayaTetapBulan: 0.35, kas: 5,
+        pelanggan: '2 himpunan mahasiswa (sudah lunas)',
+        catatan: 'Omzet bulan lalu dari 2 order: 60 kaos + 40 kaos. Biaya tetap = pulsa/data, ongkos ke vendor, langganan aplikasi desain.',
+      },
+      roles: [
+        {
+          role: 'Kamu — topi Sales & Account', jumlah: 'kamu sendiri',
+          misi: 'Mendapatkan order yang dibayar dengan DP dan menjaga klien sampai repeat.',
+          harian: ['Balas semua chat calon klien maksimal 1 jam', 'Kirim 6 pesan personal ke ormawa/komunitas baru', 'Follow-up 3 penawaran yang belum dijawab (H+2, H+5)'],
+          mingguan: ['Kunjungi 2 sekretariat himpunan/UKM bawa kaos sampel', 'Update daftar prospek: siapa, kapan acaranya, siapa pengambil keputusan', 'Minta 1 testimoni + foto dari klien yang barangnya sudah diterima'],
+          kpi: ['5 order/bulan', '100% order dengan DP 50%', '≥30% klien repeat atau memberi referral'],
+          prospek: ['Ketua & bendahara himpunan, BEM, UKM (cek akun IG kampus)', 'Panitia acara besar: PKKMB, makrab, dies natalis, wisuda', 'Komunitas di luar kampus: futsal, gowes, komunitas hobi', 'Alumni yang sekarang kerja di kantor kecil (seragam/merch kantor)'],
+          tools: ['WhatsApp Business (label: prospek/penawaran/DP/produksi)', 'Spreadsheet daftar prospek'],
+        },
+        {
+          role: 'Kamu — topi Produksi & QC', jumlah: 'kamu sendiri',
+          misi: 'Memastikan barang jadi sesuai mockup dan tiba tepat waktu.',
+          harian: ['Cek status produksi di vendor (chat/telepon)', 'Pastikan mockup final sudah disetujui klien secara tertulis sebelum produksi'],
+          mingguan: ['Datang ke vendor saat sampel pertama jadi; cek warna, ukuran, posisi sablon', 'Hitung ulang jumlah & ukuran sebelum dikirim ke klien'],
+          kpi: ['100% tepat waktu', 'Cacat <2% per order'],
+          tools: ['Template size chart & form order', 'Checklist QC 6 poin'],
+        },
+        {
+          role: 'Kamu — topi Keuangan', jumlah: 'kamu sendiri',
+          misi: 'Memisahkan uang usaha dan uang pribadi, dan tahu laba sebenarnya per order.',
+          harian: ['Catat setiap uang masuk/keluar di buku kas (aplikasi/spreadsheet)'],
+          mingguan: ['Hitung laba per order (harga jual − bahan − sablon − ongkir − komisi)', 'Cek siapa yang belum melunasi'],
+          kpi: ['Rekening usaha terpisah', 'Margin kotor ≥30%'],
+        },
+        {
+          role: 'Desainer freelance', jumlah: '1 (per desain)', atasan: 'Kamu',
+          misi: 'Membuat mockup cepat dan rapi dari brief klien.',
+          harian: ['Mengerjakan mockup maksimal 24 jam setelah brief'],
+          mingguan: ['Merapikan file final siap produksi untuk vendor', 'Update katalog dengan foto hasil order terbaru'],
+          kpi: ['Mockup ≤24 jam', 'Maks. 2 revisi per desain'],
+          tools: ['Template mockup kaos/hoodie/polo'],
+        },
+        {
+          role: 'Vendor sablon rekanan', jumlah: '2 vendor', atasan: 'Kamu (sebagai klien mereka)',
+          misi: 'Memproduksi sesuai spesifikasi bahan & warna yang disepakati.',
+          harian: ['Produksi sesuai antrean'],
+          mingguan: ['Mengirim foto sampel pertama sebelum produksi massal'],
+          kpi: ['Selesai sesuai tanggal janji', 'Bahan sesuai spesifikasi tertulis'],
+        },
+      ],
+      ritme: [
+        { kapan: 'Senin pagi (30 menit)', agenda: 'Rencana minggu ini: target kontak baru, order yang jatuh tempo, jadwal ke vendor', siapa: 'Kamu' },
+        { kapan: 'Selasa–Kamis sore', agenda: 'Kunjungan sekretariat ormawa + follow-up penawaran', siapa: 'Kamu' },
+        { kapan: 'Jumat', agenda: 'Cek sampel di vendor & QC barang yang mau dikirim', siapa: 'Kamu + vendor' },
+        { kapan: 'Sabtu', agenda: 'Antar barang, foto dokumentasi, minta testimoni', siapa: 'Kamu' },
+        { kapan: 'Minggu malam (20 menit)', agenda: 'Tutup buku: kas, laba per order, piutang', siapa: 'Kamu' },
+      ],
+      funnel: { periode: 'per bulan', steps: [{ tahap: 'Ormawa/komunitas dihubungi', angka: 120 }, { tahap: 'Membalas', angka: 30 }, { tahap: 'Minta mockup & harga', angka: 12 }, { tahap: 'Order dengan DP', angka: 5 }] },
+    },
+    tumbuh: {
+      snapshot: {
+        omzetBulan: 70, labaBulan: 7.5, marginKotor: 32, biayaTetapBulan: 13, kas: 45, piutang: 12,
+        pelanggan: '25 ormawa/komunitas + 6 kantor kecil aktif dalam 6 bulan terakhir',
+        catatan: 'Biaya tetap = gaji admin & desainer, sewa ruang kecil, tools. Komisi sales (5%) dan iklan masuk biaya variabel.',
+      },
+      roles: [
+        {
+          role: 'Founder / CEO', jumlah: '1 (kamu)',
+          misi: 'Memegang klien korporat, keuangan, dan keputusan kapasitas. Mulai melepas admin & QC.',
+          harian: ['Cek dashboard order: status, tanggal kirim, DP/pelunasan', 'Closing atau meeting 1 klien korporat'],
+          mingguan: ['Pimpin rapat kapasitas Senin', 'Review kas & piutang bersama admin (Jumat)', 'Kunjungi 1 vendor untuk QC & negosiasi'],
+          kpi: ['Net margin ≥12%', '≥30% omzet dari klien korporat rutin', 'Kas ≥ 2 bulan biaya tetap'],
+          prospek: ['HR/GA perusahaan 20–200 karyawan (seragam, merch event, ulang tahun kantor)', 'Event organizer & wedding organizer (merch panitia)', 'Sekolah swasta (kaos olahraga, angkatan)'],
+        },
+        {
+          role: 'Admin order & CS', jumlah: '1', atasan: 'Founder',
+          misi: 'Setiap order tercatat rapi dari brief sampai lunas, dan klien selalu tahu statusnya.',
+          harian: ['Input order baru ke spreadsheet/CRM (ukuran, warna, bahan, tanggal)', 'Kirim update status ke klien jam 16.00', 'Kirim invoice DP & pelunasan'],
+          mingguan: ['Rekap order minggu depan vs kapasitas vendor', 'Daftar piutang & pengingat bayar'],
+          kpi: ['0 order salah ukuran/jumlah', 'Balas chat <30 menit di jam kerja', 'Piutang >30 hari = 0'],
+          tools: ['WhatsApp Business', 'Spreadsheet/CRM order', 'Template invoice'],
+        },
+        {
+          role: 'Desainer full-time', jumlah: '1', atasan: 'Founder',
+          misi: 'Mockup cepat yang membuat klien langsung setuju, dan file produksi tanpa kesalahan.',
+          harian: ['Mockup ≤12 jam dari brief', 'Kirim file final ke vendor dengan spesifikasi warna'],
+          mingguan: ['Update katalog & konten portofolio (3 posting)', 'Buat 2 template desain untuk musim berikutnya'],
+          kpi: ['Approval mockup ≤2 revisi', '0 kesalahan file produksi'],
+        },
+        {
+          role: 'Sales kampus (komisi 5%)', jumlah: '1–2', atasan: 'Founder',
+          misi: 'Mengisi pipeline order dari kampus & komunitas setiap bulan.',
+          harian: ['Hubungi 10 ormawa/komunitas baru', 'Follow-up penawaran H+2 & H+5'],
+          mingguan: ['Kunjungi 3 kampus (sekretariat, acara)', 'Laporkan pipeline: kontak → penawaran → DP'],
+          kpi: ['150 kontak baru/bulan', '20 penawaran/bulan', '8 order kampus/bulan'],
+          prospek: ['Kalender akademik: PKKMB (Agustus), dies natalis, wisuda, makrab', 'Akun IG himpunan & BEM di 10 kampus terdekat', 'Grup alumni & komunitas hobi'],
+        },
+        {
+          role: 'Vendor produksi', jumlah: '2 vendor', atasan: 'Founder',
+          misi: 'Produksi tepat waktu dengan cacat <2%.',
+          harian: ['Produksi sesuai jadwal yang disepakati Senin'],
+          mingguan: ['Kirim foto sampel pertama setiap order', 'Konfirmasi kapasitas minggu depan'],
+          kpi: ['Tepat waktu ≥95%', 'Cacat <2%'],
+        },
+      ],
+      ritme: [
+        { kapan: 'Senin 09.00 (45 menit)', agenda: 'Rapat kapasitas: order minggu ini vs kapasitas vendor, siapa pegang apa', siapa: 'Founder, admin, desainer, sales' },
+        { kapan: 'Setiap hari 16.00', agenda: 'Update status semua order di grup tim & ke klien', siapa: 'Admin' },
+        { kapan: 'Rabu', agenda: 'Meeting/kunjungan klien korporat', siapa: 'Founder' },
+        { kapan: 'Jumat 14.00', agenda: 'Review kas, piutang, dan penagihan', siapa: 'Founder + admin' },
+        { kapan: 'Tanggal 1 tiap bulan', agenda: 'Laporan laba rugi sederhana & komisi sales', siapa: 'Founder' },
+      ],
+      funnel: { periode: 'per bulan', steps: [{ tahap: 'Leads (kampus 150 + korporat 50)', angka: 200 }, { tahap: 'Penawaran dikirim', angka: 60 }, { tahap: 'Negosiasi/mockup', angka: 35 }, { tahap: 'Order dengan DP', angka: 25 }] },
+    },
+    skala: {
+      snapshot: {
+        omzetBulan: 420, labaBulan: 34, marginKotor: 35, biayaTetapBulan: 113, kas: 350, piutang: 160, stok: 60,
+        pelanggan: '±40 klien korporat aktif + ±60 kampus/komunitas per tahun',
+        catatan: 'Biaya tetap = gaji 22 orang ±Rp100 juta, sewa workshop, listrik & perawatan mesin. 55% omzet dari korporat (termin 30–45 hari), karena itu piutang besar.',
+      },
+      roles: [
+        {
+          role: 'CEO (kamu)', jumlah: '1',
+          misi: 'Arah bisnis, klien strategis, keuangan, dan membangun tim kepala divisi.',
+          harian: ['Baca dashboard pagi: produksi, reject, order baru, kas', 'Maksimal 2 jam untuk klien strategis'],
+          mingguan: ['Pimpin rapat KPI Senin', '1-on-1 dengan tiap kepala divisi (30 menit)', 'Review arus kas & piutang bersama finance'],
+          kpi: ['EBITDA ≥15%', 'Omzet per karyawan ≥Rp20 juta/bulan', 'Waktumu untuk operasional harian <30%'],
+        },
+        {
+          role: 'Kepala sales', jumlah: '1 (+2 sales)', atasan: 'CEO',
+          misi: 'Pipeline korporat yang bisa diprediksi dan penagihan yang tertib.',
+          harian: ['Stand-up 10 menit dengan tim sales', 'Pastikan setiap prospek tercatat di CRM'],
+          mingguan: ['Review pipeline (Rabu): deal >Rp20 juta dibahas satu per satu', 'Dampingi sales di 2 meeting penting'],
+          kpi: ['Pipeline 3× target bulanan', 'Win rate korporat ≥25%', 'Hari piutang rata-rata <35 hari'],
+          prospek: ['Divisi HR/GA & marketing perusahaan 100–1.000 karyawan', 'Event organizer & agensi (merch kampanye)', 'Tender pengadaan swasta (portal vendor perusahaan)', 'Referral dari klien lama (program referral 3%)'],
+          tools: ['CRM', 'Template proposal & price list korporat'],
+        },
+        {
+          role: 'Sales korporat', jumlah: '2', atasan: 'Kepala sales',
+          misi: 'Membuka akun baru dan mengembangkan akun yang ada.',
+          harian: ['15 kontak/penelusuran calon klien (telepon, email, LinkedIn)', 'Kirim 2 penawaran yang disesuaikan'],
+          mingguan: ['4 meeting tatap muka/online', 'Update CRM sebelum Jumat sore'],
+          kpi: ['8 akun baru/bulan per sales', 'Omzet Rp80 juta/bulan per sales'],
+        },
+        {
+          role: 'Supervisor produksi (calon di bawah Head of Production)', jumlah: '1 (+14 staf produksi & QC)', atasan: 'CEO',
+          misi: 'Output harian sesuai rencana dengan reject <2%.',
+          harian: ['Stand-up lantai produksi 08.00 (15 menit): target hari ini', 'Cek sampel pertama tiap order sebelum massal', 'Laporan output & reject jam 16.00'],
+          mingguan: ['Perencanaan produksi minggu depan bersama admin', 'Perawatan mesin terjadwal'],
+          kpi: ['Reject <2%', 'Tepat waktu ≥96%', 'Lembur turun 50%'],
+        },
+        {
+          role: 'Admin order, CS & finance', jumlah: '3', atasan: 'CEO',
+          misi: 'Order, invoice, penagihan, dan laporan keuangan tepat dan tepat waktu.',
+          harian: ['Input order & jadwal produksi', 'Kirim invoice & pengingat bayar', 'Rekap kas harian'],
+          mingguan: ['Laporan aging piutang', 'Rekonsiliasi rekening'],
+          kpi: ['Laporan laba rugi selesai tanggal 5', 'Piutang >60 hari <5%'],
+        },
+        {
+          role: 'Desainer & marketing', jumlah: '2', atasan: 'CEO',
+          misi: 'Mockup cepat, portofolio korporat, dan materi penjualan untuk sales.',
+          harian: ['Mockup ≤12 jam'],
+          mingguan: ['1 studi kasus klien korporat', 'Update katalog & deck sales'],
+          kpi: ['Approval mockup ≤2 revisi', '≥20 leads inbound/bulan dari konten'],
+        },
+      ],
+      ritme: [
+        { kapan: 'Setiap hari 08.00', agenda: 'Stand-up produksi 15 menit: target output, prioritas, kendala', siapa: 'Supervisor + staf produksi' },
+        { kapan: 'Senin 10.00 (60 menit)', agenda: 'Rapat KPI: omzet, output, reject, kas, piutang', siapa: 'CEO + kepala divisi' },
+        { kapan: 'Rabu', agenda: 'Review pipeline sales & deal besar', siapa: 'CEO + kepala sales' },
+        { kapan: 'Jumat', agenda: 'Review piutang & perencanaan produksi minggu depan', siapa: 'Finance, supervisor, kepala sales' },
+        { kapan: 'Tanggal 5 tiap bulan', agenda: 'Laporan laba rugi, arus kas, neraca', siapa: 'Finance → CEO' },
+      ],
+      funnel: { periode: 'per bulan (korporat)', steps: [{ tahap: 'Akun baru dihubungi', angka: 300 }, { tahap: 'Meeting/presentasi', angka: 45 }, { tahap: 'Proposal & sampel', angka: 25 }, { tahap: 'PO masuk', angka: 16 }] },
+    },
+  },
+  exec: {
+    rintis: [
+      [
+        { siapa: 'Kamu (sales)', tugas: 'Kirim invoice resmi + surat pesanan berisi jumlah, ukuran, harga, dan tanggal kirim. Minta tanda tangan ketua & bendahara.' },
+        { siapa: 'Bendahara himpunan', tugas: 'Mencairkan DP 50% (Rp5,1 juta) dari kas himpunan atau talangan panitia.' },
+        { siapa: 'Kamu (keuangan)', tugas: 'Bayar DP vendor Rp3,6 juta hanya setelah DP klien masuk; catat di buku kas.' },
+        { siapa: 'Vendor', tugas: 'Mulai produksi setelah DP; kirim foto sampel pertama untuk dicek.' },
+      ],
+      [
+        { siapa: 'Kamu', tugas: 'Tulis spesifikasi bahan (combed 30s) di mockup final yang disetujui klien.' },
+        { siapa: 'Vendor', tugas: 'Konfirmasi tertulis bahan & warna sebelum potong kain.' },
+        { siapa: 'Desainer freelance', tugas: 'Buat katalog 2 kelas harga (Premium combed 30s, Hemat carded) dengan foto bahan.' },
+      ],
+      [
+        { siapa: 'Kamu', tugas: 'Susun daftar 40 ormawa dari akun IG kampus: nama ketua, acara terdekat, kontak.' },
+        { siapa: 'Desainer freelance', tugas: 'Rapikan katalog PDF 6 halaman berisi foto order sebelumnya + harga mulai.' },
+        { siapa: 'Kamu', tugas: 'Kirim pesan personal (sebut nama acaranya), follow-up H+3, antar sampel ke 5 sekretariat yang paling responsif.' },
+      ],
+    ],
+    tumbuh: [
+      [
+        { siapa: 'Admin', tugas: 'Tarik data volume 6 bulan per vendor sebagai bahan negosiasi.' },
+        { siapa: 'Founder', tugas: 'Negosiasi kontrak 3 bulan (−Rp3rb/pcs untuk komitmen 700 pcs/bulan) dan tanda tangani.' },
+        { siapa: 'Founder', tugas: 'Sisihkan Rp2 juta/bulan ke rekening "mesin".' },
+        { siapa: 'Admin', tugas: 'Catat pcs per bulan; laporkan ke founder saat 3 bulan berturut-turut ≥1.200 pcs.' },
+      ],
+      [
+        { siapa: 'Admin', tugas: 'Hitung kapasitas harian vendor A & B untuk 2 minggu ke depan.' },
+        { siapa: 'Founder', tugas: 'Uji vendor C dengan 50 pcs, cek sampel sendiri.' },
+        { siapa: 'Sales', tugas: 'Hubungi klien yang tanggal acaranya fleksibel; tawarkan tanggal kirim realistis + bonus kecil.' },
+        { siapa: 'Desainer', tugas: 'Kirim semua file final 2 hari lebih awal supaya vendor bisa mulai.' },
+      ],
+      [
+        { siapa: 'Founder', tugas: 'Minta PO resmi & tanya 2 vendor lain tentang riwayat bayar perusahaan ini.' },
+        { siapa: 'Admin', tugas: 'Terbitkan invoice DP 30% (Rp15,6 juta), jadwalkan pengingat pelunasan H+25.' },
+        { siapa: 'Founder', tugas: 'Proyeksi kas 8 minggu: pastikan gaji & order lain tetap terbayar selama menunggu.' },
+        { siapa: 'Vendor', tugas: 'Mulai produksi polo setelah DP diterima.' },
+      ],
+    ],
+    skala: [
+      [
+        { siapa: 'CEO', tugas: 'Tulis scorecard 90 hari Head of Production: reject <2%, lembur −50%, rencana produksi mingguan.' },
+        { siapa: 'HR/admin', tugas: 'Proses rekrut: 3 kandidat, uji studi kasus perencanaan produksi.' },
+        { siapa: 'Supervisor', tugas: 'Tetap memimpin lantai produksi; menjadi partner Head of Production untuk eksekusi.' },
+        { siapa: 'Head of Production (baru)', tugas: 'Minggu 1–2: petakan alur & penyebab reject; minggu 3: rencana produksi mingguan pertama.' },
+      ],
+      [
+        { siapa: 'CEO', tugas: 'Set anggaran pilot Rp35 juta & target sell-through ≥70%.' },
+        { siapa: 'Desainer & marketing', tugas: '3 desain, foto produk, halaman pre-order.' },
+        { siapa: 'Supervisor produksi', tugas: 'Produksi batch kecil sesuai jumlah pre-order + 15%.' },
+        { siapa: 'Finance', tugas: 'Laporan terpisah untuk lini brand: biaya, penjualan, margin.' },
+      ],
+      [
+        { siapa: 'Finance/HR', tugas: 'Audit absensi & jam lembur 3 bulan terakhir; hitung kekurangan bayar.' },
+        { siapa: 'CEO', tugas: 'Putuskan pembayaran kekurangan & umumkan aturan lembur baru ke tim.' },
+        { siapa: 'Supervisor', tugas: 'Lembur hanya dengan persetujuan tertulis & alasan jelas.' },
+        { siapa: 'Head of Production', tugas: 'Perencanaan produksi mingguan untuk memangkas lembur.' },
+      ],
+    ],
+  },
+};

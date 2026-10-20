@@ -76,6 +76,11 @@ export function AccessProvider({ children }: { children: ReactNode }) {
   return <AccessContext.Provider value={value}>{children}</AccessContext.Provider>;
 }
 
+/** Versi lunak: null jika dipakai di luar <AccessProvider> (mis. di tes komponen). */
+export function useMaybeAccess(): AccessState | null {
+  return useContext(AccessContext);
+}
+
 export function useAccess(): AccessState {
   const ctx = useContext(AccessContext);
   if (!ctx) throw new Error('useAccess harus dipakai di dalam <AccessProvider>.');

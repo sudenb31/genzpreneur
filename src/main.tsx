@@ -30,6 +30,7 @@ import SavedPage from './pages/SavedPage';
 import CurriculumPage from './pages/CurriculumPage';
 import DreamPactPage from './pages/DreamPactPage';
 import DreamPactPrint from './pages/DreamPactPrint';
+import SimulatorPage from './pages/SimulatorPage';
 
 /** Build "standalone" (bisa dibuka dengan klik dua kali) memakai HashRouter. */
 const Router = import.meta.env.MODE === 'standalone' ? HashRouter : BrowserRouter;
@@ -68,6 +69,7 @@ createRoot(document.getElementById('root')!).render(
               <Route path="action-plan" element={<RequireFeature feature="actionPlan"><MissionPage /></RequireFeature>} /><Route path="action-plan/arsip" element={<RequireFeature feature="actionPlan"><ActionPlanPage /></RequireFeature>} />
               <Route path="tersimpan" element={<SavedPage />} />
               <Route path="kurikulum" element={<CurriculumPage />} />
+              <Route path="simulasi" element={<RequireFeature feature="simulatorTeaser"><SimulatorPage /></RequireFeature>} />
               <Route path="dream-pact" element={<RequireFeature feature="dreamPact"><DreamPactPage /></RequireFeature>} />
               <Route path="pengaturan" element={<SettingsPage />} />
               <Route path="admin/peserta" element={<RequireRole min="admin"><AdminMembers /></RequireRole>} />
