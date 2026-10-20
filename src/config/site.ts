@@ -41,7 +41,7 @@ export const SITE = {
     { key: 'impact', saleReady: false, level: 'Materi lanjutan · akses lama tetap berlaku', name: 'GenZ Impact', emoji: '🎯', price: 299_000,
       tagline: 'Pendampingan dibuka terpisah setelah siap.',
       desc: 'Pendaftaran pendampingan belum dibuka. Jadwal, kuota, cakupan review, dan panduan akses akan diumumkan lebih dahulu.',
-      features: ['Fungsi GenZ Boost sesuai akses akun', 'Season 4 — materi lanjutan', 'Layanan manual dan AI Coach eksternal bukan fungsi otomatis aplikasi'],
+      features: ['Fungsi GenZ Boost sesuai akses akun', 'Season 4 — materi lanjutan', 'Simulasi Founder: 30 skenario roleplay 90 hari (10 industri × 3 level modal)', 'Layanan manual dan AI Coach eksternal bukan fungsi otomatis aplikasi'],
       badge: 'Belum dibuka',
     },
   ],
