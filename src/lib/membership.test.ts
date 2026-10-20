@@ -72,11 +72,18 @@ describe('akses fitur', () => {
     // Simulasi Founder hanya untuk GenZ Impact (termasuk trial Impact dari Boost).
     expect(FEATURE_MIN.simulator).toBe('impact');
     expect(SITE.plans[2].features.join(' ')).toMatch(/Simulasi Founder/);
-    expect(SITE.plans[1].features.join(' ')).not.toMatch(/Simulasi Founder/);
+    // Spark & Boost hanya mendapat 1 skenario percobaan (Boost mewarisi isi Spark).
+    expect(FEATURE_MIN.simulatorTeaser).toBe('spark');
+    expect(SITE.plans[0].features.join(' ')).toMatch(/1 skenario Simulasi Founder/);
+    expect(SITE.plans[1].features.join(' ')).not.toMatch(/30 skenario/);
   });
   it('Simulasi Founder terkunci untuk Spark & Boost, terbuka untuk Impact', () => {
     expect(canUse('simulator', { gatingEnabled: true, isAdmin: false, plan: 'spark' })).toBe(false);
     expect(canUse('simulator', { gatingEnabled: true, isAdmin: false, plan: 'boost' })).toBe(false);
     expect(canUse('simulator', { gatingEnabled: true, isAdmin: false, plan: 'impact' })).toBe(true);
+    // Skenario percobaan terbuka untuk semua paket, tetapi tidak untuk akun tanpa paket.
+    expect(canUse('simulatorTeaser', { gatingEnabled: true, isAdmin: false, plan: 'spark' })).toBe(true);
+    expect(canUse('simulatorTeaser', { gatingEnabled: true, isAdmin: false, plan: 'boost' })).toBe(true);
+    expect(canUse('simulatorTeaser', { gatingEnabled: true, isAdmin: false, plan: 'none' })).toBe(false);
   });
 });
