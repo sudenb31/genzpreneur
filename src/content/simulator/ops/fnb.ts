@@ -1,0 +1,238 @@
+import type { SimIndustryOps } from '../types';
+
+export const FNB_OPS: SimIndustryOps = {
+  ops: {
+    rintis: {
+      snapshot: {
+        omzetBulan: 16.3, labaBulan: 2.1, marginKotor: 30, biayaTetapBulan: 1.2, kas: 8,
+        pelanggan: '±25 porsi/hari: 80% pembeli aplikasi, 20% pre-order kantor sekitar',
+        catatan: 'Omzet = 25 porsi × Rp25rb × 26 hari. Margin kotor sudah dikurangi bahan, kemasan, dan potongan aplikasi ±20%. Biaya tetap = gas, listrik, data. Upah pembantu harian ±Rp1,6 juta/bulan dihitung terpisah.',
+      },
+      roles: [
+        {
+          role: 'Kamu — topi Dapur & Produksi', jumlah: 'kamu sendiri',
+          misi: 'Rasa dan porsi selalu sama, pesanan siap <12 menit.',
+          harian: ['06.00 belanja bahan segar sesuai prakiraan', 'Persiapan bahan setengah jadi selesai 10.30', 'Masak & jaga kebersihan dapur (checklist)'],
+          mingguan: ['Uji ulang gramasi 4 menu', 'Bersihkan total dapur & cek tanggal kedaluwarsa bahan'],
+          kpi: ['Waktu siap <12 menit', 'Food cost 30–36%', 'Bahan terbuang <5%'],
+          tools: ['Timbangan digital', 'Kartu resep di dinding dapur'],
+        },
+        {
+          role: 'Kamu — topi Penjualan', jumlah: 'kamu sendiri',
+          misi: 'Membangun kanal langsung (pre-order) supaya tidak 100% bergantung pada aplikasi.',
+          harian: ['Balas pesanan WA', 'Posting status menu hari ini di WA & IG jam 09.00'],
+          mingguan: ['Tawarkan pre-order ke 8 kantor/kos baru (bawa sampel porsi kecil)', 'Balas semua ulasan di aplikasi'],
+          kpi: ['≥30% penjualan lewat kanal langsung', 'Rating ≥4,7'],
+          prospek: ['Kantor kecil radius 2 km (klinik, notaris, bengkel, toko)', 'Grup WA perumahan & pengurus kos', 'Kampus: sekretariat organisasi saat rapat malam', 'Pembeli aplikasi yang berulang → ajak simpan nomor WA'],
+        },
+        {
+          role: 'Kamu — topi Belanja & Keuangan', jumlah: 'kamu sendiri',
+          misi: 'Tahu persis untung per porsi dan menjaga kas.',
+          harian: ['Catat belanja & uang masuk (aplikasi + tunai + transfer)'],
+          mingguan: ['Hitung food cost & laba minggu ini', 'Bandingkan harga 2 pemasok ayam & beras'],
+          kpi: ['Laba bersih ≥Rp6 juta/bulan (target)', 'Kas usaha terpisah'],
+        },
+        {
+          role: 'Pembantu packing', jumlah: '1 (harian, 11.00–14.00)', atasan: 'Kamu',
+          misi: 'Pesanan dikemas rapi, lengkap, dan cepat saat jam sibuk.',
+          harian: ['Siapkan 60 kemasan + sendok + saus sebelum 11.00', 'Cek kelengkapan pesanan sebelum diambil driver', 'Selipkan kartu stempel & QR WA'],
+          mingguan: ['Lapor stok kemasan yang menipis'],
+          kpi: ['0 pesanan kurang item', 'Serah ke driver <2 menit'],
+        },
+      ],
+      ritme: [
+        { kapan: 'Setiap hari 06.00', agenda: 'Belanja bahan segar sesuai prakiraan', siapa: 'Kamu' },
+        { kapan: 'Setiap hari 10.30', agenda: 'Semua bahan setengah jadi siap sebelum jam makan siang', siapa: 'Kamu' },
+        { kapan: 'Setiap hari 11.00–14.00', agenda: 'Jam sibuk: menu siang ramping, packing dibantu', siapa: 'Kamu + pembantu' },
+        { kapan: 'Setiap hari 20.00', agenda: 'Rekap penjualan, sisa bahan, uang masuk', siapa: 'Kamu' },
+        { kapan: 'Minggu', agenda: 'Evaluasi food cost, menu terlaris, ulasan', siapa: 'Kamu' },
+      ],
+      funnel: { periode: 'per bulan (pre-order kantor)', steps: [{ tahap: 'Kantor/kos ditawari + sampel', angka: 30 }, { tahap: 'Mencoba pesan', angka: 12 }, { tahap: 'Pesan rutin tiap minggu', angka: 6 }] },
+    },
+    tumbuh: {
+      snapshot: {
+        omzetBulan: 95, labaBulan: 5.7, marginKotor: 62, biayaTetapBulan: 31, kas: 60, stok: 6,
+        pelanggan: '±130 transaksi/hari (dine-in mahasiswa, takeaway, aplikasi, 4 kantor langganan)',
+        catatan: 'Biaya tetap = sewa Rp5 juta/bulan (Rp60 juta/tahun), gaji 5 orang ±Rp20 juta, listrik/gas, POS. Potongan aplikasi & selisih stok membuat laba bersih hanya 6%.',
+      },
+      roles: [
+        {
+          role: 'Owner (kamu)', jumlah: '1',
+          misi: 'Keluar dari dapur, pegang angka, supplier, dan pertumbuhan.',
+          harian: ['Cek laporan penjualan & kas kemarin dari POS', 'Kunjungi outlet di jam sibuk (observasi, bukan memasak)'],
+          mingguan: ['Review food cost, labor cost, selisih stok', 'Negosiasi/bandingkan 2 supplier', 'Tawarkan catering ke 5 kantor'],
+          kpi: ['Net margin ≥12%', 'Labor cost ≤25% omzet'],
+          prospek: ['Kantor & coworking radius 3 km (catering makan siang)', 'Organisasi kampus (konsumsi rapat/acara)', 'Komunitas & event lokal (bazar)'],
+        },
+        {
+          role: 'Kepala dapur', jumlah: '1', atasan: 'Owner',
+          misi: 'Konsistensi rasa, kebersihan, dan kendali bahan.',
+          harian: ['Terima & cek bahan 07.00 (berat, kesegaran)', 'Briefing cook 09.30', 'Opname bahan utama 21.30'],
+          mingguan: ['Rekap bahan terbuang & penyebabnya', 'Uji rasa semua menu'],
+          kpi: ['Selisih stok <2%', 'Food cost ≤35%', 'Skor kebersihan 100% checklist'],
+        },
+        {
+          role: 'Cook', jumlah: '2 (shift pagi & sore)', atasan: 'Kepala dapur',
+          misi: 'Memasak sesuai resep & gramasi standar.',
+          harian: ['Persiapan bahan sesuai daftar', 'Timbang porsi di stasiun', 'Catat bahan terbuang'],
+          mingguan: ['Deep clean stasiun masak'],
+          kpi: ['Waktu siap <10 menit', 'Porsi sesuai standar ±5%'],
+        },
+        {
+          role: 'Kasir & pelayan', jumlah: '2 (shift)', atasan: 'Owner/kepala outlet',
+          misi: 'Transaksi tercatat 100% dan pelanggan dilayani ramah & cepat.',
+          harian: ['Semua transaksi lewat POS', 'Serah terima kas antar shift 14.30', 'Tawarkan menu margin tinggi & paket'],
+          mingguan: ['Rekap ulasan & keluhan pelanggan'],
+          kpi: ['Selisih kas = Rp0', 'Rating aplikasi ≥4,7'],
+        },
+        {
+          role: 'Kurir lepas', jumlah: '1–2 (per antar)', atasan: 'Kasir',
+          misi: 'Antar catering kantor tepat waktu.',
+          harian: ['Ambil pesanan catering 11.15, tiba sebelum 12.00'],
+          mingguan: ['—'],
+          kpi: ['Tepat waktu 100%'],
+        },
+      ],
+      ritme: [
+        { kapan: 'Setiap hari 07.00', agenda: 'Terima bahan & cek kualitas', siapa: 'Kepala dapur' },
+        { kapan: 'Setiap hari 09.30 (10 menit)', agenda: 'Briefing shift: target, menu habis, promo', siapa: 'Kepala dapur + tim shift' },
+        { kapan: 'Setiap hari 14.30', agenda: 'Serah terima shift + hitung kas', siapa: 'Kasir shift pagi & sore' },
+        { kapan: 'Setiap hari 21.30', agenda: 'Opname bahan utama & rekap penjualan', siapa: 'Kepala dapur + kasir' },
+        { kapan: 'Senin', agenda: 'Review angka mingguan: food cost, labor cost, selisih stok, ulasan', siapa: 'Owner + kepala dapur' },
+        { kapan: 'Akhir bulan', agenda: 'Rapat tim + bonus selisih stok', siapa: 'Semua' },
+      ],
+      funnel: { periode: 'per bulan (catering kantor)', steps: [{ tahap: 'Kantor dihubungi', angka: 40 }, { tahap: 'Tasting/proposal', angka: 15 }, { tahap: 'Langganan mingguan', angka: 6 }] },
+    },
+    skala: {
+      snapshot: {
+        omzetBulan: 380, labaBulan: 30, marginKotor: 63, biayaTetapBulan: 185, kas: 450, stok: 25,
+        pelanggan: '3 outlet, ±420 transaksi/hari + 15 klien catering korporat',
+        catatan: 'Biaya tetap = gaji 28 orang ±Rp130 juta, sewa 3 outlet ±Rp30 juta, utilitas & sistem. Laba bersih ±8%. Rasa & food cost berbeda antar-outlet.',
+      },
+      roles: [
+        {
+          role: 'CEO (kamu)', jumlah: '1',
+          misi: 'Strategi ekspansi, keuangan, merek, dan membangun manajemen.',
+          harian: ['Dashboard pagi: penjualan per outlet, food cost, keluhan'],
+          mingguan: ['Rapat area Senin', '1-on-1 area manager & purchasing', 'Kunjungan acak 1 outlet'],
+          kpi: ['Net margin ≥10%', 'Same-store growth ≥5%/kuartal'],
+        },
+        {
+          role: 'Area manager', jumlah: '1', atasan: 'CEO',
+          misi: 'Tiga outlet berjalan dengan standar yang sama.',
+          harian: ['Keliling 1–2 outlet di jam sibuk', 'Tindak lanjuti keluhan <24 jam'],
+          mingguan: ['Audit acak (rasa, kebersihan, kas, stok) tiap outlet', 'Coaching kepala outlet'],
+          kpi: ['Skor audit ≥90', 'Keluhan selesai <24 jam'],
+        },
+        {
+          role: 'Kepala outlet', jumlah: '3', atasan: 'Area manager',
+          misi: 'Outlet untung, bersih, dan tim lengkap setiap shift.',
+          harian: ['Briefing shift', 'Pesanan bahan ke purchasing/central kitchen jam 15.00', 'Laporan penjualan & opname 22.00'],
+          mingguan: ['Jadwal shift minggu depan', 'Review food cost outlet'],
+          kpi: ['Food cost outlet ≤34%', 'Labor cost ≤24%', 'Selisih kas Rp0'],
+        },
+        {
+          role: 'Staf dapur & layanan', jumlah: '18', atasan: 'Kepala outlet',
+          misi: 'Melayani cepat sesuai SOP.',
+          harian: ['Persiapan, masak, layanan sesuai SOP', 'Checklist kebersihan buka & tutup'],
+          mingguan: ['Pelatihan 30 menit (menu baru / SOP)'],
+          kpi: ['Waktu saji <10 menit', 'Rating ≥4,6'],
+        },
+        {
+          role: 'Purchasing', jumlah: '1', atasan: 'CEO',
+          misi: 'Bahan berkualitas dengan harga terbaik dan stok aman.',
+          harian: ['Konsolidasi pesanan 3 outlet & order ke supplier'],
+          mingguan: ['Bandingkan harga ≥2 supplier untuk 10 bahan utama'],
+          kpi: ['Harga bahan utama ≤ harga pasar', 'Stok kosong 0 kali'],
+        },
+        {
+          role: 'Marketing & catering korporat', jumlah: '1', atasan: 'CEO',
+          misi: 'Trafik ke outlet + pendapatan catering.',
+          harian: ['Konten menu & promo', 'Follow-up calon klien catering'],
+          mingguan: ['Kirim 20 penawaran catering', 'Analisis promo aplikasi'],
+          kpi: ['8 klien catering baru/bulan', 'ROAS iklan ≥4'],
+          prospek: ['HR/GA kantor 50–500 karyawan (makan siang, rapat)', 'Event organizer & kampus (konsumsi acara)', 'Komunitas & pengajian (pesanan besar)'],
+        },
+        {
+          role: 'Admin keuangan', jumlah: '1', atasan: 'CEO',
+          misi: 'Laporan per outlet tepat waktu.',
+          harian: ['Rekonsiliasi kas & transfer 3 outlet'],
+          mingguan: ['Laporan mingguan per outlet'],
+          kpi: ['Laporan laba rugi per outlet tanggal 5'],
+        },
+      ],
+      ritme: [
+        { kapan: 'Setiap hari 09.00', agenda: 'Kepala outlet lapor kesiapan stok & tim di grup', siapa: 'Kepala outlet → area manager' },
+        { kapan: 'Setiap hari 15.00', agenda: 'Pesanan bahan untuk besok', siapa: 'Kepala outlet → purchasing' },
+        { kapan: 'Setiap hari 22.00', agenda: 'Laporan penjualan, opname, kas per outlet', siapa: 'Kepala outlet' },
+        { kapan: 'Senin 10.00', agenda: 'Rapat area: angka per outlet, keluhan, promo', siapa: 'CEO, area manager, kepala outlet, purchasing' },
+        { kapan: 'Rabu', agenda: 'Audit acak 1 outlet', siapa: 'Area manager' },
+        { kapan: 'Tanggal 5', agenda: 'P&L per outlet', siapa: 'Admin keuangan → CEO' },
+      ],
+      funnel: { periode: 'per bulan (catering korporat)', steps: [{ tahap: 'Kontak kantor/EO', angka: 80 }, { tahap: 'Tasting/proposal', angka: 20 }, { tahap: 'Order catering', angka: 8 }] },
+    },
+  },
+  exec: {
+    rintis: [
+      [
+        { siapa: 'Kamu (dapur)', tugas: 'Timbang bahan untuk 3 porsi tiap menu → HPP per porsi (bahan + kemasan).' },
+        { siapa: 'Kamu (penjualan)', tugas: 'Lihat data aplikasi 30 hari: pertahankan 4 menu terlaris, hapus sisanya.' },
+        { siapa: 'Kamu (dapur)', tugas: 'Tulis kartu resep & gramasi; tempel di dapur.' },
+        { siapa: 'Kamu (penjualan)', tugas: 'Ubah harga aplikasi ke Rp29rb; buat katalog WA Rp25rb untuk pre-order kantor.' },
+      ],
+      [
+        { siapa: 'Kamu', tugas: 'Buat paket "rice bowl + es teh" minimal Rp40rb di aplikasi.' },
+        { siapa: 'Kamu', tugas: 'Cetak 300 kartu stempel "beli 5 gratis 1" + QR WA (±Rp150rb).' },
+        { siapa: 'Pembantu packing', tugas: 'Selipkan kartu di setiap pesanan langsung & aplikasi.' },
+        { siapa: 'Kamu', tugas: 'Simpan nomor pembeli langsung dengan label "pelanggan" di WA Business.' },
+      ],
+      [
+        { siapa: 'Kamu (malam sebelumnya)', tugas: 'Marinasi ayam & potong sayur untuk 40 porsi.' },
+        { siapa: 'Kamu (pagi)', tugas: 'Semua bahan setengah jadi siap 10.30; menu siang di aplikasi hanya 3 item.' },
+        { siapa: 'Pembantu packing', tugas: 'Datang 10.45, siapkan 60 kemasan; kerja 11.00–14.00.' },
+        { siapa: 'Kamu', tugas: 'Balas 2 ulasan buruk dengan sopan + jelaskan perbaikan.' },
+      ],
+    ],
+    tumbuh: [
+      [
+        { siapa: 'Owner', tugas: 'Kirim rencana 3 bulan & target (net margin ≥12% dua bulan) ke investor secara tertulis.' },
+        { siapa: 'Kepala dapur', tugas: 'Tulis SOP dapur & resep standar semua menu.' },
+        { siapa: 'Owner', tugas: 'Tunjuk & latih kepala outlet (dari kasir/cook terbaik), tambah tunjangan.' },
+        { siapa: 'Kasir', tugas: 'Pastikan 100% transaksi tercatat di POS.' },
+      ],
+      [
+        { siapa: 'Owner', tugas: 'Beli 2 timbangan digital untuk stasiun masak.' },
+        { siapa: 'Kepala dapur', tugas: 'Opname harian ayam, beras, minyak (21.30) + lapor selisih.' },
+        { siapa: 'Cook', tugas: 'Catat setiap bahan terbuang & alasannya di buku.' },
+        { siapa: 'Owner', tugas: 'Umumkan bonus tim Rp1 juta/bulan bila selisih <2%.' },
+      ],
+      [
+        { siapa: 'Owner', tugas: 'Minta penawaran 2 supplier ayam; tanda tangani kontrak harga 3 bulan.' },
+        { siapa: 'Kepala dapur', tugas: 'Hitung ulang HPP semua menu dengan harga baru.' },
+        { siapa: 'Kasir', tugas: 'Update harga 3 menu terlaris (+Rp2rb) di POS & aplikasi.' },
+        { siapa: 'Kasir & pelayan', tugas: 'Rekomendasikan paket/menu dengan margin tinggi ke pelanggan.' },
+      ],
+    ],
+    skala: [
+      [
+        { siapa: 'CEO', tugas: 'Setujui anggaran Rp180 juta & target: selisih rasa 0 keluhan, food cost −3 poin dalam 3 bulan.' },
+        { siapa: 'Purchasing', tugas: 'Pindahkan pembelian bahan pokok ke satu titik (central kitchen).' },
+        { siapa: 'Kepala central kitchen', tugas: 'Produksi bumbu, saus, dan bahan setengah jadi sesuai pesanan outlet H-1.' },
+        { siapa: 'Kepala outlet', tugas: 'Kirim pesanan harian ke CK paling lambat 15.00.' },
+        { siapa: 'Area manager', tugas: 'Uji rasa mingguan di 3 outlet.' },
+      ],
+      [
+        { siapa: 'CEO + konsultan hukum', tugas: 'Susun kontrak kemitraan: standar bahan, audit, hak putus kerja sama.' },
+        { siapa: 'Area manager', tugas: 'Selesaikan manual SOP 100% + program pelatihan 2 minggu untuk tim mitra.' },
+        { siapa: 'Purchasing', tugas: 'Atur suplai bumbu/bahan dari central kitchen ke outlet mitra.' },
+        { siapa: 'Admin keuangan', tugas: 'Laporan bulanan & audit untuk outlet mitra.' },
+      ],
+      [
+        { siapa: 'Kepala outlet 2', tugas: 'Hubungi pelanggan dalam 1 jam; catat detail menu & waktu makan.' },
+        { siapa: 'Area manager + QA', tugas: 'Tarik bahan batch terkait, simpan sampel, periksa dapur & suhu penyimpanan.' },
+        { siapa: 'CEO', tugas: 'Tanggung biaya periksa; siapkan pernyataan publik yang jujur.' },
+        { siapa: 'Marketing', tugas: 'Unggah langkah yang diambil & hasil pemeriksaan; jawab komentar dengan tenang.' },
+      ],
+    ],
+  },
+};
