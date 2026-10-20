@@ -1,7 +1,7 @@
-import type { SimScenario } from './types';
+import type { SimScenarioContent } from './types';
 import { o } from './helpers';
 
-export const BEAUTY: SimScenario[] = [
+export const BEAUTY: SimScenarioContent[] = [
   {
     industry: 'beauty', level: 'rintis',
     title: 'Mulai jualan skincare dengan modal Rp10 juta',

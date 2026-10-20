@@ -37,7 +37,8 @@ export interface SimBlueprint {
   naikLevel: string[];
 }
 
-export interface SimScenario {
+/** Konten dasar skenario (cerita + keputusan + blueprint). Operasional ditambahkan di ops/. */
+export interface SimScenarioContent {
   industry: IndustryKey;
   level: SimLevelKey;
   title: string;
@@ -48,6 +49,70 @@ export interface SimScenario {
   start: SimStats;
   decisions: [SimDecision, SimDecision, SimDecision];
   blueprint: SimBlueprint;
+}
+
+/** Laporan bisnis saat skenario dimulai. Semua uang dalam JUTA rupiah, periode eksplisit. */
+export interface SimSnapshot {
+  /** Omzet (penjualan kotor) rata-rata PER BULAN. */
+  omzetBulan: number;
+  /** Laba bersih rata-rata PER BULAN (setelah HPP, gaji, sewa, iklan). Boleh negatif. */
+  labaBulan: number;
+  /** Margin kotor dalam persen: (omzet − HPP) ÷ omzet. */
+  marginKotor: number;
+  /** Biaya tetap PER BULAN (gaji, sewa, langganan, utilitas). */
+  biayaTetapBulan: number;
+  /** Uang di rekening usaha HARI INI. */
+  kas: number;
+  /** Tagihan ke pelanggan yang belum dibayar (posisi hari ini). */
+  piutang?: number;
+  /** Nilai stok/bahan di gudang (posisi hari ini). */
+  stok?: number;
+  /** Siapa & berapa pelanggan aktif. */
+  pelanggan: string;
+  /** Penjelasan singkat angka (opsional), mis. "omzet dari 2 order pertama". */
+  catatan?: string;
+}
+
+export interface SimRole {
+  role: string;
+  /** Jumlah orang, mis. "1", "10", "kamu sendiri". */
+  jumlah: string;
+  atasan?: string;
+  /** Tanggung jawab utama dalam 1 kalimat. */
+  misi: string;
+  harian: string[];
+  mingguan: string[];
+  /** KPI lengkap dengan target. */
+  kpi: string[];
+  /** Untuk peran sales/marketing: ke mana mencari prospek. */
+  prospek?: string[];
+  tools?: string[];
+}
+
+export interface SimRhythm { kapan: string; agenda: string; siapa: string }
+
+export interface SimFunnel { periode: string; steps: { tahap: string; angka: number }[] }
+
+export interface SimOps {
+  snapshot: SimSnapshot;
+  roles: SimRole[];
+  ritme: SimRhythm[];
+  funnel: SimFunnel;
+}
+
+/** Siapa di tim mengerjakan apa untuk menjalankan keputusan terbaik. */
+export type SimExecution = { siapa: string; tugas: string }[];
+
+export interface SimDecisionFull extends SimDecision { execution: SimExecution }
+
+export interface SimScenario extends Omit<SimScenarioContent, 'decisions'> {
+  decisions: [SimDecisionFull, SimDecisionFull, SimDecisionFull];
+  ops: SimOps;
+}
+
+export interface SimIndustryOps {
+  ops: Record<SimLevelKey, SimOps>;
+  exec: Record<SimLevelKey, [SimExecution, SimExecution, SimExecution]>;
 }
 
 export const SIM_LEVELS: Record<SimLevelKey, { no: number; name: string; modal: string; team: string; desc: string; tile: string }> = {

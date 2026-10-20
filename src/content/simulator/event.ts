@@ -1,7 +1,7 @@
-import type { SimScenario } from './types';
+import type { SimScenarioContent } from './types';
 import { o } from './helpers';
 
-export const EVENT: SimScenario[] = [
+export const EVENT: SimScenarioContent[] = [
   {
     industry: 'event', level: 'rintis',
     title: 'Workshop 60 orang pertama',

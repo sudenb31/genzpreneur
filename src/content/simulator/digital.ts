@@ -1,7 +1,7 @@
-import type { SimScenario } from './types';
+import type { SimScenarioContent } from './types';
 import { o } from './helpers';
 
-export const DIGITAL_SERVICES: SimScenario[] = [
+export const DIGITAL_SERVICES: SimScenarioContent[] = [
   {
     industry: 'digital_services', level: 'rintis',
     title: 'Freelancer social media & desain',

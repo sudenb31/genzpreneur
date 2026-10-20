@@ -1,7 +1,7 @@
-import type { SimScenario } from './types';
+import type { SimScenarioContent } from './types';
 import { o } from './helpers';
 
-export const B2B_SALES: SimScenario[] = [
+export const B2B_SALES: SimScenarioContent[] = [
   {
     industry: 'b2b_sales', level: 'rintis',
     title: 'Sales partner pengadaan kantor',

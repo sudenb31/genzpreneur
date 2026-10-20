@@ -1,7 +1,7 @@
-import type { SimScenario } from './types';
+import type { SimScenarioContent } from './types';
 import { o } from './helpers';
 
-export const RETAIL: SimScenario[] = [
+export const RETAIL: SimScenarioContent[] = [
   {
     industry: 'retail', level: 'rintis',
     title: 'Reseller hijab lewat WA & TikTok',

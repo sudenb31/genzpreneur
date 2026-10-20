@@ -1,7 +1,7 @@
-import type { SimScenario } from './types';
+import type { SimScenarioContent } from './types';
 import { o } from './helpers';
 
-export const FNB: SimScenario[] = [
+export const FNB: SimScenarioContent[] = [
   {
     industry: 'fnb', level: 'rintis',
     title: 'Rice bowl rumahan di aplikasi ojol',

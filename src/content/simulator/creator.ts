@@ -1,7 +1,7 @@
-import type { SimScenario } from './types';
+import type { SimScenarioContent } from './types';
 import { o } from './helpers';
 
-export const CREATOR: SimScenario[] = [
+export const CREATOR: SimScenarioContent[] = [
   {
     industry: 'creator', level: 'rintis',
     title: 'Creator TikTok 9 ribu followers',

@@ -1,7 +1,7 @@
-import type { SimScenario } from './types';
+import type { SimScenarioContent } from './types';
 import { o } from './helpers';
 
-export const TECH: SimScenario[] = [
+export const TECH: SimScenarioContent[] = [
   {
     industry: 'tech', level: 'rintis',
     title: 'Aplikasi manajemen kos dari nol',
