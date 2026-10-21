@@ -730,6 +730,6 @@ export async function startSelfTrial(): Promise<{ plan: string; days: number; en
   const token = await user.getIdToken();
   const res = await fetch('/api/trial/start', { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(typeof body?.error === 'string' ? body.error : 'Gagal memulai trial.');
+  if (!res.ok) throw new Error(typeof body?.error === 'string' ? body.error : 'Server sedang sibuk. Muat ulang halaman; kalau trial belum aktif, klik lagi.');
   return body;
 }
