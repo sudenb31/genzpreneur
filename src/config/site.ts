@@ -25,7 +25,7 @@ export const SITE = {
     { no: 5, emoji: '🔁', title: 'Evaluasi & perbaiki', desc: 'Catat percobaan, bedakan fakta dari tafsiran, lalu perbaiki satu hal.', tile: 'bg-amber-soft' },
   ],
   plans: [
-    { key: 'spark', saleReady: true, checkoutUrl: 'https://goakal.com/genzpreneur/webinar-b1/z7x0w/apply', level: 'Mulai praktik', name: 'GenZ Spark', emoji: '⚡', price: 49_000,
+    { key: 'spark', saleReady: true, checkoutUrl: 'https://goakal.com/genzpreneur/webinar-b1/z7x0w/apply', level: 'Mulai praktik', name: 'GenZ Spark', emoji: '⚡', price: 79_000,
       tagline: 'Siapkan bantuan pertamamu.',
       desc: 'Untuk pemula yang ingin membuat draf, contoh kerja, dan penawaran sederhana dengan kerangka yang bisa dikerjakan manual.',
       features: ['Misi Pertama: 9 tahap, draf tersimpan & unduh hasil', 'Business 101 dan Season 1 sebagai materi pendukung', 'Passport & assessment opsional untuk refleksi', 'Dream Pact opsional + versi cetak', 'Simulasi Founder Level 1 gratis di 10 industri', 'Bukan layanan review individual atau jaminan pelanggan'],
