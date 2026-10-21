@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useAuth } from '../../auth/AuthProvider';
-import { createVouchers, listRedemptions, listVouchers, setVoucherActive, type Redemption } from '../../lib/data';
+import { createVouchers, listRedemptions, listVouchers, setVoucherActive, setVouchersActive, type Redemption } from '../../lib/data';
 import { PLAN_INFO } from '../../lib/membership';
 import { generateCodes, normalizeCode, VOUCHER_RE, type Voucher } from '../../lib/voucher';
 import { CopyButton, EmptyState, ErrorState, PageSkeleton, useToast } from '../../components/ui';
@@ -23,6 +23,7 @@ export default function AdminVouchers() {
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<'codes' | 'redemptions'>('codes');
   const [batchFilter, setBatchFilter] = useState('all');
+  const [confirmBulk, setConfirmBulk] = useState<null | boolean>(null);
   const [search, setSearch] = useState('');
   const [busy, setBusy] = useState(false);
   const [created, setCreated] = useState<string[] | null>(null);
@@ -90,6 +91,23 @@ export default function AdminVouchers() {
     } catch (err) {
       console.error(err);
       toast('error', 'Gagal membuat voucher. Pastikan akunmu Admin dan rules terbaru sudah dipublish.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** Nonaktifkan/aktifkan semua kode di batch yang sedang difilter (dua langkah: pilih lalu konfirmasi). */
+  async function bulkToggle(active: boolean) {
+    const codes = (vouchers ?? []).filter((v) => v.batch === batchFilter && v.active !== active).map((v) => v.code);
+    if (codes.length === 0) { setConfirmBulk(null); return; }
+    setBusy(true);
+    try {
+      await setVouchersActive(codes, active);
+      toast('success', `${codes.length} kode di batch "${batchFilter}" ${active ? 'diaktifkan' : 'dinonaktifkan'}.`);
+      setConfirmBulk(null);
+      await load();
+    } catch {
+      toast('error', 'Gagal mengubah status batch. Pastikan akunmu Admin.');
     } finally {
       setBusy(false);
     }
@@ -222,10 +240,31 @@ export default function AdminVouchers() {
         <>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <input className="input sm:max-w-xs" aria-label="Cari kode" placeholder="Cari kode…" value={search} onChange={(e) => setSearch(e.target.value)} />
-            <select className="input sm:max-w-xs" aria-label="Filter batch" value={batchFilter} onChange={(e) => setBatchFilter(e.target.value)}>
+            <select className="input sm:max-w-xs" aria-label="Filter batch" value={batchFilter} onChange={(e) => { setBatchFilter(e.target.value); setConfirmBulk(null); }}>
               <option value="all">Semua batch</option>
               {batches.map((b) => <option key={b} value={b}>{b}</option>)}
             </select>
+            {batchFilter !== 'all' && (() => {
+              const inBatch = (vouchers ?? []).filter((v) => v.batch === batchFilter);
+              const activeN = inBatch.filter((v) => v.active).length;
+              const inactiveN = inBatch.length - activeN;
+              if (confirmBulk !== null) {
+                const n = confirmBulk ? inactiveN : activeN;
+                return (
+                  <div className="flex flex-wrap items-center gap-2 rounded-2xl border-2 border-danger/40 bg-danger-soft px-3 py-2 text-sm">
+                    <span>{confirmBulk ? 'Aktifkan' : 'Nonaktifkan'} <strong>{n}</strong> kode di batch <strong>{batchFilter}</strong>?</span>
+                    <button type="button" disabled={busy} className="btn-primary py-1.5 text-sm" onClick={() => void bulkToggle(confirmBulk)}>Ya, {confirmBulk ? 'aktifkan' : 'nonaktifkan'}</button>
+                    <button type="button" className="btn-ghost py-1.5 text-sm" onClick={() => setConfirmBulk(null)}>Batal</button>
+                  </div>
+                );
+              }
+              return (
+                <div className="flex flex-wrap gap-2">
+                  {activeN > 0 && <button type="button" className="btn-ghost py-2 text-danger" onClick={() => setConfirmBulk(false)}>Nonaktifkan batch ({activeN})</button>}
+                  {inactiveN > 0 && <button type="button" className="btn-ghost py-2" onClick={() => setConfirmBulk(true)}>Aktifkan lagi ({inactiveN})</button>}
+                </div>
+              );
+            })()}
             <div className="flex gap-2">
               <CopyButton text={listText} label="Salin kode" className="btn-ghost py-2" />
               <CopyButton text={csv} label="Salin CSV" className="btn-ghost py-2" />
