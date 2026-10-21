@@ -112,3 +112,13 @@ describe('pengingat H-1', () => {
     expect(e.text).toMatch(/tetap aman/);
   });
 });
+
+describe('verifyIdTokenViaRest', () => {
+  it('token valid → uid/email; token ditolak Google → error', async () => {
+    const { verifyIdTokenViaRest } = await import('./trial-server.js');
+    const ok = async () => ({ ok: true, json: async () => ({ users: [{ localId: 'u1', email: 'a@x.id', emailVerified: true }] }) });
+    expect(await verifyIdTokenViaRest('t', ok, {})).toEqual({ uid: 'u1', email: 'a@x.id', email_verified: true });
+    const bad = async () => ({ ok: false, json: async () => ({ error: { message: 'INVALID_ID_TOKEN' } }) });
+    await expect(verifyIdTokenViaRest('t', bad, {})).rejects.toThrow('invalid-token');
+  });
+});
