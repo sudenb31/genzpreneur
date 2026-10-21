@@ -34,7 +34,7 @@ function F({ id, label, hint, err, children }: { id: string; label: string; hint
 function Statement({ title, text }: { title: string; text: string }) {
   return (
     <div className="rounded-3xl border-2 border-ink bg-ink p-5 text-paper">
-      <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-lime">{title}</p>
+      <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-lime">{title}</p>
       <p className="mt-2 font-display text-xl font-bold leading-snug">{text}</p>
     </div>
   );

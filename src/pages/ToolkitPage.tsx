@@ -113,7 +113,7 @@ function PromptLibrary() {
       <div className="grid gap-4 md:grid-cols-2">
         {list.map((p) => (
           <article key={p.id} className="card flex flex-col p-5">
-            <span className="w-fit rounded-full bg-lilac px-2.5 py-0.5 text-[11px] font-extrabold">{p.category}</span>
+            <span className="w-fit rounded-full bg-lilac px-2.5 py-0.5 text-xs font-extrabold">{p.category}</span>
             <h3 className="mt-2 font-display text-lg font-extrabold">{p.title}</h3>
             <p className="text-xs text-muted">Pakai saat: {p.useWhen}</p>
             <pre className="mt-3 max-h-48 flex-1 overflow-auto whitespace-pre-wrap rounded-2xl bg-paper p-3 font-sans text-xs leading-relaxed">{fill(p.template)}</pre>
@@ -200,7 +200,7 @@ function CommissionCalculator() {
                 <div key={k as string} className={`rounded-2xl p-3 ${k === 'Total komisimu' ? 'bg-lime' : 'bg-paper'}`}>
                   <dt className="text-xs font-bold text-muted">{k}</dt>
                   <dd className="font-display text-xl font-extrabold">{formatRupiah(v as number)}</dd>
-                  {d && <dd className="text-[11px] text-muted">{d}</dd>}
+                  {d && <dd className="text-xs text-muted">{d}</dd>}
                 </div>
               ))}
             </dl>

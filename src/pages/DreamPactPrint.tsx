@@ -56,7 +56,7 @@ export default function DreamPactPrint() {
         <header className="flex items-start justify-between gap-4 border-b-4 border-ink pb-4">
           <div>
             <Logo />
-            <p className="mt-3 text-[11px] font-extrabold uppercase tracking-[0.2em] text-amber-ink">Pakta Mimpi</p>
+            <p className="mt-3 text-xs font-extrabold uppercase tracking-[0.2em] text-amber-ink">Pakta Mimpi</p>
             <h1 className="font-display text-5xl font-extrabold leading-none tracking-tight">DREAM PACT</h1>
           </div>
           <div className="text-right text-sm">
@@ -67,19 +67,19 @@ export default function DreamPactPrint() {
 
         {/* Dream */}
         <section className="avoid-break mt-6 rounded-2xl bg-ink p-5 text-paper">
-          <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-lime">🌟 Dream Statement</p>
+          <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-lime">🌟 Dream Statement</p>
           <p className="mt-1 font-display text-2xl font-bold leading-snug">{dreamStatement(d)}</p>
           {d.dream.rememberedAs && <p className="mt-2 text-sm text-paper/80">Ingin dikenang sebagai: <strong className="text-paper">{d.dream.rememberedAs}</strong></p>}
         </section>
 
         <section className="avoid-break mt-4 grid gap-4 sm:grid-cols-2 print:grid-cols-2">
           <div className="rounded-2xl border-2 border-ink p-4">
-            <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-amber-ink">🔥 Personal WHY</p>
+            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-amber-ink">🔥 Personal WHY</p>
             <p className="mt-1 text-sm font-semibold leading-relaxed">{whyStatement(d)}</p>
             {d.why.belief && <p className="mt-2 text-xs text-muted">Keyakinanku: {d.why.belief}</p>}
           </div>
           <div className="rounded-2xl border-2 border-ink p-4">
-            <p className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-amber-ink">⚔️ Edge</p>
+            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-amber-ink">⚔️ Edge</p>
             <p className="mt-1 text-sm font-semibold leading-relaxed">{edgeStatement(d)}</p>
           </div>
         </section>
@@ -89,7 +89,7 @@ export default function DreamPactPrint() {
           <h2 className="font-display text-xl font-extrabold">🗺️ Milestone Map</h2>
           <table className="mt-2 w-full border-collapse text-left text-sm">
             <thead>
-              <tr className="border-b-2 border-ink text-[11px] uppercase tracking-wider">
+              <tr className="border-b-2 border-ink text-xs uppercase tracking-wider">
                 <th className="py-1.5 pr-2">Level</th><th className="py-1.5 pr-2">Usia</th><th className="py-1.5 pr-2">Tahun</th><th className="py-1.5">Target</th>
               </tr>
             </thead>
@@ -130,7 +130,7 @@ export default function DreamPactPrint() {
           {planRows.length === 0 ? <p className="mt-2 text-sm text-muted">Belum ada agenda.</p> : (
             <table className="mt-2 w-full border-collapse text-left text-sm">
               <thead>
-                <tr className="border-b-2 border-ink text-[11px] uppercase tracking-wider">
+                <tr className="border-b-2 border-ink text-xs uppercase tracking-wider">
                   <th className="py-1.5 pr-2">Kategori</th><th className="py-1.5 pr-2">Program</th><th className="py-1.5 pr-2">Target</th><th className="py-1.5">Waktu</th><th className="py-1.5 pl-2 text-center">✓</th>
                 </tr>
               </thead>
@@ -171,7 +171,7 @@ export default function DreamPactPrint() {
           </div>
         </section>
 
-        <footer className="mt-8 flex items-center justify-between border-t border-line pt-3 text-[11px] text-muted">
+        <footer className="mt-8 flex items-center justify-between border-t border-line pt-3 text-xs text-muted">
           <span>GenZ Preneur · Learn. Execute. Build.</span>
           <span>Tinjau ulang Dream Pact ini setiap akhir bulan.</span>
         </footer>
