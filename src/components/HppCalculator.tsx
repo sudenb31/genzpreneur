@@ -146,7 +146,7 @@ export default function HppCalculator() {
     <div className={`rounded-3xl border-2 border-ink p-4 ${highlight ? 'bg-lime' : 'bg-white'}`}>
       <div className="flex items-center justify-between gap-2">
         <p className="text-xs font-extrabold uppercase tracking-wider">{title}</p>
-        <span className={`rounded-full border-2 border-ink px-2 py-0.5 text-[10px] font-extrabold ${STATUS[c.status].cls}`}>{STATUS[c.status].label}</span>
+        <span className={`rounded-full border-2 border-ink px-2 py-0.5 text-xs font-extrabold ${STATUS[c.status].cls}`}>{STATUS[c.status].label}</span>
       </div>
       <p className="mt-1 font-display text-3xl font-extrabold">{formatRupiah(c.price)}</p>
       <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-sm">
@@ -212,19 +212,19 @@ export default function HppCalculator() {
                     </div>
                     <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
                       <div>
-                        <span className="text-[11px] font-bold text-muted">Harga beli</span>
+                        <span className="text-xs font-bold text-muted">Harga beli</span>
                         {numInput(`m-bp-${i}`, m.buyPrice, (v) => setMat(i, { buyPrice: v }), { suffix: 'Rp', label: 'Harga beli', err: errs[`materials.${i}.buyPrice`] })}
                       </div>
                       <div>
-                        <span className="text-[11px] font-bold text-muted">Isi kemasan</span>
+                        <span className="text-xs font-bold text-muted">Isi kemasan</span>
                         {numInput(`m-bq-${i}`, m.buyQty, (v) => setMat(i, { buyQty: v }), { label: 'Isi kemasan', err: errs[`materials.${i}.buyQty`] })}
                       </div>
                       <div>
-                        <span className="text-[11px] font-bold text-muted">Satuan</span>
+                        <span className="text-xs font-bold text-muted">Satuan</span>
                         <input className="input" aria-label="Satuan" placeholder="g / ml / pcs" maxLength={10} value={m.unit} onChange={(e) => setMat(i, { unit: e.target.value })} />
                       </div>
                       <div>
-                        <span className="text-[11px] font-bold text-muted">Dipakai / {svc ? 'proyek' : 'batch'}</span>
+                        <span className="text-xs font-bold text-muted">Dipakai / {svc ? 'proyek' : 'batch'}</span>
                         {numInput(`m-uq-${i}`, m.useQty, (v) => setMat(i, { useQty: v }), { label: 'Takaran dipakai', err: errs[`materials.${i}.useQty`] })}
                       </div>
                     </div>
@@ -394,7 +394,7 @@ function CostRows({ rows, errPrefix, errs, placeholder, suffix, onChange, onRemo
           <div className="relative w-40 shrink-0">
             <input type="number" inputMode="decimal" min={0} aria-label={`Jumlah biaya ${i + 1}`} className="input pr-16" value={c.amount}
               onChange={(e) => onChange(i, { amount: e.target.value })} aria-invalid={!!errs[`${errPrefix}.${i}.amount`]} />
-            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-muted">{suffix}</span>
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted">{suffix}</span>
           </div>
           <button type="button" className="btn-ghost px-3 py-2 text-sm" aria-label={`Hapus biaya ${i + 1}`} onClick={() => onRemove(i)}>✕</button>
         </div>

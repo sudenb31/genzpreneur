@@ -5,6 +5,7 @@ import { isAdminRole, ROLE_LABEL } from '../lib/roles';
 import { Logo, useToast } from './ui';
 import { TrialBanner, useAccess } from '../auth/AccessProvider';
 import { PLAN_INFO, type FeatureKey } from '../lib/membership';
+import { OnboardingTour } from './OnboardingTour';
 
 const NAV_GROUPS = [
   { label: 'Ruang utamamu', items: [
@@ -93,9 +94,9 @@ export default function AppLayout() {
       <nav aria-label="Semua menu" className="space-y-6">
         {NAV_GROUPS.map((g) => (
           <div key={g.label} className="space-y-1">
-            <p className="mb-2 px-3 text-[10px] font-extrabold uppercase tracking-[0.15em] text-muted">{g.label}</p>
+            <p className="mb-2 px-3 text-xs font-extrabold uppercase tracking-[0.15em] text-muted">{g.label}</p>
             {g.items.map((n) => (
-              <NavLink key={n.to} to={n.to} end={'end' in n ? n.end : undefined} className={linkCls} onClick={() => setOpen(false)}>
+              <NavLink key={n.to} to={n.to} end={'end' in n ? n.end : undefined} className={linkCls} onClick={() => setOpen(false)} data-tour={n.to}>
                 <span aria-hidden className="nav-icon">{n.icon}</span><span>{n.label}</span>
                 {'feature' in n && n.feature && !access.loading && !access.can(n.feature) && <span className="ml-auto text-xs" aria-label="terkunci">🔒</span>}
               </NavLink>
@@ -104,7 +105,7 @@ export default function AppLayout() {
         ))}
         {isAdminRole(profile?.role) && (
           <div className="space-y-1 border-t border-line pt-5">
-            <p className="mb-2 px-3 text-[10px] font-extrabold uppercase tracking-[0.15em] text-muted">Command Center</p>
+            <p className="mb-2 px-3 text-xs font-extrabold uppercase tracking-[0.15em] text-muted">Command Center</p>
             {ADMIN_NAV.map((n) => <NavLink key={n.to} to={n.to} className={linkCls} onClick={() => setOpen(false)}><span aria-hidden className="w-5 text-center">{n.icon}</span>{n.label}</NavLink>)}
           </div>
         )}
@@ -113,7 +114,7 @@ export default function AppLayout() {
         <p className="truncate text-sm font-bold">{profile?.displayName || 'Entrepreneur'}</p>
         <p className="mt-1 truncate text-xs text-muted">{profile?.email}</p>
         <div className="mt-3 flex flex-wrap gap-1.5">
-          {isAdminRole(profile?.role) && <span className="rounded-full bg-paper-2 px-2 py-1 text-[10px] font-bold">{profile ? ROLE_LABEL[profile.role] : ''}</span>}
+          {isAdminRole(profile?.role) && <span className="rounded-full bg-paper-2 px-2 py-1 text-xs font-bold">{profile ? ROLE_LABEL[profile.role] : ''}</span>}
           {!access.loading && <span className="rounded-full bg-amber-soft px-2.5 py-1 text-xs font-bold">{access.isAdmin ? '♾️ Akses penuh' : `${PLAN_INFO[access.plan].name}${access.trial === 'active' || access.trial === 'ending' ? ' · trial' : ''}`}</span>}
         </div>
         <div className="mt-4 flex items-center justify-between border-t border-line pt-3 text-xs">
@@ -154,6 +155,7 @@ export default function AppLayout() {
       <dialog ref={dialog} id="mobile-nav" aria-label="Semua menu GenZ Preneur" onClose={() => setOpen(false)} onCancel={() => setOpen(false)} className="workspace-drawer" onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}>
         {sidebar}
       </dialog>
+      {profile && !access.loading && <OnboardingTour key={profile.uid} uid={profile.uid} plan={access.plan} isAdmin={access.isAdmin} />}
       <nav aria-label="Menu cepat" className="mobile-bottom-nav">
         {MOBILE_NAV.map((n) => <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => `mobile-nav-link ${isActive || (n.label === 'Belajar' && location.pathname.startsWith('/app/belajar/')) ? 'is-active' : ''}`}><span aria-hidden className="text-xl leading-none">{n.icon}</span><span>{n.label}</span></NavLink>)}
       </nav>
