@@ -5,6 +5,12 @@
     },
     "api/goakal/sync.js": {
       "maxDuration": 60
+    },
+    "api/trial/start.js": {
+      "maxDuration": 15
+    },
+    "api/cron/trial-reminder.js": {
+      "maxDuration": 60
     }
   },
   "rewrites": [
@@ -34,6 +40,12 @@
           "value": "camera=(), microphone=(), geolocation=()"
         }
       ]
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/trial-reminder",
+      "schedule": "0 1 * * *"
     }
   ]
 }
