@@ -99,7 +99,7 @@ export function LockedFeature({ feature }: { feature: FeatureKey }) {
         Paketmu sekarang: <strong>{PLAN_INFO[plan].emoji} {PLAN_INFO[plan].name}</strong>.
         {membership?.trial && trialState(membership, new Date()) === 'expired' && <> Trial {PLAN_INFO[membership.trial.plan].name}-mu sudah berakhir.</>}
       </p>
-      <p className="text-sm text-muted">Sudah beli paket? Tukarkan kode vouchermu. Mau mencoba trial? Hubungi tim GenZ Preneur — progres dan data kamu tetap aman.</p>
+      <p className="text-sm text-muted">Sudah beli paket? Tukarkan kode vouchermu. Pemilik Spark/Boost bisa mencoba paket berikutnya gratis dari Dashboard — progres dan data kamu tetap aman.</p>
       <div className="flex flex-wrap justify-center gap-2">
         <Link to="/voucher" className="btn-accent">🎟️ Tukar voucher</Link>
         <Link to="/#harga" className="btn-ghost">Lihat paket</Link>
@@ -126,7 +126,7 @@ export function TrialBanner() {
     if (ranks.indexOf(membership.plan) >= ranks.indexOf(membership.trial.plan)) return null;
     return (
       <div role="status" className="mb-5 rounded-2xl border-2 border-ink bg-pink px-4 py-3 text-sm font-semibold">
-        ⏰ Trial {name.emoji} {name.name} sudah berakhir{gatingEnabled ? ' — fiturnya terkunci kembali' : ''}. Suka? Hubungi tim GenZ Preneur untuk upgrade.
+        ⏰ Trial {name.emoji} {name.name} sudah berakhir{gatingEnabled ? ' — fiturnya terkunci kembali' : ''}. Suka? Lanjutkan dengan membeli paketnya di halaman harga.
       </div>
     );
   }
