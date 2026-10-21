@@ -29,6 +29,7 @@ export async function verifyIdTokenViaRest(idToken, fetchImpl = fetch, env = pro
 }
 
 let cachedApp = null;
+let cachedDb = null;
 async function adminApp(serviceAccountJson) {
   if (cachedApp) return cachedApp;
   const { cert, getApps, initializeApp } = await import('firebase-admin/app');
@@ -39,8 +40,13 @@ async function adminApp(serviceAccountJson) {
 
 export async function realDeps(serviceAccountJson) {
   const app = await adminApp(serviceAccountJson);
-  const { getFirestore, FieldValue, Timestamp } = await import('firebase-admin/firestore');
-  const db = getFirestore(app);
+  const { initializeFirestore, getFirestore, FieldValue, Timestamp } = await import('firebase-admin/firestore');
+  // preferRest: pakai HTTP biasa, bukan koneksi gRPC yang terus terbuka. Di Vercel, koneksi gRPC yang
+  // disimpan antar-permintaan bisa "basi" setelah lama menganggur dan membuat permintaan menggantung (timeout).
+  if (!cachedDb) {
+    try { cachedDb = initializeFirestore(app, { preferRest: true }); } catch { cachedDb = getFirestore(app); }
+  }
+  const db = cachedDb;
   return {
     db,
     FieldValue,
@@ -150,4 +156,4 @@ export async function runTrialReminders(config, deps) {
   return out;
 }
 
-export function _resetForTests() { cachedApp = null; }
+export function _resetForTests() { cachedApp = null; cachedDb = null; }
