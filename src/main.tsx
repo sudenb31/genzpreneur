@@ -1,6 +1,8 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter, HashRouter, Link, Route, Routes } from 'react-router-dom';
+import { useEffect } from 'react';
+import { BrowserRouter, HashRouter, Link, Route, Routes, useLocation } from 'react-router-dom';
+import { trackPixel } from './lib/pixel';
 
 import './index.css';
 import { AuthProvider } from './auth/AuthProvider';
@@ -45,9 +47,17 @@ function NotFound() {
   );
 }
 
+/** Kirim PageView Meta Pixel setiap pindah halaman (SPA). */
+function PixelRouteTracker() {
+  const { pathname } = useLocation();
+  useEffect(() => { trackPixel('PageView'); }, [pathname]);
+  return null;
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Router>
+      <PixelRouteTracker />
       <ToastProvider>
         <AuthProvider>
           <AccessProvider>
