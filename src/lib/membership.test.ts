@@ -67,14 +67,14 @@ describe('akses fitur', () => {
     const plans = SITE.plans.map((p) => p.key);
     expect(plans).toEqual(['spark', 'boost', 'impact']);
     expect(FEATURE_MIN.toolkit).toBe('boost');
-    expect(SITE.plans[1].features.join(' ')).toMatch(/Toolkit/);
+    expect(SITE.plans[1].features.join(' ')).toMatch(/Kalkulator harga/);
     expect(SITE.plans[2].features.join(' ')).toMatch(/Season 4/);
     // Simulasi Founder hanya untuk GenZ Impact (termasuk trial Impact dari Boost).
     expect(FEATURE_MIN.simulator).toBe('impact');
-    expect(SITE.plans[2].features.join(' ')).toMatch(/Simulasi Founder/);
+    expect(SITE.plans[2].features.join(' ')).toMatch(/Simulasi founder lengkap/i);
     // Spark & Boost mendapat Level 1 gratis di 10 industri (Boost mewarisi isi Spark).
     expect(FEATURE_MIN.simulatorTeaser).toBe('spark');
-    expect(SITE.plans[0].features.join(' ')).toMatch(/Simulasi Founder Level 1 gratis/);
+    expect(SITE.plans[0].features.join(' ')).toMatch(/Simulasi founder Level 1/i);
     expect(SITE.plans[1].features.join(' ')).not.toMatch(/30 skenario/);
   });
   it('Simulasi Founder terkunci untuk Spark & Boost, terbuka untuk Impact', () => {
