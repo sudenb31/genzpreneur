@@ -68,7 +68,7 @@ export default function SavedPage() {
               {list.map((i) => (
                 <article key={i.id} className="card flex flex-col p-5">
                   <div className="flex items-center justify-between gap-2">
-                    <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-extrabold ${KIND[i.kind]?.cls ?? 'bg-paper-2'}`}>{KIND[i.kind]?.label ?? i.kind}</span>
+                    <span className={`rounded-full px-2.5 py-0.5 text-xs font-extrabold ${KIND[i.kind]?.cls ?? 'bg-paper-2'}`}>{KIND[i.kind]?.label ?? i.kind}</span>
                     <time className="text-xs text-muted">{i.createdAt?.toLocaleDateString('id-ID') ?? 'baru saja'}</time>
                   </div>
                   <h3 className="mt-2 font-bold">{i.title}</h3>

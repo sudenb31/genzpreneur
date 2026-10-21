@@ -1,5 +1,6 @@
 import { ENTRY_KEY, ENTRY_PATH, entryMissionStage, readEntry } from '../lib/entry';
 import { Link } from 'react-router-dom';
+import { openTour } from '../components/OnboardingTour';
 import { useAuth } from '../auth/AuthProvider';
 import { useAccess } from '../auth/AccessProvider';
 import { getAssessment, getProgress } from '../lib/data';
@@ -50,7 +51,10 @@ export default function Dashboard() {
     <div className="dashboard-space space-y-6 sm:space-y-8">
       <header className="dashboard-greeting flex flex-wrap items-end justify-between gap-4">
         <div><p className="eyebrow">Ruang bertumbuhmu</p><h1 className="mt-2 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">Halo, {firstName}<span className="text-amber">.</span></h1><p className="mt-2 text-sm text-muted">Satu bantuan kecil untuk satu jenis bisnis. Siapkan, coba, lalu perbaiki.</p></div>
-        <Link to="/app/tersimpan" className="text-sm font-semibold underline underline-offset-4">Lihat hasil tersimpan ↗</Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <button type="button" className="btn-ghost py-2" onClick={openTour}>🧭 Lihat tur lagi</button>
+          <Link to="/app/tersimpan" className="text-sm font-semibold underline underline-offset-4">Lihat hasil tersimpan ↗</Link>
+        </div>
       </header>
 
       <section aria-labelledby="today-title" className="dashboard-focus">

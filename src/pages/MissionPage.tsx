@@ -79,7 +79,7 @@ export default function MissionPage() {
         <nav aria-label="Tahap Misi Pertama" className="mission-stages grid grid-cols-3 gap-2 lg:sticky lg:top-20 lg:flex lg:flex-col lg:self-start">
           {MISSION_STEPS.map((s, i) => {
             const saved = readMissionDraft(progress.notes[missionKey(s.id)]);
-            return <button key={s.id} type="button" disabled={busy} aria-current={s.id === step.id ? 'step' : undefined} onClick={() => requestMove(`${MISSION_PATH}?tahap=${s.id}`)} className="mission-stage"><span className="mission-number" aria-hidden>{i + 1}</span><span>{s.title}<span className="mt-1 block text-[10px] font-medium">{!saved.text.trim() ? 'Belum ada draf' : missionReady(saved) ? 'Kriteria dicentang sendiri' : 'Draf tersimpan'}</span></span></button>;
+            return <button key={s.id} type="button" disabled={busy} aria-current={s.id === step.id ? 'step' : undefined} onClick={() => requestMove(`${MISSION_PATH}?tahap=${s.id}`)} className="mission-stage"><span className="mission-number" aria-hidden>{i + 1}</span><span>{s.title}<span className="mt-1 block text-xs font-medium">{!saved.text.trim() ? 'Belum ada draf' : missionReady(saved) ? 'Kriteria dicentang sendiri' : 'Draf tersimpan'}</span></span></button>;
           })}
         </nav>
         <section className="card min-w-0 space-y-5 p-5 sm:p-7" aria-labelledby="mission-title">

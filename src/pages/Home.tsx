@@ -57,32 +57,37 @@ export default function Home() {
         <section className="mx-auto grid max-w-6xl gap-12 px-4 pb-16 pt-12 sm:px-6 lg:grid-cols-[1.15fr_1fr] lg:items-center lg:pt-20">
           <div>
             <div className="flex flex-wrap gap-2">
-              <span className="chip bg-lime" style={{ transform: 'rotate(-3deg)' }}>Mulai dari skill yang kamu punya</span>
-              <span className="chip bg-lilac" style={{ transform: 'rotate(2deg)' }}>Belajar + alat bisnis</span>
-              <span className="chip bg-sky" style={{ transform: 'rotate(-1deg)' }}>Misi Pertama</span>
+              <span className="chip bg-lime text-sm" style={{ transform: 'rotate(-3deg)' }}>Untuk Gen Z pemula</span>
+              <span className="chip bg-lilac text-sm" style={{ transform: 'rotate(2deg)' }}>Tanpa modal besar</span>
+              <span className="chip bg-sky text-sm" style={{ transform: 'rotate(-1deg)' }}>Mulai dari skill yang kamu punya</span>
             </div>
             <h1 className="mt-6 font-display text-[2.75rem] font-extrabold leading-[0.95] tracking-tight sm:text-6xl">
-              Bantu bisnis orang.<br />
-              <span className="relative inline-block">
-                <span className="relative z-10">Mulai dari skillmu.</span>
+              Punya skill?<br />
+              Ubah jadi{' '}
+              <span className="relative inline-block whitespace-nowrap">
+                <span className="relative z-10">jasa pertamamu.</span>
                 <span aria-hidden className="absolute inset-x-0 bottom-1 z-0 h-4 -rotate-1 bg-amber sm:h-6" />
               </span>
             </h1>
-            <p className="mt-6 max-w-xl text-lg text-ink/75">
-              Untuk pemula yang belum punya usaha: siapkan bantuan kecil untuk bisnis yang sudah berjalan, buat contohnya, susun harga dan penawaran, lalu coba pendekatan personal.
-              <strong className="text-ink"> Targetnya hasil kerja dan percobaan yang bisa kamu kendalikan.</strong>
+            <p className="mt-6 max-w-xl text-xl leading-relaxed text-ink/80">
+              GenZ Preneur nuntun kamu <strong className="text-ink">dari nol sampai berani nawarin jasa ke bisnis nyata</strong>: cari bisnis yang butuh bantuan, bikin contoh kerja, hitung harga, lalu kirim penawaran pertamamu.
             </p>
+            <ul className="mt-6 grid max-w-xl gap-2 text-base font-semibold sm:grid-cols-3">
+              <li className="flex items-center gap-2 rounded-2xl border-2 border-ink bg-white px-3 py-2"><span aria-hidden>✅</span>Misi 9 tahap</li>
+              <li className="flex items-center gap-2 rounded-2xl border-2 border-ink bg-white px-3 py-2"><span aria-hidden>⚡</span>Alat harga & proposal</li>
+              <li className="flex items-center gap-2 rounded-2xl border-2 border-ink bg-white px-3 py-2"><span aria-hidden>🎮</span>Simulasi founder</li>
+            </ul>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link to={cta.to} className="btn-accent px-7 py-3.5 text-base">{cta.label} →</Link>
               <a href="#benefit" className="btn-ghost px-7 py-3.5 text-base">Jelajahi isi program ↓</a>
             </div>
-            <p className="mt-4 text-xs text-muted">Pilih paket, bayar lewat GoAkal, lalu tukarkan kode akses dari emailmu. Tidak ada jaminan penghasilan.</p>
+            <p className="mt-4 text-sm text-muted">Pilih paket, bayar lewat GoAkal, lalu tukarkan kode akses dari emailmu. Tidak ada jaminan penghasilan.</p>
           </div>
 
           <div className="relative mx-auto w-full max-w-md" aria-label="Ilustrasi hasil kerja, bukan hasil peserta">
             <div className="card-pop rotate-2 bg-white p-5">
-              <p className="text-[11px] font-extrabold uppercase tracking-wider text-muted">Ilustrasi alur · bukan hasil peserta</p>
-              <h2 className="mt-3 font-display text-2xl font-extrabold">Satu bantuan yang jelas.</h2>
+              <p className="text-xs font-extrabold uppercase tracking-wider text-muted">Ilustrasi alur · bukan hasil peserta</p>
+              <h2 className="mt-3 font-display text-2xl font-extrabold">Dari skill ke penawaran pertama.</h2>
               <div className="mt-4 rounded-2xl border-2 border-ink bg-lime p-4"><p className="text-xs font-extrabold">01 · PENGAMATAN</p><p className="mt-1 text-sm">Tiga menu publik belum punya deskripsi. Kebutuhannya masih perlu ditanyakan.</p></div>
               <div className="mt-3 rounded-2xl border-2 border-ink bg-lilac p-4"><p className="text-xs font-extrabold">02 · CONTOH & PENAWARAN</p><p className="mt-1 text-sm">Contoh teks menu, batas revisi, waktu kerja, dan dasar harga.</p></div>
               <div className="mt-3 rounded-2xl border-2 border-ink bg-sky p-4"><p className="text-xs font-extrabold">03 · PERCOBAAN & CATATAN</p><p className="mt-1 text-sm">Tanya satu pemilik yang relevan, catat respons, lalu perbaiki.</p></div>
@@ -92,7 +97,7 @@ export default function Home() {
         </section>
 
         <section aria-label="Hasil yang bisa kamu kerjakan" className="mx-auto mb-12 grid max-w-6xl gap-3 px-4 sm:grid-cols-3 sm:px-6">
-          {[{ no: '01', title: 'Pilih bantuan kecil', desc: 'Satu masalah dan cakupan pekerjaan sesuai skill serta waktumu.' }, { no: '02', title: 'Bawa pulang hasil kerja', desc: 'Latihan, perhitungan harga, dan penawaran yang bisa dipakai.' }, { no: '03', title: 'Lakukan langkah nyata', desc: 'Catat satu percobaan etis dan perbaikan yang ingin kamu uji.' }].map((item) => <div key={item.no} className="flex gap-4 rounded-2xl border border-line bg-white p-5"><span className="font-display text-sm font-extrabold text-amber-ink">{item.no}</span><div><h2 className="text-sm font-bold">{item.title}</h2><p className="mt-1 text-xs leading-relaxed text-muted">{item.desc}</p></div></div>)}
+          {[{ no: '01', title: 'Pilih bantuan kecil', desc: 'Satu masalah dan cakupan pekerjaan sesuai skill serta waktumu.' }, { no: '02', title: 'Bawa pulang hasil kerja', desc: 'Latihan, perhitungan harga, dan penawaran yang bisa dipakai.' }, { no: '03', title: 'Lakukan langkah nyata', desc: 'Catat satu percobaan etis dan perbaikan yang ingin kamu uji.' }].map((item) => <div key={item.no} className="flex gap-4 rounded-2xl border border-line bg-white p-5"><span className="font-display text-lg font-extrabold text-amber-ink">{item.no}</span><div><h2 className="text-lg font-bold">{item.title}</h2><p className="mt-1 text-base leading-relaxed text-muted">{item.desc}</p></div></div>)}
         </section>
         {/* Jalur mulai — statis agar nyaman dibaca */}
         <section aria-label="Contoh jalur mulai" className="border-y-2 border-ink bg-ink py-3 text-paper">
