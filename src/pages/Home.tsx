@@ -19,7 +19,7 @@ export default function Home() {
   const { firebaseUser } = useAuth();
   const [mobileMenu, setMobileMenu] = useState(false);
   const loggedIn = isFirebaseConfigured && !!firebaseUser;
-  const cta = loggedIn ? { to: '/app', label: 'Buka dashboard' } : { to: '/daftar', label: 'Gabung daftar tunggu' };
+  const cta = loggedIn ? { to: '/app', label: 'Buka dashboard' } : { to: '/#harga', label: 'Lihat paket & mulai' };
   const { hash } = useLocation();
 
   // Link seperti "/#harga" dari dalam aplikasi: gulir otomatis ke bagian yang dituju.
@@ -44,7 +44,7 @@ export default function Home() {
             <Link to="/voucher" className="hidden rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2 md:block">Tukar voucher</Link>
             <a href="#faq" className="hidden rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2 md:block">FAQ</a>
             {!loggedIn && <Link to="/masuk" className="hidden rounded-full px-3 py-2 text-sm font-semibold hover:bg-paper-2 sm:inline-flex">Masuk</Link>}
-            <Link to={cta.to} className="btn-primary hidden py-2 sm:inline-flex">{loggedIn ? 'Dashboard' : 'Gabung'}</Link>
+            <Link to={cta.to} className="btn-primary hidden py-2 sm:inline-flex">{loggedIn ? 'Dashboard' : 'Lihat paket'}</Link>
           </nav>
         </div>
         {mobileMenu && <nav id="public-mobile-menu" aria-label="Menu situs di HP" className="grid grid-cols-2 gap-2 border-t border-line px-4 py-3 md:hidden">
@@ -76,7 +76,7 @@ export default function Home() {
               <Link to={cta.to} className="btn-accent px-7 py-3.5 text-base">{cta.label} →</Link>
               <a href="#benefit" className="btn-ghost px-7 py-3.5 text-base">Jelajahi isi program ↓</a>
             </div>
-            <p className="mt-4 text-xs text-muted">Akses lewat undangan — gabung daftar tunggu, link masuk dikirim ke emailmu. Tidak ada jaminan penghasilan.</p>
+            <p className="mt-4 text-xs text-muted">Pilih paket, bayar lewat GoAkal, lalu tukarkan kode akses dari emailmu. Tidak ada jaminan penghasilan.</p>
           </div>
 
           <div className="relative mx-auto w-full max-w-md" aria-label="Ilustrasi hasil kerja, bukan hasil peserta">
@@ -207,7 +207,7 @@ export default function Home() {
 
             </details><div className="mt-10 flex flex-col gap-3 rounded-3xl border-2 border-lime p-6 sm:flex-row sm:items-center sm:justify-between">
               <p className="font-display text-xl font-extrabold">Butuh titik mulai? <span className="text-lime">Misi Pertama</span> mengajakmu memilih satu bantuan kecil.</p>
-              <Link to={loggedIn ? '/app/action-plan' : cta.to} className="btn-accent shrink-0">{loggedIn ? 'Buka Misi Pertama' : 'Gabung daftar tunggu'} →</Link>
+              <Link to={loggedIn ? '/app/action-plan' : cta.to} className="btn-accent shrink-0">{loggedIn ? 'Buka Misi Pertama' : 'Lihat paket & mulai'} →</Link>
             </div>
           </div>
         </section>
@@ -232,8 +232,8 @@ export default function Home() {
           <div className="mx-auto max-w-6xl px-4 sm:px-6">
             <p className="eyebrow">Fungsi aplikasi · pendampingan dipisahkan</p>
             <h2 className="mt-1 font-display text-4xl font-extrabold tracking-tight sm:text-5xl">Pilih alat bantu yang dibutuhkan.</h2>
-            <p className="mt-3 max-w-2xl text-muted">Misi Pertama dapat dikerjakan manual di Spark. Boost menambah alat bantu; kamu tidak wajib memakai semua alat. Pendaftaran dan aktivasi akses dikonfirmasi tim.</p>
-            <div className="mt-10 grid gap-5 md:grid-cols-2">
+            <p className="mt-3 max-w-2xl text-muted">Misi Pertama dapat dikerjakan manual di Spark. Boost menambah alat bantu, Impact membuka materi lanjutan dan simulasi lengkap. Bayar lewat GoAkal, lalu tukarkan kode akses yang dikirim ke emailmu.</p>
+            <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
               {SITE.plans.filter((p) => p.saleReady).map((p) => {
                 const hot = p.key === 'boost';
                 return (
@@ -254,7 +254,8 @@ export default function Home() {
                         Trial aplikasi dapat diberikan admin: <strong>{p.trial.to}</strong> {p.trial.days} hari. Tidak termasuk layanan pendampingan.
                       </p>
                     )}
-                    <Link to={cta.to} className={`mt-6 ${hot ? 'btn-accent' : 'btn-primary'}`}>{loggedIn ? 'Buka dashboard' : `Minta akses ${p.name}`}</Link>
+                    <a href={p.checkoutUrl} target="_blank" rel="noopener noreferrer" className={`mt-6 ${hot ? 'btn-accent' : 'btn-primary'}`}>Beli {p.name} →</a>
+                    <p className={`mt-2 text-center text-xs ${hot ? 'text-paper/70' : 'text-muted'}`}>Pembayaran lewat GoAkal. Setelah bayar, kode akses dikirim ke emailmu; tukarkan di menu Tukar Voucher.</p>
                   </div>
                 );
               })}
@@ -263,7 +264,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6" aria-labelledby="support-status"><div className="card-pop bg-lilac p-6"><p className="eyebrow">Pendampingan terpisah · belum dibuka</p><h2 id="support-status" className="mt-2 font-display text-2xl font-extrabold">GenZ Impact: sesi kerja, bukan tambahan janji.</h2><p className="mt-3 max-w-3xl text-sm leading-relaxed">Rancangan awal: dua sesi kerja, satu per pekan, bersama Bung Suden. Jadwal, kuota, batas review, dan panduan akses layanan eksternal akan diumumkan sebelum pendaftaran dibuka. Paket aplikasi dan trial tidak menjanjikan konsultasi harian atau review individual.</p><Link to="/daftar?minat=impact" className="btn-primary mt-5">Catat minat pendampingan →</Link><p className="mt-3 text-xs">Pencatatan minat bukan pembelian atau kepastian jadwal.</p></div></section>
+        <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6" aria-labelledby="support-status"><div className="card-pop bg-lilac p-6"><p className="eyebrow">Pendampingan terpisah · belum dibuka</p><h2 id="support-status" className="mt-2 font-display text-2xl font-extrabold">Sesi kerja bersama Bung Suden: bukan tambahan janji.</h2><p className="mt-3 max-w-3xl text-sm leading-relaxed">Pendampingan terpisah dari paket aplikasi, termasuk GenZ Impact. Rancangan awal: dua sesi kerja, satu per pekan, bersama Bung Suden. Jadwal, kuota, batas review, dan panduan akses layanan eksternal akan diumumkan sebelum pendaftaran dibuka. Paket aplikasi dan trial tidak menjanjikan konsultasi harian atau review individual.</p><Link to="/daftar?minat=impact" className="btn-primary mt-5">Catat minat pendampingan →</Link><p className="mt-3 text-xs">Pencatatan minat bukan pembelian atau kepastian jadwal.</p></div></section>
         {/* FAQ */}
         <section id="faq" className="mx-auto max-w-3xl scroll-mt-20 px-4 py-20 sm:px-6">
           <p className="eyebrow">Sebelum kamu daftar</p>
@@ -284,7 +285,7 @@ export default function Home() {
         <section className="mx-auto max-w-6xl px-4 pb-24 sm:px-6">
           <div className="card-pop bg-amber px-8 py-14 text-center">
             <h2 className="font-display text-4xl font-extrabold tracking-tight sm:text-6xl">Mulai dari yang kamu punya hari ini.</h2>
-            <p className="mx-auto mt-3 max-w-xl text-ink/80">Gabung daftar tunggu. Setelah mendapat akses, mulai dari satu masalah, buat contoh bantuan, lalu tentukan percobaan yang pantas dicoba.</p>
+            <p className="mx-auto mt-3 max-w-xl text-ink/80">Pilih paket yang sesuai. Setelah aktif, mulai dari satu masalah, buat contoh bantuan, lalu tentukan percobaan yang pantas dicoba.</p>
             <Link to={cta.to} className="btn-primary mt-8 px-8 py-3.5 text-base">{cta.label} →</Link>
           </div>
         </section>

@@ -29,7 +29,14 @@ describe('halaman publik', () => {
     expect(document.body.textContent).toMatch(/AI Coach di Heybinder/);
     expect(document.body.textContent).not.toMatch(/AI Coach menggantikan/);
     expect(document.querySelector('s')).toBeNull();
-    expect(screen.queryByRole('heading', { name: 'GenZ Impact' })).not.toBeInTheDocument();
+    // GenZ Impact dijual sebagai paket aplikasi saja; pendampingan tetap terpisah & belum dibuka.
+    expect(screen.getByText('GenZ Impact', { exact: false, selector: 'h3' })).toBeInTheDocument();
+    expect(document.body.textContent).toMatch(/Rp\s?299\.000/);
+    expect(document.body.textContent).toMatch(/pendampingan bersama Bung Suden terpisah dan belum dibuka/);
+    // Tombol beli langsung ke checkout GoAkal tiap paket.
+    expect(screen.getByRole('link', { name: /Beli GenZ Spark/ })).toHaveAttribute('href', 'https://goakal.com/genzpreneur/webinar-b1/z7x0w/apply');
+    expect(screen.getByRole('link', { name: /Beli GenZ Boost/ })).toHaveAttribute('href', 'https://goakal.com/genzpreneur/webinar-b1/tzu72/apply');
+    expect(screen.getByRole('link', { name: /Beli GenZ Impact/ })).toHaveAttribute('href', 'https://goakal.com/genzpreneur/webinar-b1/2md0s/apply');
   });
 
   it('minat Impact tetap daftar minat tanpa kepastian jadwal', () => {
