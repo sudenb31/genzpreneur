@@ -678,7 +678,7 @@ export async function redeemVoucher(params: {
   await batch.commit();
 }
 
-export async function listVouchers(max = 2000): Promise<Voucher[]> {
+export async function listVouchers(max = 5000): Promise<Voucher[]> {
   const snap = await getDocs(query(collection(db(), 'vouchers'), limit(max)));
   return snap.docs.map((d) => toVoucher(d.id, d.data())).sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0));
 }
@@ -702,6 +702,15 @@ export async function createVouchers(params: {
 
 export async function setVoucherActive(code: string, active: boolean) {
   await updateDoc(doc(db(), 'vouchers', code), { active, updatedAt: serverTimestamp() });
+}
+
+/** Ubah status banyak voucher sekaligus (mis. satu batch). Hanya field active & updatedAt yang disentuh. */
+export async function setVouchersActive(codes: string[], active: boolean) {
+  for (let i = 0; i < codes.length; i += 400) {
+    const b = writeBatch(db());
+    for (const code of codes.slice(i, i + 400)) b.update(doc(db(), 'vouchers', code), { active, updatedAt: serverTimestamp() });
+    await b.commit();
+  }
 }
 
 export interface Redemption { id: string; code: string; uid: string; email: string; plan: string; createdAt: Date | null }
