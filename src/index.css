@@ -245,3 +245,6 @@ button:not(:disabled), summary { cursor: pointer; }
 .tour-backdrop { position: fixed; inset: 0; background: rgba(17, 17, 18, .55); }
 .tour-spot { position: fixed; z-index: 60; border: 3px solid var(--color-amber); border-radius: 16px; box-shadow: 0 0 0 9999px rgba(17, 17, 18, .55); pointer-events: none; transition: all .2s ease; }
 .tour-center { position: fixed; inset: 0; z-index: 61; display: grid; place-items: center; padding: 16px; }
+
+/* Halaman depan: kata "Skip." raksasa sebagai satu-satunya elemen berani di hero. */
+.hero-skip { font-size: clamp(6rem, 26vw, 15rem); line-height: .82; letter-spacing: -.05em; margin-top: .05em; }
