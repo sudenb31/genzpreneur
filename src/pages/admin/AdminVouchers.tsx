@@ -47,10 +47,19 @@ export default function AdminVouchers() {
 
   const now = new Date();
   const batches = useMemo(() => [...new Set((vouchers ?? []).map((v) => v.batch).filter(Boolean))], [vouchers]);
+  /** Kode → email yang sudah menukarnya (dari koleksi redemptions). */
+  const usedBy = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const r of redemptions) { const k = r.code.toUpperCase(); m.set(k, [...(m.get(k) ?? []), r.email.toLowerCase()]); }
+    return m;
+  }, [redemptions]);
   const list = useMemo(() => {
     const q = normalizeCode(search);
-    return (vouchers ?? []).filter((v) => (batchFilter === 'all' || v.batch === batchFilter) && (!q || v.code.includes(q)));
-  }, [vouchers, batchFilter, search]);
+    const qe = search.trim().toLowerCase();
+    const byEmail = (v: { code: string; assignedEmail?: string }) =>
+      (v.assignedEmail ?? '').includes(qe) || (usedBy.get(v.code) ?? []).some((e) => e.includes(qe));
+    return (vouchers ?? []).filter((v) => (batchFilter === 'all' || v.batch === batchFilter) && (!qe || (!!q && v.code.includes(q)) || byEmail(v)));
+  }, [vouchers, batchFilter, search, usedBy]);
   const stats = useMemo(() => {
     const vs = vouchers ?? [];
     return {
@@ -239,7 +248,7 @@ export default function AdminVouchers() {
       {tab === 'codes' ? (
         <>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <input className="input sm:max-w-xs" aria-label="Cari kode" placeholder="Cari kode…" value={search} onChange={(e) => setSearch(e.target.value)} />
+            <input className="input sm:max-w-xs" aria-label="Cari kode atau email" placeholder="Cari kode atau email…" value={search} onChange={(e) => setSearch(e.target.value)} />
             <select className="input sm:max-w-xs" aria-label="Filter batch" value={batchFilter} onChange={(e) => { setBatchFilter(e.target.value); setConfirmBulk(null); }}>
               <option value="all">Semua batch</option>
               {batches.map((b) => <option key={b} value={b}>{b}</option>)}
@@ -276,7 +285,7 @@ export default function AdminVouchers() {
             <div className="card overflow-x-auto">
               <table className="w-full min-w-[720px] text-left text-sm">
                 <thead className="border-b border-line bg-paper text-xs uppercase tracking-wider text-muted">
-                  <tr><th className="px-4 py-3">Kode</th><th className="px-4 py-3">Paket</th><th className="px-4 py-3">Dipakai</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Batch</th><th className="px-4 py-3">Berlaku s.d.</th><th className="px-4 py-3" /></tr>
+                  <tr><th className="px-4 py-3">Kode</th><th className="px-4 py-3">Paket</th><th className="px-4 py-3">Dipakai</th><th className="px-4 py-3">Email</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Batch</th><th className="px-4 py-3">Berlaku s.d.</th><th className="px-4 py-3" /></tr>
                 </thead>
                 <tbody className="divide-y divide-line">
                   {list.map((v) => {
@@ -286,6 +295,11 @@ export default function AdminVouchers() {
                         <td className="px-4 py-2 font-mono text-xs font-bold">{v.code}</td>
                         <td className="px-4 py-2">{PLAN_INFO[v.plan].emoji} {PLAN_INFO[v.plan].name.replace('GenZ ', '')}</td>
                         <td className="px-4 py-2">{v.uses}/{v.maxUses}</td>
+                        <td className="px-4 py-2 text-xs">
+                          {(usedBy.get(v.code) ?? []).length > 0
+                            ? (usedBy.get(v.code) ?? []).map((e) => <div key={e} className="font-semibold break-all">✅ {e}</div>)
+                            : v.assignedEmail ? <div className="break-all text-muted" title="Kode dikunci ke email pembeli GoAkal">🔒 {v.assignedEmail}</div> : <span className="text-muted">—</span>}
+                        </td>
                         <td className="px-4 py-2"><span className={`rounded-full border border-ink px-2 py-0.5 text-xs font-bold ${st.cls}`}>{st.l}</span></td>
                         <td className="px-4 py-2 text-xs text-muted">{v.batch || '—'}</td>
                         <td className="px-4 py-2 text-xs text-muted">{v.expiresAt ? v.expiresAt.toLocaleDateString('id-ID') : '—'}</td>
