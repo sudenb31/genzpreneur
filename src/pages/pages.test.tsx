@@ -19,7 +19,7 @@ describe('halaman publik', () => {
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Punya skill?Ubah jadi jasa pertamamu.');
     expect(screen.getAllByText(/Rp\s?49\.000/).length).toBeGreaterThan(0);
     expect(screen.getByText('GenZ Boost', { exact: false, selector: 'h3' })).toBeInTheDocument();
-    expect(document.body.textContent).toMatch(/Trial aplikasi/);
+    expect(document.body.textContent).toMatch(/Trial bisa kamu mulai sendiri/);
     expect(document.body.textContent).toMatch(/7 hari/);
     expect(document.body.textContent).toMatch(/Tidak ada jaminan penghasilan/);
     // 10 jalur mulai & FAQ tanpa fitur yang belum ada

@@ -1,6 +1,7 @@
 import { ENTRY_KEY, ENTRY_PATH, entryMissionStage, readEntry } from '../lib/entry';
 import { Link } from 'react-router-dom';
 import { openTour } from '../components/OnboardingTour';
+import { TrialOffer } from '../components/TrialOffer';
 import { useAuth } from '../auth/AuthProvider';
 import { useAccess } from '../auth/AccessProvider';
 import { getAssessment, getProgress } from '../lib/data';
@@ -56,6 +57,8 @@ export default function Dashboard() {
           <Link to="/app/tersimpan" className="text-sm font-semibold underline underline-offset-4">Lihat hasil tersimpan ↗</Link>
         </div>
       </header>
+
+      <TrialOffer />
 
       <section aria-labelledby="today-title" className="dashboard-focus">
         <div className="relative z-10 max-w-2xl">
