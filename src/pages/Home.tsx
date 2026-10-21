@@ -256,7 +256,7 @@ export default function Home() {
                     </ul>
                     {'trial' in p && p.trial && (
                       <p className={`mt-5 rounded-2xl border-2 border-dashed p-3 text-sm font-semibold ${hot ? 'border-lime text-lime' : 'border-ink bg-lime/50'}`}>
-                        Trial aplikasi dapat diberikan admin: <strong>{p.trial.to}</strong> {p.trial.days} hari. Tidak termasuk layanan pendampingan.
+                        Termasuk trial gratis: <strong>{p.trial.to}</strong> {p.trial.days} hari. Tidak termasuk layanan pendampingan.
                       </p>
                     )}
                     <a href={p.checkoutUrl} target="_blank" rel="noopener noreferrer" className={`mt-6 ${hot ? 'btn-accent' : 'btn-primary'}`}>Beli {p.name} →</a>
@@ -265,7 +265,7 @@ export default function Home() {
                 );
               })}
             </div>
-            <p className="mt-6 text-xs text-muted">Trial aplikasi diaktifkan admin, sekali per akun, dan berakhir tanpa tagihan otomatis. Harga tidak mencakup live, konsultasi, atau AI Coach eksternal. Sudah menerima voucher? <Link to="/voucher" className="font-semibold text-ink underline">Tukarkan kode vouchermu</Link>.</p>
+            <p className="mt-6 text-xs text-muted">Trial bisa kamu mulai sendiri dari Dashboard, sekali per akun, dan berakhir tanpa tagihan otomatis. Harga tidak mencakup live, konsultasi, atau AI Coach eksternal. Sudah menerima voucher? <Link to="/voucher" className="font-semibold text-ink underline">Tukarkan kode vouchermu</Link>.</p>
           </div>
         </section>
 

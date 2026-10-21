@@ -7,6 +7,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { updateDisplayName } from '../lib/data';
 import { ROLE_LABEL } from '../lib/roles';
 import { useToast } from '../components/ui';
+import { TrialOffer } from '../components/TrialOffer';
 import { useAccess } from '../auth/AccessProvider';
 import { formatRemaining, PLAN_INFO } from '../lib/membership';
 
@@ -83,10 +84,12 @@ export default function SettingsPage() {
               <p>Trial: <strong>{PLAN_INFO[access.membership.trial.plan].name}</strong> — sisa {formatRemaining(access.trialLeftMs)} (berakhir {access.membership.trial.endsAt.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })})</p>
             )}
             {access.membership?.trial && access.trial === 'expired' && <p className="text-muted">Trial {PLAN_INFO[access.membership.trial.plan].name} sudah berakhir.</p>}
-            <p className="text-xs text-muted">{access.gatingEnabled ? 'Fitur dibuka sesuai paket.' : 'Masa pra-launch: semua fitur sedang dibuka untuk semua peserta.'} Untuk upgrade, hubungi tim GenZ Preneur.</p>
+            <p className="text-xs text-muted">{access.gatingEnabled ? 'Fitur dibuka sesuai paket.' : 'Masa pra-launch: semua fitur sedang dibuka untuk semua peserta.'} Untuk upgrade, pilih paket di halaman harga lalu tukarkan kode dari emailmu.</p>
           </div>
         )}
       </section>
+
+      <TrialOffer compact />
 
       <section className="card space-y-3 p-6">
         <h2 className="font-semibold">AI Coach · Heybinder</h2>
