@@ -6,6 +6,7 @@ import { SIM_TEASER_LEVEL, isTeaserScenario, blueprintText, displayOrder, evalua
 import { CopyButton, PageHeader } from '../components/ui';
 import { useMaybeAccess } from '../auth/AccessProvider';
 import { SITE } from '../config/site';
+import { trackPixel } from '../lib/pixel';
 
 const isIndustry = (v: string | null): v is IndustryKey => !!v && (INDUSTRY_KEYS as readonly string[]).includes(v);
 const isLevel = (v: string | null): v is SimLevelKey => !!v && (SIM_LEVEL_ORDER as string[]).includes(v);
@@ -700,7 +701,7 @@ function ImpactCta() {
   return (
     <div className="flex flex-wrap gap-2">
       {open
-        ? <a href={IMPACT_CHECKOUT} target="_blank" rel="noopener noreferrer" className="btn-accent">Beli GenZ Impact →</a>
+        ? <a href={IMPACT_CHECKOUT} onClick={() => trackPixel('InitiateCheckout', { content_name: 'GenZ Impact', value: 299000, currency: 'IDR' })} target="_blank" rel="noopener noreferrer" className="btn-accent">Beli GenZ Impact →</a>
         : <Link to="/daftar?minat=impact" className="btn-accent">Masuk daftar tunggu GenZ Impact →</Link>}
       <Link to="/voucher" className="btn-ghost">🎟️ Punya voucher Impact?</Link>
     </div>

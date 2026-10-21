@@ -6,6 +6,7 @@ import { formatRupiah, SITE } from '../config/site';
 import { isFirebaseConfigured } from '../lib/firebase';
 import { PATH_FAMILIES, pathsByFamily } from '../content/paths';
 import type { TrackKey } from '../content/assessment';
+import { trackPixel } from '../lib/pixel';
 
 const PATHS = ['Deskripsi menu', 'Draf konten sederhana', 'Foto produk dasar', 'Rapi katalog', 'Catatan pertanyaan pelanggan'];
 const STEPS = [
@@ -16,6 +17,16 @@ const STEPS = [
   { k: 'Evaluasi & perbaiki', d: 'Catat respons apa adanya, termasuk belum dibalas atau ditolak. Perbaiki satu hal.' },
 ];
 export default function Home() {
+  // ViewContent sekali saat bagian harga terlihat (sinyal minat untuk Meta).
+  useEffect(() => {
+    const el = document.getElementById('harga');
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver((entries) => {
+      if (entries.some((e) => e.isIntersecting)) { trackPixel('ViewContent', { content_name: 'Paket GenZ Preneur', content_category: 'pricing' }); io.disconnect(); }
+    }, { threshold: 0.3 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
   const { firebaseUser } = useAuth();
   const [mobileMenu, setMobileMenu] = useState(false);
   const loggedIn = isFirebaseConfigured && !!firebaseUser;
@@ -259,7 +270,7 @@ export default function Home() {
                         Termasuk trial gratis: <strong>{p.trial.to}</strong> {p.trial.days} hari. Tidak termasuk layanan pendampingan.
                       </p>
                     )}
-                    <a href={p.checkoutUrl} target="_blank" rel="noopener noreferrer" className={`mt-6 ${hot ? 'btn-accent' : 'btn-primary'}`}>Beli {p.name} →</a>
+                    <a href={p.checkoutUrl} onClick={() => trackPixel('InitiateCheckout', { content_name: p.name, value: p.price, currency: 'IDR' })} target="_blank" rel="noopener noreferrer" className={`mt-6 ${hot ? 'btn-accent' : 'btn-primary'}`}>Beli {p.name} →</a>
                     <p className={`mt-2 text-center text-xs ${hot ? 'text-paper/70' : 'text-muted'}`}>Pembayaran lewat GoAkal. Setelah bayar, kode akses dikirim ke emailmu; tukarkan di menu Tukar Voucher.</p>
                   </div>
                 );
