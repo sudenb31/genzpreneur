@@ -6,6 +6,28 @@ import { parseServiceAccount } from './goakal-server.js';
 import { maskEmail, normalizeEmail, redact } from './goakal-core.js';
 import { buildTrialReminderEmail, DAY_MS, pickSelfTrial, reminderId, toMs } from './trial-core.js';
 
+// Kunci web Firebase ini PUBLIK (sudah ada di kode frontend, src/lib/firebase.ts) — bukan rahasia.
+const PUBLIC_WEB_API_KEY = 'AIzaSyBVHILZ7SFYW_26cd5g5vanedwZ8KdoBlE';
+
+/**
+ * Cek ID token peserta lewat Firebase Auth REST (accounts:lookup). Google yang memvalidasi
+ * tanda tangan & masa berlaku token. Dipakai sebagai ganti firebase-admin/auth, yang gagal
+ * dimuat di runtime Vercel ("require() of ES Module").
+ */
+export async function verifyIdTokenViaRest(idToken, fetchImpl = fetch, env = process.env) {
+  const key = String(env.FIREBASE_WEB_API_KEY || env.VITE_FIREBASE_API_KEY || PUBLIC_WEB_API_KEY).trim();
+  const res = await fetchImpl(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${encodeURIComponent(key)}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idToken }),
+    signal: AbortSignal.timeout(8_000),
+  });
+  const body = await res.json().catch(() => ({}));
+  const u = Array.isArray(body?.users) ? body.users[0] : null;
+  if (!res.ok || !u?.localId) throw new Error('invalid-token');
+  return { uid: u.localId, email: u.email || '', email_verified: u.emailVerified === true };
+}
+
 let cachedApp = null;
 async function adminApp(serviceAccountJson) {
   if (cachedApp) return cachedApp;
@@ -18,13 +40,12 @@ async function adminApp(serviceAccountJson) {
 export async function realDeps(serviceAccountJson) {
   const app = await adminApp(serviceAccountJson);
   const { getFirestore, FieldValue, Timestamp } = await import('firebase-admin/firestore');
-  const { getAuth } = await import('firebase-admin/auth');
   const db = getFirestore(app);
   return {
     db,
     FieldValue,
     Timestamp,
-    verifyIdToken: (t) => getAuth(app).verifyIdToken(t, true),
+    verifyIdToken: (t) => verifyIdTokenViaRest(t),
     /** Membership dengan trial yang berakhir dalam (fromMs, toMs]. */
     listEndingTrials: async (fromMs, toMs_) => {
       const snap = await db.collection('memberships')
