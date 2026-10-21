@@ -22,7 +22,7 @@ import type { ProfileKey } from '../content/wealthProfiles';
 import type { IndustryKey } from '../content/industries';
 import type { TrackKey } from '../content/assessment';
 import { dreamPactSchema, normalizeDreamPact, type DreamPact } from './dreamPact';
-import { db } from './firebase';
+import { auth, db } from './firebase';
 import { isRole, type Role } from './roles';
 import { normalizePassport, passportSchema, type Passport } from './passport';
 import {
@@ -721,4 +721,15 @@ export async function listRedemptions(max = 2000): Promise<Redemption[]> {
     const x = d.data();
     return { id: d.id, code: String(x.code ?? ''), uid: String(x.uid ?? ''), email: String(x.email ?? ''), plan: String(x.plan ?? ''), createdAt: toDate(x.createdAt) };
   }).sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0));
+}
+
+/** Peserta memulai trial paket berikutnya sendiri (diproses server, sekali per akun). */
+export async function startSelfTrial(): Promise<{ plan: string; days: number; endsAt: string }> {
+  const user = auth().currentUser;
+  if (!user) throw new Error('Silakan masuk dulu.');
+  const token = await user.getIdToken();
+  const res = await fetch('/api/trial/start', { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(typeof body?.error === 'string' ? body.error : 'Gagal memulai trial.');
+  return body;
 }
