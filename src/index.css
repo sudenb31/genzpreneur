@@ -215,8 +215,8 @@ button:not(:disabled), summary { cursor: pointer; }
 .mission-number { display: grid; width: 23px; height: 23px; flex-shrink: 0; place-items: center; border: 1.5px solid var(--color-ink); border-radius: 7px; background: var(--color-lilac); font-size: 11px; }
 @media (max-width: 639px) { .mission-stage { flex-direction: column; min-height: 108px; padding: 10px; font-size: 11px; } }
 /* Use the supplied logo intact; object-fit omits its surrounding blank canvas. */
-.brand-logo { display: inline-block; width: 184px; max-width: 100%; aspect-ratio: 2.8 / 1; overflow: hidden; vertical-align: middle; border-radius: 8px; background: white; }
-.brand-logo img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+.brand-logo { display: inline-block; width: 184px; max-width: 100%; aspect-ratio: 2.77 / 1; vertical-align: middle; background: transparent; }
+.brand-logo img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: center; }
 .workspace-sidebar-slot { display: none; }
 @media (min-width: 1024px) {
   .workspace { display: grid; grid-template-columns: 264px minmax(0,1fr); transition: grid-template-columns 200ms ease; }
