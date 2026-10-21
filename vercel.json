@@ -7,7 +7,7 @@
       "maxDuration": 60
     },
     "api/trial/start.js": {
-      "maxDuration": 15
+      "maxDuration": 30
     },
     "api/cron/trial-reminder.js": {
       "maxDuration": 60
