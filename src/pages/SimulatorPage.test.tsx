@@ -86,12 +86,13 @@ describe('SimulatorPage', () => {
 describe('SimulatorPage — mode percobaan (Spark/Boost)', () => {
   beforeEach(() => { localStorage.clear(); });
 
-  it('Level 2–3 terkunci dan mengarah ke daftar tunggu GenZ Impact; tombol coba membuka Level 1 industri yang sama', () => {
+  it('Level 2–3 terkunci dan mengarah ke paket GenZ Impact; tombol coba membuka Level 1 industri yang sama', () => {
     render(<MemoryRouter initialEntries={['/app/simulasi?industri=tech&level=skala']}><SimulatorPage fullAccess={false} /></MemoryRouter>);
     expect(screen.getByRole('heading', { name: findScenario('tech', 'skala')!.title })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Mulai sebagai founder/ })).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /20 skenario lanjutan \+ playbook lengkap/ })).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /daftar tunggu GenZ Impact/ })).toHaveAttribute('href', '/daftar?minat=impact');
+    // GenZ Impact sudah dijual → ajakan mengarah ke daftar paket.
+    expect(screen.getByRole('link', { name: /Beli GenZ Impact/ })).toHaveAttribute('href', 'https://goakal.com/genzpreneur/webinar-b1/2md0s/apply');
     fireEvent.click(screen.getByRole('button', { name: /Main Teknologi & Produk Digital · Level 1 gratis/ }));
     expect(screen.getByRole('heading', { name: findScenario('tech', 'rintis')!.title })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Mulai sebagai founder/ })).toBeInTheDocument();

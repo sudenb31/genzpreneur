@@ -692,6 +692,7 @@ function DebriefItem({ no, d, choice }: { no: number; d: SimDecisionFull; choice
 /* ───────────────────────── Teaser & upsell ke GenZ Impact ───────────────────────── */
 
 /** Ikuti status landing: selama Impact belum dijual, arahkan ke daftar tunggu. */
+const IMPACT_CHECKOUT = SITE.plans.find((p) => p.key === 'impact')?.checkoutUrl ?? '/#harga';
 const IMPACT_OPEN = Boolean((SITE.plans.find((p) => p.key === 'impact') as { saleReady?: boolean } | undefined)?.saleReady);
 
 function ImpactCta() {
@@ -699,7 +700,7 @@ function ImpactCta() {
   return (
     <div className="flex flex-wrap gap-2">
       {open
-        ? <Link to="/#harga" className="btn-accent">Lihat paket GenZ Impact →</Link>
+        ? <a href={IMPACT_CHECKOUT} target="_blank" rel="noopener noreferrer" className="btn-accent">Beli GenZ Impact →</a>
         : <Link to="/daftar?minat=impact" className="btn-accent">Masuk daftar tunggu GenZ Impact →</Link>}
       <Link to="/voucher" className="btn-ghost">🎟️ Punya voucher Impact?</Link>
     </div>
