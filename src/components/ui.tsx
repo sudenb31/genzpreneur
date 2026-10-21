@@ -128,7 +128,7 @@ export function ProgressBar({ value, label }: { value: number; label: string }) 
 export function Logo({ className = '' }: { className?: string }) {
   return (
     <span className={`brand-logo ${className}`}>
-      <img src="/genz-preneur-logo.png" alt="GenZ Preneur — Learn, Execute, Grow" width={1254} height={1254} />
+      <img src="/genz-preneur-logo.png" alt="GenZ Preneur — Learn, Execute, Grow" width={842} height={304} />
     </span>
   );
 }
