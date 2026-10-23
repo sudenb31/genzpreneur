@@ -1,86 +1,93 @@
-GENZ PRENEUR — INTEGRASI GOAKAL & EMAIL VOUCHER
-Revisi audit 19 Oktober 2026
+PAKET UPLOAD GENZ PRENEUR — 23 Okt 2026
+=========================================
 
-STATUS JUJUR
-Kode lulus seluruh tes lokal yang bisa dijalankan. BELUM diuji dengan transaksi GoAkal nyata,
-BELUM di-push ke GitHub, BELUM dideploy, tidak menerima secret apa pun, dan tidak menyentuh
-transaksi/data produksi. Integrasi baru boleh dianggap berjalan setelah checklist staging lolos.
+Isi zip:
+  1-landing-v2/        → file final PR Landing v2 (4 file)           → branch: simulasi-founder
+  2-voucher-trial/     → file final PR Voucher trial webinar (14 file) → branch: voucher-trial (baru)
+  1-landing-v2.patch, 2-voucher-trial.patch → cadangan untuk developer (abaikan kalau upload manual)
+  screenshot-voucher/  → screenshot form admin & halaman tukar voucher (HP + laptop)
 
-=====================================================================
-FIREBASE RULES BERUBAH — WAJIB PUBLISH
-=====================================================================
-Perubahan di firestore.rules:
-- Voucher GoAkal (punya assignedEmail) hanya bisa DIBACA oleh email pembeli dan admin.
-  Voucher manual lama tanpa assignedEmail tetap bisa dibaca & ditukar seperti sebelumnya.
-- goakalOrders ditulis eksplisit sebagai koleksi tertutup untuk browser (Admin SDK tetap bisa).
-- Penolakan penukaran dari email lain tetap berlaku (dari revisi sebelumnya).
+Semua tes sudah lulus di sesi Claude: 399 tes unit + 48 tes Firestore Rules + build.
+Kedua PR TIDAK menyentuh file yang sama, jadi urutan merge bebas.
 
-Perintah (setelah tes Rules lulus di komputer ber-Java):
-  npx firebase login
-  npx firebase deploy --only firestore:rules --project genzpreneur-staging   (staging dulu)
-  npx firebase deploy --only firestore:rules --project genzpreneur           (produksi, setelah staging lolos)
-Atau lewat Firebase Console → Firestore → Rules → tempel isi firestore.rules → Publish.
+PENTING: kerjakan dari LAPTOP (Chrome/Edge). HP tidak bisa drag-and-drop folder.
 
-=====================================================================
-URL WEBHOOK YANG DIMASUKKAN KE GOAKAL
-=====================================================================
-Produksi : https://genzpreneur-id.vercel.app/api/goakal/webhook
-           (ganti domain bila memakai domain custom)
-Staging  : https://<URL-PREVIEW>.vercel.app/api/goakal/webhook?x-vercel-protection-bypass=<BYPASS>
-Lokasi   : GoAkal → School settings → webhook configuration. Token verifikasi = GOAKAL_WEBHOOK_TOKEN.
+-------------------------------------------------------------------------
+LANGKAH 0 — Hapus file nyasar di main (sekali saja)
+-------------------------------------------------------------------------
+Kemarin 4 file landing ter-upload ke folder yang salah: api/_lib/src/
+1. Buka https://github.com/sudenb31/genzpreneur/tree/main/api/_lib/src
+2. Klik tombol "⋯" (kanan atas daftar file) → "Delete directory".
+3. Pesan commit: "Hapus file landing yang salah folder" → Commit changes (langsung ke main).
+   (Production aman: deploy baru tidak tayang sebelum Bos klik Promote.)
 
-=====================================================================
-CUID GOAKAL (dari dashboard webinar-b1)
-=====================================================================
-Service        : cmvaf1zib0000l006kjpdm8x4            → GOAKAL_SERVICE_IDS
-Webinar Only   : cmvanoylm000vlb0665cgbtq8            → ignore
-GenZ Spark     : cmvanoyn8000xlb06lfpbcjzs   (cek!)   → spark
-GENZ BOOST     : cmvanoynx000zlb06tcftyfdw            → boost
-GENZ IMPACT    : cmvanoyon0011lb06e9t9qw43   (cek!)   → impact
-Huruf "l" dan angka "1" sulit dibedakan di screenshot. Salin ulang memakai tombol salin di GoAkal,
-lalu WAJIB jalankan mode check-config setelah deploy (docs/GOAKAL-INTEGRATION.md §7).
+-------------------------------------------------------------------------
+LANGKAH 1 — PR Landing v2 (branch simulasi-founder)
+-------------------------------------------------------------------------
+1. Ekstrak zip di laptop.
+2. Buka https://github.com/sudenb31/genzpreneur/tree/simulasi-founder
+   CEK: alamat harus berakhir "/tree/simulasi-founder" — BUKAN di dalam folder apa pun.
+   (Kesalahan kemarin: upload dilakukan saat sedang di dalam folder api/_lib.)
+3. Klik "Add file" → "Upload files".
+4. Buka folder 1-landing-v2 di laptop, lalu SERET folder "src" (foldernya, bukan isinya)
+   ke halaman GitHub.
+5. Sebelum commit, cek daftar file yang muncul harus persis:
+     src/config/site.ts
+     src/index.css
+     src/pages/Home.tsx
+     src/pages/pages.test.tsx
+6. Pesan commit: "Landing v2: hero Skip, strip isu Gen Z bergerak, cara kerja 1x, FAQ ringkas"
+   Pilih "Commit directly to the simulasi-founder branch" → Commit changes.
+7. Buka tab "Pull requests" → "New pull request" → base: main, compare: simulasi-founder
+   → pastikan "Files changed" hanya 4 file di atas → Create pull request.
+   Judul: "Landing v2: hero Skip, strip isu Gen Z bergerak, cara kerja 1x, FAQ ringkas"
 
-=====================================================================
-ENVIRONMENT VARIABLES VERCEL (isi langsung di Vercel, JANGAN kirim lewat chat)
-=====================================================================
-Rahasia  : GOAKAL_API_KEY, GOAKAL_WEBHOOK_TOKEN, GOAKAL_SYNC_SECRET, VOUCHER_CODE_SECRET,
-           FIREBASE_SERVICE_ACCOUNT_JSON, RESEND_API_KEY
-Biasa    : GOAKAL_PRICE_MAP, GOAKAL_SERVICE_IDS, EMAIL_FROM, APP_URL, VOUCHER_VALID_DAYS
-Panduan lengkap (cara membuat nilai acak, service account, Resend): docs/GOAKAL-INTEGRATION.md §4–5
-Tanpa prefix VITE_. Redeploy setelah mengubah variabel.
+-------------------------------------------------------------------------
+LANGKAH 2 — PR Voucher trial (branch baru voucher-trial)
+-------------------------------------------------------------------------
+1. Buka https://github.com/sudenb31/genzpreneur (branch main).
+2. Klik tombol branch "main" (kiri atas daftar file) → ketik: voucher-trial
+   → klik "Create branch voucher-trial from main".
+3. Pastikan alamat berakhir "/tree/voucher-trial" → "Add file" → "Upload files".
+4. Buka folder 2-voucher-trial, SELEKSI SEMUA isinya (folder api, src, tests,
+   file firestore.rules, file vercel.json) → seret ke halaman GitHub.
+5. Cek daftar harus 14 file:
+     api/_lib/trial-core.js            api/_lib/trial-server.js
+     api/_lib/voucher-trial.test.js    api/voucher/redeem-trial.js
+     firestore.rules                   vercel.json
+     src/lib/data.ts                   src/lib/membership.ts
+     src/lib/membership.test.ts        src/lib/voucher.ts
+     src/lib/voucher.test.ts           src/pages/VoucherPage.tsx
+     src/pages/admin/AdminVouchers.tsx tests/firestore.rules.test.ts
+6. Pesan commit: "Voucher trial untuk peserta webinar + voucher tidak pernah menurunkan paket"
+   → Commit directly to voucher-trial → Commit changes.
+7. Pull requests → New pull request → base: main, compare: voucher-trial
+   → "Files changed" harus 14 file → Create pull request.
 
-=====================================================================
-URUTAN RILIS
-=====================================================================
-1. Di komputer ber-Java 11+:  npm ci → npm run typecheck → npm test → npm run test:rules → npm run build
-2. GitHub: upload ISI folder (bukan ZIP) ke branch "staging". Jangan ikutkan .env / file JSON service account.
-3. Vercel Preview: isi env vars (Preview), aktifkan Protection Bypass for Automation, tunggu Ready.
-4. Firebase staging: publish Rules (perintah di atas).
-5. Panggil sync mode check-config → harus ok: true. Lalu mode dry-run.
-6. GoAkal: arahkan URL webhook ke Preview (jam sepi).
-7. Jalankan docs/STAGING-GOAKAL-CHECKLIST.md (10 skenario).
-8. Kembalikan URL webhook ke produksi.
-9. Production: isi env vars Production → merge staging ke main → tunggu Ready → publish Rules produksi.
-10. check-config & dry-run di produksi → 1 transaksi produksi uji → sync terjadwal (mis. tiap 1 jam).
+Setelah PR dibuat: kirim link kedua PR ke Claude untuk diperiksa isinya
+sebelum merge (Claude bisa membaca repo publik).
 
-=====================================================================
-HASIL TES REVISI INI
-=====================================================================
-npm ci           : berhasil
-npm run typecheck: LULUS
-npm test         : 190 tes LULUS dalam 24 file (sebelumnya 157/23), termasuk 39 tes GoAkal
-                   (alur webhook/sync dengan Firestore, Resend, dan GoAkal API tiruan)
-npm run build    : BERHASIL (tidak ada nama secret server di bundle frontend)
-Firebase Admin   : inisialisasi diuji di Node 22 ESM dengan key lokal sekali pakai (tanpa jaringan)
-npm run test:rules: TIDAK BISA DIJALANKAN di lingkungan pembuatan — Java tersedia, tetapi unduhan
-                   Firestore emulator dari storage.googleapis.com diblokir. 10 tes Rules baru sudah
-                   ditulis dan WAJIB dijalankan di komputer sendiri sebelum Publish.
+-------------------------------------------------------------------------
+LANGKAH 3 — Urutan tayang
+-------------------------------------------------------------------------
+LANDING:
+  a. Di PR, tunggu komentar Vercel → buka link "Preview" → cek di HP & laptop.
+  b. Merge → Vercel → Deployments → ⋯ di baris merge → "Promote to Production"
+     → baris Production paling atas harus "Ready" → cek genzpreneur.id di HP.
 
-=====================================================================
-JANGAN
-=====================================================================
-- Jangan menghapus koleksi goakalOrders (kunci idempotensi).
-- Jangan mengganti VOUCHER_CODE_SECRET setelah voucher GoAkal pertama terbit.
-- Jangan memanggil /api/goakal/sync dari browser atau menyimpan secret di source.
+VOUCHER TRIAL — RULES DULU, BARU MERGE:
+  a. console.firebase.google.com → project genzpreneur → Firestore Database → tab Rules.
+  b. Hapus semua isi editor, tempel isi file 2-voucher-trial/firestore.rules → Publish.
+     Tunggu ±1 menit. (Rules baru tetap cocok dengan aplikasi versi lama — aman.)
+  c. Merge PR voucher → Promote to Production → cek "Ready".
+  d. Tes: Admin → Voucher → buat kode trial uji (kuota 1) → tukar dengan 1 email baru
+     di genzpreneur.id/voucher → harus muncul "Trial GenZ Spark 3 hari aktif".
 
-Dokumen: docs/GOAKAL-INTEGRATION.md · docs/STAGING-GOAKAL-CHECKLIST.md
+-------------------------------------------------------------------------
+LANGKAH 4 — Buat WEBINARSPARK (setelah langkah 3 selesai)
+-------------------------------------------------------------------------
+Admin → Voucher:
+  Jenis kode: Satu kode bersama · Isi voucher: Trial gratis · Paket: GenZ Spark
+  Lama trial: 3 · Kode: WEBINARSPARK · Kuota: jumlah peserta + ±10%
+  Batas penukaran: tanggal webinar + 7 hari · Nama batch: "Webinar <tanggal>"
+Link untuk peserta: https://genzpreneur.id/voucher?kode=WEBINARSPARK

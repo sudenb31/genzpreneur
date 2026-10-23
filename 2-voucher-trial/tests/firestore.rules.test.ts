@@ -1,0 +1,516 @@
+/**
+ * Uji Security Rules terhadap Firestore Emulator.
+ * Jalankan: npm run test:rules   (butuh Java 11+; emulator diunduh otomatis saat pertama kali)
+ */
+import { readFileSync } from 'node:fs';
+import { afterAll, beforeAll, beforeEach, describe, it } from 'vitest';
+import {
+  assertFails, assertSucceeds, initializeTestEnvironment, type RulesTestEnvironment,
+} from '@firebase/rules-unit-testing';
+import { doc, getDoc, serverTimestamp, setDoc, updateDoc, deleteDoc, writeBatch, collection, getDocs, increment } from 'firebase/firestore';
+
+let env: RulesTestEnvironment;
+
+const passport = (uid: string) => ({
+  personal: { fullName: 'Rani Putri', ageRange: '', status: '', fieldOfWork: '', city: '', businessExperience: '', programGoal: '' },
+  skills: { levels: {}, otherSkills: '' },
+  resources: { hoursPerWeek: null, devices: [], startBudget: '', workMode: '', customerExperience: '' },
+  interests: { selected: [], otherInterests: '' },
+  goals: { skillTarget: '', weeklyActivityTarget: null, weeklyProspectTarget: null, portfolioTarget: '', monthlyIncomeAspiration: null },
+  ownerUid: uid,
+  createdAt: serverTimestamp(),
+  updatedAt: serverTimestamp(),
+});
+
+const ctx = (uid: string, verified = true) => env.authenticatedContext(uid, { email: `${uid}@test.id`, email_verified: verified }).firestore();
+
+async function seedInvite(email: string, status = 'pending') {
+  await env.withSecurityRulesDisabled(async (c) => {
+    await setDoc(doc(c.firestore(), 'invites', email), { email, name: 'X', status, invitedBy: 'owner', createdAt: new Date(), updatedAt: new Date() });
+  });
+}
+
+async function seedUser(uid: string, role: string) {
+  await env.withSecurityRulesDisabled(async (c) => {
+    await setDoc(doc(c.firestore(), 'users', uid), { email: `${uid}@test.id`, displayName: uid, role, createdAt: new Date(), updatedAt: new Date() });
+  });
+}
+
+beforeAll(async () => {
+  env = await initializeTestEnvironment({
+    projectId: "demo-genz",
+    firestore: { rules: readFileSync('firestore.rules', 'utf8') },
+  });
+});
+afterAll(async () => env.cleanup());
+beforeEach(async () => {
+  await env.clearFirestore();
+  await seedUser('alice', 'user');
+  await seedUser('bob', 'user');
+  await seedUser('mia', 'mentor');
+  await seedUser('adi', 'admin');
+  await seedUser('owner', 'owner');
+});
+
+describe('users', () => {
+  it('TANPA undangan tidak bisa membuat akun; dengan undangan hanya role user', async () => {
+    const db = ctx('newbie');
+    const u = (role: string) => ({ email: 'newbie@test.id', displayName: 'N', role, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+    await assertFails(setDoc(doc(db, 'users', 'newbie'), u('user'))); // belum diundang
+    await seedInvite('newbie@test.id');
+    await assertFails(setDoc(doc(db, 'users', 'newbie'), u('admin')));
+    await assertFails(setDoc(doc(ctx('newbie', false), 'users', 'newbie'), u('user'))); // email belum terverifikasi
+    await assertSucceeds(setDoc(doc(db, 'users', 'newbie'), u('user')));
+  });
+
+  it('undangan yang dicabut tidak bisa dipakai', async () => {
+    await seedInvite('newbie@test.id', 'revoked');
+    await assertFails(setDoc(doc(ctx('newbie'), 'users', 'newbie'), { email: 'newbie@test.id', displayName: 'N', role: 'user', createdAt: serverTimestamp(), updatedAt: serverTimestamp() }));
+  });
+
+  it('akun Auth tanpa dokumen user (tidak diundang) tidak bisa menulis data apa pun', async () => {
+    await assertFails(setDoc(doc(ctx('stranger'), 'passports', 'stranger'), passport('stranger')));
+  });
+
+  it('tidak bisa membuat dokumen user untuk orang lain', async () => {
+    await assertFails(setDoc(doc(ctx('alice'), 'users', 'ghost'), { email: 'alice@test.id', displayName: 'G', role: 'user', createdAt: serverTimestamp(), updatedAt: serverTimestamp() }));
+  });
+
+  it('user tidak bisa membaca user lain; admin bisa', async () => {
+    await assertFails(getDoc(doc(ctx('alice'), 'users', 'bob')));
+    await assertSucceeds(getDoc(doc(ctx('alice'), 'users', 'alice')));
+    await assertSucceeds(getDoc(doc(ctx('adi'), 'users', 'bob')));
+  });
+
+  it('user tidak bisa menaikkan role sendiri', async () => {
+    await assertFails(updateDoc(doc(ctx('alice'), 'users', 'alice'), { role: 'owner', updatedAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(doc(ctx('alice'), 'users', 'alice'), { displayName: 'Alice B', updatedAt: serverTimestamp() }));
+  });
+
+  it('perubahan role oleh admin WAJIB disertai audit log', async () => {
+    const db = ctx('adi');
+    await assertFails(updateDoc(doc(db, 'users', 'alice'), { role: 'mentor', lastAuditId: 'x', updatedAt: serverTimestamp() }));
+
+    const batch = writeBatch(db);
+    const a = doc(collection(db, 'auditLogs'));
+    batch.set(a, { actorUid: 'adi', action: 'user.role_changed', targetType: 'user', targetId: 'alice', before: { role: 'user' }, after: { role: 'mentor' }, reason: 'tes', createdAt: serverTimestamp() });
+    batch.update(doc(db, 'users', 'alice'), { role: 'mentor', lastAuditId: a.id, updatedAt: serverTimestamp() });
+    await assertSucceeds(batch.commit());
+  });
+
+  it('admin tidak boleh menjadikan orang admin; owner boleh', async () => {
+    const tryPromote = (actor: string) => {
+      const db = ctx(actor);
+      const batch = writeBatch(db);
+      const a = doc(collection(db, 'auditLogs'));
+      batch.set(a, { actorUid: actor, action: 'user.role_changed', targetType: 'user', targetId: 'bob', before: { role: 'user' }, after: { role: 'admin' }, reason: 'tes', createdAt: serverTimestamp() });
+      batch.update(doc(db, 'users', 'bob'), { role: 'admin', lastAuditId: a.id, updatedAt: serverTimestamp() });
+      return batch.commit();
+    };
+    await assertFails(tryPromote('adi'));
+    await assertSucceeds(tryPromote('owner'));
+  });
+
+  it('mentor tidak bisa mengubah role', async () => {
+    const db = ctx('mia');
+    const batch = writeBatch(db);
+    const a = doc(collection(db, 'auditLogs'));
+    batch.set(a, { actorUid: 'mia', action: 'user.role_changed', targetType: 'user', targetId: 'alice', before: { role: 'user' }, after: { role: 'mentor' }, reason: 'x', createdAt: serverTimestamp() });
+    batch.update(doc(db, 'users', 'alice'), { role: 'mentor', lastAuditId: a.id, updatedAt: serverTimestamp() });
+    await assertFails(batch.commit());
+  });
+
+  it('dokumen user tidak bisa dihapus dari browser', async () => {
+    await assertFails(deleteDoc(doc(ctx('owner'), 'users', 'alice')));
+  });
+});
+
+describe('passports', () => {
+  it('pemilik bisa membuat, membaca, menghapus Passport sendiri', async () => {
+    const db = ctx('alice');
+    await assertSucceeds(setDoc(doc(db, 'passports', 'alice'), passport('alice')));
+    await assertSucceeds(getDoc(doc(db, 'passports', 'alice')));
+    await assertSucceeds(deleteDoc(doc(db, 'passports', 'alice')));
+  });
+
+  it('peserta lain tidak bisa membaca atau menulis Passport orang lain', async () => {
+    await setDoc(doc(ctx('alice'), 'passports', 'alice'), passport('alice'));
+    await assertFails(getDoc(doc(ctx('bob'), 'passports', 'alice')));
+    await assertFails(setDoc(doc(ctx('bob'), 'passports', 'alice'), passport('alice')));
+    await assertFails(deleteDoc(doc(ctx('bob'), 'passports', 'alice')));
+  });
+
+  it('admin bisa membaca tapi tidak bisa mengubah Passport', async () => {
+    await setDoc(doc(ctx('alice'), 'passports', 'alice'), passport('alice'));
+    await assertSucceeds(getDoc(doc(ctx('adi'), 'passports', 'alice')));
+    await assertFails(updateDoc(doc(ctx('adi'), 'passports', 'alice'), { 'personal.fullName': 'Hack', updatedAt: serverTimestamp() }));
+  });
+
+  it('menolak field asing dan ownerUid palsu', async () => {
+    const db = ctx('alice');
+    await assertFails(setDoc(doc(db, 'passports', 'alice'), { ...passport('alice'), isPaid: true }));
+    await assertFails(setDoc(doc(db, 'passports', 'alice'), passport('bob')));
+  });
+});
+
+describe('auditLogs', () => {
+  it('append-only dan hanya admin yang membaca', async () => {
+    const db = ctx('adi');
+    const ref = doc(collection(db, 'auditLogs'));
+    await assertSucceeds(setDoc(ref, { actorUid: 'adi', action: 'test', targetType: 'user', targetId: 'alice', before: {}, after: {}, reason: '', createdAt: serverTimestamp() }));
+    await assertFails(updateDoc(ref, { reason: 'ubah' }));
+    await assertFails(deleteDoc(ref));
+    await assertFails(getDocs(collection(ctx('alice'), 'auditLogs')));
+    await assertSucceeds(getDocs(collection(db, 'auditLogs')));
+  });
+
+  it('admin tidak bisa memalsukan actorUid', async () => {
+    await assertFails(setDoc(doc(collection(ctx('adi'), 'auditLogs')), { actorUid: 'owner', action: 'test', targetType: 'user', targetId: 'x', before: {}, after: {}, reason: '', createdAt: serverTimestamp() }));
+  });
+});
+
+describe('assessments, progress, savedItems', () => {
+  const assessment = (uid: string) => ({
+    ownerUid: uid, answers: { q1: 'a' }, industryScores: { fnb: 80 }, trackScores: { sales_partner: 90 },
+    topIndustries: ['fnb', 'retail', 'event'], track: 'sales_partner',
+    profileScores: { creator: 70, star: 40 }, topProfiles: ['creator', 'star'], attempts: 1, completedAt: serverTimestamp(),
+  });
+
+  it('assessment: pemilik bisa simpan; orang lain tidak bisa baca; admin bisa baca', async () => {
+    await assertSucceeds(setDoc(doc(ctx('alice'), 'assessments', 'alice'), assessment('alice')));
+    await assertFails(getDoc(doc(ctx('bob'), 'assessments', 'alice')));
+    await assertSucceeds(getDoc(doc(ctx('adi'), 'assessments', 'alice')));
+    await assertFails(setDoc(doc(ctx('bob'), 'assessments', 'alice'), assessment('alice')));
+    await assertFails(setDoc(doc(ctx('alice'), 'assessments', 'alice'), { ...assessment('alice'), track: 'hacker' }));
+    await assertFails(setDoc(doc(ctx('alice'), 'assessments', 'alice'), { ...assessment('alice'), topProfiles: ['creator'] }));
+    await assertFails(setDoc(doc(ctx('alice'), 'assessments', 'alice'), { ...assessment('alice'), isPaid: true }));
+  });
+
+  it('progress: hanya pemilik yang menulis', async () => {
+    const data = { ownerUid: 'alice', lessons: { 'mindset-1': { done: true, reflection: 'x' } }, updatedAt: serverTimestamp() };
+    await assertSucceeds(setDoc(doc(ctx('alice'), 'progress', 'alice'), data, { merge: true }));
+    await assertFails(setDoc(doc(ctx('bob'), 'progress', 'alice'), data, { merge: true }));
+    await assertFails(setDoc(doc(ctx('alice'), 'progress', 'alice'), { ...data, isPaid: true }, { merge: true }));
+  });
+
+  it('savedItems: privat per pemilik, tidak bisa diubah', async () => {
+    const ref = doc(collection(ctx('alice'), 'savedItems'));
+    await assertSucceeds(setDoc(ref, { ownerUid: 'alice', kind: 'outreach', title: 'Pesan', content: 'Halo', createdAt: serverTimestamp() }));
+    await assertFails(getDoc(doc(ctx('bob'), 'savedItems', ref.id)));
+    await assertFails(getDoc(doc(ctx('adi'), 'savedItems', ref.id)));
+    await assertFails(updateDoc(ref, { title: 'ubah' }));
+    await assertFails(setDoc(doc(collection(ctx('bob'), 'savedItems')), { ownerUid: 'alice', kind: 'outreach', title: 'x', content: 'x', createdAt: serverTimestamp() }));
+    await assertSucceeds(deleteDoc(ref));
+  });
+});
+
+describe('dreamPacts', () => {
+  const pact = (uid: string) => ({
+    ownerUid: uid, why: { people: 'x' }, edge: {}, dream: { currentAge: 22, dreamAge: 40 }, milestones: {}, skillTree: {},
+    plan: [{ cat: 'cuan', program: 'x', target: '', month: 'Mei' }], commit: { signName: 'A' },
+    createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+  });
+  it('pemilik menulis, admin membaca saja, orang lain ditolak', async () => {
+    await assertSucceeds(setDoc(doc(ctx('alice'), 'dreamPacts', 'alice'), pact('alice')));
+    await assertFails(getDoc(doc(ctx('bob'), 'dreamPacts', 'alice')));
+    await assertSucceeds(getDoc(doc(ctx('adi'), 'dreamPacts', 'alice')));
+    await assertFails(updateDoc(doc(ctx('adi'), 'dreamPacts', 'alice'), { 'commit.signName': 'hack', updatedAt: serverTimestamp() }));
+    await assertFails(setDoc(doc(ctx('alice'), 'dreamPacts', 'alice'), { ...pact('alice'), plan: Array(16).fill({}) }));
+  });
+});
+
+describe('default deny', () => {
+  it('koleksi yang tidak didefinisikan tertutup', async () => {
+    await assertFails(setDoc(doc(ctx('owner'), 'payments', 'p1'), { amount: 99000 }));
+  });
+});
+
+describe('undangan, paket & trial', () => {
+  const membership = (actor: string, auditId: string, plan = 'spark') => ({
+    email: 'newbie@test.id', name: 'N', plan, trial: null, trialsUsed: { boost: false, impact: false }, note: '',
+    updatedAt: serverTimestamp(), updatedBy: actor, lastAuditId: auditId,
+  });
+  const audit = (actor: string) => ({
+    actorUid: actor, action: 'member.invited', targetType: 'membership', targetId: 'newbie@test.id',
+    before: {}, after: { plan: 'spark' }, reason: 'tes', createdAt: serverTimestamp(),
+  });
+
+  it('admin bisa mengatur paket HANYA bersama audit log di batch yang sama', async () => {
+    const db = ctx('adi');
+    await assertFails(setDoc(doc(db, 'memberships', 'newbie@test.id'), membership('adi', 'tidak-ada')));
+    const b = writeBatch(db);
+    const a = doc(collection(db, 'auditLogs'));
+    b.set(a, audit('adi'));
+    b.set(doc(db, 'memberships', 'newbie@test.id'), membership('adi', a.id));
+    await assertSucceeds(b.commit());
+  });
+
+  it('peserta tidak bisa mengubah paketnya sendiri, tapi bisa membacanya', async () => {
+    const admin = ctx('adi');
+    const b = writeBatch(admin);
+    const a = doc(collection(admin, 'auditLogs'));
+    b.set(a, { ...audit('adi'), targetId: 'alice@test.id' });
+    b.set(doc(admin, 'memberships', 'alice@test.id'), { ...membership('adi', a.id), email: 'alice@test.id' });
+    await b.commit();
+    await assertSucceeds(getDoc(doc(ctx('alice'), 'memberships', 'alice@test.id')));
+    await assertFails(getDoc(doc(ctx('bob'), 'memberships', 'alice@test.id')));
+    await assertFails(updateDoc(doc(ctx('alice'), 'memberships', 'alice@test.id'), { plan: 'impact' }));
+  });
+
+  it('trial: paket spark/boost/impact, 1–30 hari; penanda trialsUsed hanya boost/impact/spark/voucher', async () => {
+    const write = (over: Record<string, unknown>) => {
+      const db = ctx('adi');
+      const b = writeBatch(db);
+      const a = doc(collection(db, 'auditLogs'));
+      b.set(a, audit('adi'));
+      b.set(doc(db, 'memberships', 'newbie@test.id'), { ...membership('adi', a.id), ...over });
+      return b.commit();
+    };
+    const trial = (plan: string, days: unknown) => ({ trial: { plan, days, startedAt: new Date(), endsAt: new Date() } });
+    await assertFails(write(trial('impact', 31)));
+    await assertFails(write(trial('impact', 0)));
+    await assertFails(write(trial('none', 3)));
+    await assertFails(write(trialsUsedWith({ lainnya: true })));
+    await assertSucceeds(write({ plan: 'none', ...trial('spark', 3), ...trialsUsedWith({ spark: true, voucher: true }) }));
+    await assertSucceeds(write(trial('impact', 7)));
+  });
+  const trialsUsedWith = (extra: Record<string, boolean>) => ({ trialsUsed: { boost: false, impact: false, ...extra } });
+
+  it('hanya admin yang bisa membuat undangan; peserta hanya bisa menandai undangannya diterima', async () => {
+    const inv = { email: 'newbie@test.id', name: 'N', status: 'pending', invitedBy: 'adi', createdAt: serverTimestamp(), updatedAt: serverTimestamp() };
+    await assertFails(setDoc(doc(ctx('alice'), 'invites', 'newbie@test.id'), { ...inv, invitedBy: 'alice' }));
+    await assertSucceeds(setDoc(doc(ctx('adi'), 'invites', 'newbie@test.id'), inv));
+    await assertFails(updateDoc(doc(ctx('newbie'), 'invites', 'newbie@test.id'), { status: 'revoked', updatedAt: serverTimestamp() }));
+    await assertSucceeds(updateDoc(doc(ctx('newbie'), 'invites', 'newbie@test.id'), { status: 'accepted', acceptedAt: serverTimestamp(), updatedAt: serverTimestamp() }));
+  });
+
+  it('mode akses hanya bisa diubah Super Admin (dengan audit)', async () => {
+    for (const who of ['adi', 'owner']) {
+      const db = ctx(who);
+      const b = writeBatch(db);
+      const a = doc(collection(db, 'auditLogs'));
+      b.set(a, { actorUid: who, action: 'config.access_mode', targetType: 'config', targetId: 'config/access', before: {}, after: { gatingEnabled: true }, reason: '', createdAt: serverTimestamp() });
+      b.set(doc(db, 'config', 'access'), { gatingEnabled: true, updatedAt: serverTimestamp(), updatedBy: who, lastAuditId: a.id });
+      if (who === 'adi') await assertFails(b.commit()); else await assertSucceeds(b.commit());
+    }
+  });
+
+  it('daftar tunggu: siapa pun bisa mendaftar dengan isian valid; hanya admin yang membaca', async () => {
+    const anon = env.unauthenticatedContext().firestore();
+    const entry = { name: 'Rani', email: 'rani@mail.com', whatsapp: '081234567890', interest: 'boost', message: '', status: 'new', createdAt: serverTimestamp() };
+    await assertSucceeds(setDoc(doc(anon, 'waitlist', 'w1'), entry));
+    await assertFails(setDoc(doc(anon, 'waitlist', 'w2'), { ...entry, status: 'invited' }));
+    await assertFails(setDoc(doc(anon, 'waitlist', 'w3'), { ...entry, email: 'bukan-email' }));
+    await assertFails(getDoc(doc(anon, 'waitlist', 'w1')));
+    await assertFails(getDoc(doc(ctx('alice'), 'waitlist', 'w1')));
+    await assertSucceeds(getDoc(doc(ctx('adi'), 'waitlist', 'w1')));
+  });
+});
+
+describe('voucher', () => {
+  const voucher = (over: Record<string, unknown> = {}) => ({
+    code: 'BOOST-ABCD2345', plan: 'boost', maxUses: 1, uses: 0, active: true, expiresAt: null, batch: 'b1', note: '',
+    createdBy: 'adi', createdAt: new Date(), updatedAt: new Date(), ...over,
+  });
+  async function seedVoucher(over: Record<string, unknown> = {}) {
+    await env.withSecurityRulesDisabled(async (c) => { await setDoc(doc(c.firestore(), 'vouchers', 'BOOST-ABCD2345'), voucher(over)); });
+  }
+  function redeemBatch(uid: string, plan = 'boost') {
+    const db = ctx(uid);
+    const b = writeBatch(db);
+    const rid = `BOOST-ABCD2345_${uid}`;
+    b.update(doc(db, 'vouchers', 'BOOST-ABCD2345'), { uses: 1, updatedAt: serverTimestamp() });
+    b.set(doc(db, 'redemptions', rid), { code: 'BOOST-ABCD2345', uid, email: `${uid}@test.id`, plan, createdAt: serverTimestamp() });
+    b.set(doc(db, 'users', uid), { email: `${uid}@test.id`, displayName: uid, role: 'user', viaVoucher: 'BOOST-ABCD2345', createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+    b.set(doc(db, 'memberships', `${uid}@test.id`), {
+      email: `${uid}@test.id`, name: uid, plan, trial: null, trialsUsed: { boost: false, impact: false }, note: '',
+      updatedAt: serverTimestamp(), updatedBy: uid, lastRedemptionId: rid,
+    });
+    return b.commit();
+  }
+
+  it('voucher TRIAL tidak bisa ditukar dari browser jadi paket permanen (harus lewat server)', async () => {
+    await seedVoucher({ kind: 'trial', trialDays: 3, plan: 'boost', maxUses: 100 });
+    await assertFails(redeemBatch('buyer'));
+    // Bahkan hanya menambah pemakaian + catatan penukaran pun ditolak.
+    const db = ctx('buyer');
+    const b = writeBatch(db);
+    b.update(doc(db, 'vouchers', 'BOOST-ABCD2345'), { uses: 1, updatedAt: serverTimestamp() });
+    b.set(doc(db, 'redemptions', 'BOOST-ABCD2345_buyer'), { code: 'BOOST-ABCD2345', uid: 'buyer', email: 'buyer@test.id', plan: 'boost', createdAt: serverTimestamp() });
+    await assertFails(b.commit());
+  });
+  it('voucher dengan kind "plan" eksplisit tetap bisa ditukar seperti biasa', async () => {
+    await seedVoucher({ kind: 'plan' });
+    await assertSucceeds(redeemBatch('buyer'));
+  });
+  it('admin membuat voucher trial: wajib trialDays 1–30; voucher paket tidak boleh punya trialDays', async () => {
+    const db = ctx('adi');
+    const make = (code: string, over: Record<string, unknown>) => setDoc(doc(db, 'vouchers', code),
+      { ...voucher(over), code, uses: 0, createdBy: 'adi', createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+    await assertSucceeds(make('WEBINARSPARK', { kind: 'trial', trialDays: 3, plan: 'spark', maxUses: 120 }));
+    await assertFails(make('WEBINAR-NODAYS', { kind: 'trial', plan: 'spark' }));
+    await assertFails(make('WEBINAR-LAMA', { kind: 'trial', trialDays: 31, plan: 'spark' }));
+    await assertFails(make('PLAN-DAYS', { kind: 'plan', trialDays: 3 }));
+    await assertFails(make('ANEH-KIND', { kind: 'gratis' }));
+    await assertSucceeds(make('PLAN-OK', { kind: 'plan' }));
+  });
+  it('voucher paket tidak bisa menurunkan paket (Boost tidak bisa turun ke Spark)', async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      await setDoc(doc(c.firestore(), 'vouchers', 'SPARK-ABCD2345'), { ...voucher({ plan: 'spark' }), code: 'SPARK-ABCD2345' });
+      await setDoc(doc(c.firestore(), 'memberships', 'alice@test.id'), {
+        email: 'alice@test.id', name: 'alice', plan: 'boost', trial: null, trialsUsed: { boost: false, impact: false }, note: '', updatedAt: new Date(), updatedBy: 'adi',
+      });
+    });
+    const db = ctx('alice');
+    const b = writeBatch(db);
+    const rid = 'SPARK-ABCD2345_alice';
+    b.update(doc(db, 'vouchers', 'SPARK-ABCD2345'), { uses: 1, updatedAt: serverTimestamp() });
+    b.set(doc(db, 'redemptions', rid), { code: 'SPARK-ABCD2345', uid: 'alice', email: 'alice@test.id', plan: 'spark', createdAt: serverTimestamp() });
+    b.update(doc(db, 'memberships', 'alice@test.id'), { plan: 'spark', updatedAt: serverTimestamp(), updatedBy: 'alice', lastRedemptionId: rid });
+    await assertFails(b.commit());
+  });
+  it('pembeli tanpa undangan bisa menukar voucher valid → akun + paket aktif', async () => {
+    await seedVoucher();
+    await assertSucceeds(redeemBatch('buyer'));
+  });
+  it('voucher GoAkal yang terikat email hanya bisa ditukar oleh email pembeli', async () => {
+    await seedVoucher({ assignedEmail: 'buyer@test.id', source: 'goakal', sourcePaymentId: 'AKL-123' });
+    await assertFails(redeemBatch('alice'));
+    await assertSucceeds(redeemBatch('buyer'));
+  });
+  it('paket di membership harus sama dengan isi voucher', async () => {
+    await seedVoucher();
+    await assertFails(redeemBatch('buyer', 'impact'));
+  });
+  it('voucher nonaktif / kedaluwarsa / kuota habis ditolak', async () => {
+    await seedVoucher({ active: false });
+    await assertFails(redeemBatch('buyer'));
+    await seedVoucher({ expiresAt: new Date('2020-01-01') });
+    await assertFails(redeemBatch('buyer'));
+    await seedVoucher({ uses: 1 });
+    await assertFails(redeemBatch('buyer'));
+  });
+  it('peserta tidak bisa mengubah paket tanpa penukaran baru', async () => {
+    await seedVoucher();
+    await redeemBatch('buyer');
+    await assertFails(updateDoc(doc(ctx('buyer'), 'memberships', 'buyer@test.id'), { plan: 'impact', updatedAt: serverTimestamp(), updatedBy: 'buyer' }));
+  });
+  // ---- Voucher GoAkal (dibuat server lewat Admin SDK) ----
+  const goakal = { assignedEmail: 'buyer@test.id', source: 'goakal', sourcePaymentId: 'AKL-123', batch: 'goakal-auto', createdBy: 'system:goakal' };
+  function redeemAs(uid: string, email: string) {
+    const db = env.authenticatedContext(uid, { email, email_verified: true }).firestore();
+    const b = writeBatch(db);
+    const rid = `BOOST-ABCD2345_${uid}`;
+    b.update(doc(db, 'vouchers', 'BOOST-ABCD2345'), { uses: increment(1), updatedAt: serverTimestamp() });
+    b.set(doc(db, 'redemptions', rid), { code: 'BOOST-ABCD2345', uid, email, plan: 'boost', createdAt: serverTimestamp() });
+    b.set(doc(db, 'users', uid), { email, displayName: uid, role: 'user', viaVoucher: 'BOOST-ABCD2345', createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+    b.set(doc(db, 'memberships', email), {
+      email, name: uid, plan: 'boost', trial: null, trialsUsed: { boost: false, impact: false }, note: '',
+      updatedAt: serverTimestamp(), updatedBy: uid, lastRedemptionId: rid,
+    });
+    return b.commit();
+  }
+
+  it('GoAkal: email pembeli bisa membaca & menukar; email lain tidak bisa membaca maupun menukar', async () => {
+    await seedVoucher(goakal);
+    const other = env.authenticatedContext('intruder', { email: 'intruder@test.id', email_verified: true }).firestore();
+    await assertFails(getDoc(doc(other, 'vouchers', 'BOOST-ABCD2345')));
+    await assertFails(redeemAs('intruder', 'intruder@test.id'));
+    const buyer = env.authenticatedContext('buyerA', { email: 'buyer@test.id', email_verified: true }).firestore();
+    await assertSucceeds(getDoc(doc(buyer, 'vouchers', 'BOOST-ABCD2345')));
+    await assertSucceeds(redeemAs('buyerA', 'buyer@test.id'));
+  });
+
+  it('GoAkal: email login huruf besar tetap cocok (dibandingkan dalam huruf kecil)', async () => {
+    await seedVoucher(goakal);
+    const buyer = env.authenticatedContext('buyerA', { email: 'Buyer@Test.id', email_verified: true }).firestore();
+    await assertSucceeds(getDoc(doc(buyer, 'vouchers', 'BOOST-ABCD2345')));
+  });
+
+  it('GoAkal: voucher hanya bertambah satu kali — penukaran kedua (akun lain, email sama) ditolak', async () => {
+    await seedVoucher(goakal);
+    await assertSucceeds(redeemAs('buyerA', 'buyer@test.id'));
+    await assertFails(redeemAs('buyerB', 'buyer@test.id'));
+    let uses: unknown;
+    await env.withSecurityRulesDisabled(async (c) => { uses = (await getDoc(doc(c.firestore(), 'vouchers', 'BOOST-ABCD2345'))).data()?.uses; });
+    if (uses !== 1) throw new Error(`uses seharusnya 1, didapat ${String(uses)}`);
+  });
+
+  it('GoAkal: pemakaian tidak bisa dilompati (+2) atau dibuat tanpa catatan penukaran', async () => {
+    await seedVoucher({ ...goakal, maxUses: 5 });
+    const buyer = env.authenticatedContext('buyerA', { email: 'buyer@test.id', email_verified: true }).firestore();
+    await assertFails(updateDoc(doc(buyer, 'vouchers', 'BOOST-ABCD2345'), { uses: 2, updatedAt: serverTimestamp() }));
+    await assertFails(updateDoc(doc(buyer, 'vouchers', 'BOOST-ABCD2345'), { uses: 1, updatedAt: serverTimestamp() }));
+  });
+
+  it('GoAkal: peserta tidak bisa menghapus/mengubah assignedEmail voucher', async () => {
+    await seedVoucher(goakal);
+    const buyer = env.authenticatedContext('buyerA', { email: 'buyer@test.id', email_verified: true }).firestore();
+    await assertFails(updateDoc(doc(buyer, 'vouchers', 'BOOST-ABCD2345'), { assignedEmail: 'lain@test.id', updatedAt: serverTimestamp() }));
+    await assertFails(deleteDoc(doc(buyer, 'vouchers', 'BOOST-ABCD2345')));
+  });
+
+  it('voucher manual lama (tanpa assignedEmail) tetap bisa dibaca & ditukar siapa pun yang login', async () => {
+    await seedVoucher({ maxUses: 10 });
+    await assertSucceeds(getDoc(doc(ctx('alice'), 'vouchers', 'BOOST-ABCD2345')));
+    await assertSucceeds(redeemAs('walkin', 'walkin@test.id'));
+  });
+
+  it('kode yang tidak ada tetap terbaca sebagai "tidak ditemukan" (bukan ditolak)', async () => {
+    await assertSucceeds(getDoc(doc(ctx('alice'), 'vouchers', 'TIDAK-ADA-1234')));
+  });
+
+  it('admin tetap bisa membaca voucher GoAkal milik siapa pun', async () => {
+    await seedVoucher(goakal);
+    await assertSucceeds(getDoc(doc(ctx('adi'), 'vouchers', 'BOOST-ABCD2345')));
+  });
+
+  it('goakalOrders tertutup untuk browser (user & admin), terbuka untuk Admin SDK', async () => {
+    const order = { paymentId: 'AKL-123', state: 'issued', emailStatus: 'sent', payerEmail: 'buyer@test.id' };
+    for (const uid of ['alice', 'adi', 'owner']) {
+      await assertFails(setDoc(doc(ctx(uid), 'goakalOrders', 'o1'), order));
+    }
+    await env.withSecurityRulesDisabled(async (c) => { await setDoc(doc(c.firestore(), 'goakalOrders', 'o1'), order); });
+    for (const uid of ['alice', 'adi', 'owner']) {
+      await assertFails(getDoc(doc(ctx(uid), 'goakalOrders', 'o1')));
+      await assertFails(updateDoc(doc(ctx(uid), 'goakalOrders', 'o1'), { emailStatus: 'pending' }));
+      await assertFails(deleteDoc(doc(ctx(uid), 'goakalOrders', 'o1')));
+      await assertFails(getDocs(collection(ctx(uid), 'goakalOrders')));
+    }
+    await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(), 'goakalOrders', 'o1')));
+    // Admin SDK melewati Rules: memperbarui status email tetap bisa.
+    await env.withSecurityRulesDisabled(async (c) => { await updateDoc(doc(c.firestore(), 'goakalOrders', 'o1'), { emailStatus: 'sent' }); });
+  });
+
+  it('peserta tidak bisa membuat voucher GoAkal sendiri', async () => {
+    await assertFails(setDoc(doc(ctx('alice'), 'vouchers', 'IMPACT-ZZZZ2345'), {
+      ...voucher({ code: 'IMPACT-ZZZZ2345', plan: 'impact' }), ...goakal, assignedEmail: 'alice@test.id', createdBy: 'alice', createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+    }));
+  });
+
+  it('daftar voucher hanya untuk admin; peserta hanya bisa membaca satu kode', async () => {
+    await seedVoucher();
+    await assertFails(getDocs(collection(ctx('alice'), 'vouchers')));
+    await assertSucceeds(getDoc(doc(ctx('alice'), 'vouchers', 'BOOST-ABCD2345')));
+    await assertSucceeds(getDocs(collection(ctx('adi'), 'vouchers')));
+  });
+});
+
+// Initial conditions reuse existing progress permissions; no new collection or privilege.
+describe('versioned initial conditions within progress', () => {
+  const condition = JSON.stringify({questionVersion:1,ruleVersion:1,answers:{goal:'DATA UJI'},selectedStage:null});
+  it('preserves old work on merge; owner/admin read, peer/mentor/anonymous denied; admin cannot write', async () => {
+    const ref=doc(ctx('alice'),'progress','alice');
+    await assertSucceeds(setDoc(ref,{ownerUid:'alice',lessons:{'b101-1':{done:true,reflection:'DATA UJI'}},plan:{tasks:{old:true},notes:{d1:'DATA UJI LAMA','work-v1-sample':'DATA UJI MISI'}},updatedAt:serverTimestamp()}));
+    await assertSucceeds(setDoc(ref,{ownerUid:'alice',plan:{notes:{'entry-map-v1':condition}},updatedAt:serverTimestamp()},{merge:true}));
+    const snapshot=await getDoc(ref);
+    const d=snapshot.data()!;
+    if(d.plan.notes.d1!=='DATA UJI LAMA'||d.plan.notes['work-v1-sample']!=='DATA UJI MISI'||!d.plan.tasks.old||!d.lessons['b101-1'].done) throw new Error('Legacy work overwritten');
+    await assertSucceeds(getDoc(doc(ctx('adi'),'progress','alice')));
+    await assertSucceeds(getDoc(doc(ctx('owner'),'progress','alice')));
+    await assertFails(getDoc(doc(ctx('bob'),'progress','alice')));
+    await assertFails(getDoc(doc(ctx('mia'),'progress','alice')));
+    await assertFails(getDoc(doc(env.unauthenticatedContext().firestore(),'progress','alice')));
+    for(const uid of ['bob','mia','adi']) await assertFails(setDoc(doc(ctx(uid),'progress','alice'),{ownerUid:'alice',plan:{notes:{'entry-map-v1':condition}},updatedAt:serverTimestamp()},{merge:true}));
+  });
+});

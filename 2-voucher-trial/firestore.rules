@@ -1,0 +1,431 @@
+rules_version = '2';
+
+// =====================================================================
+//  GenZ Preneur OS — Firestore Security Rules (Sprint 1 + akses undangan & paket)
+//  Ini adalah "satpam" database. Semua aturan akses ditegakkan DI SERVER
+//  Google, sehingga tidak bisa dibypass dengan mengutak-atik browser.
+// =====================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- Helper ----------
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function myRole() {
+      let path = /databases/$(database)/documents/users/$(request.auth.uid);
+      return signedIn() && exists(path) ? get(path).data.role : 'anon';
+    }
+
+    function isAdmin() {
+      return myRole() in ['admin', 'owner'];
+    }
+
+    function isOwnerRole() {
+      return myRole() == 'owner';
+    }
+
+    function validRole(r) {
+      return r in ['user', 'mentor', 'admin', 'owner'];
+    }
+
+    function isShortString(v, max) {
+      return v is string && v.size() <= max;
+    }
+
+    // Email login (huruf kecil) — dipakai sebagai ID undangan & membership.
+    function myEmail() {
+      return signedIn() && request.auth.token.email != null ? request.auth.token.email.lower() : '';
+    }
+
+    // Peserta resmi = sudah punya dokumen users (hanya bisa dibuat lewat undangan).
+    function isMember() {
+      return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function planRank(p) {
+      return {'none': 0, 'spark': 1, 'boost': 2, 'impact': 3}[p];
+    }
+
+    // Penukaran voucher yang DIBUAT DI BATCH YANG SAMA oleh user ini (tidak bisa memakai penukaran lama).
+    function freshRedemption(rid) {
+      let path = /databases/$(database)/documents/redemptions/$(rid);
+      return rid is string
+        && existsAfter(path)
+        && !exists(path)
+        && getAfter(path).data.uid == request.auth.uid;
+    }
+
+    function auditOk(targetId) {
+      let a = getAfter(/databases/$(database)/documents/auditLogs/$(request.resource.data.lastAuditId));
+      return existsAfter(/databases/$(database)/documents/auditLogs/$(request.resource.data.lastAuditId))
+        && a.data.actorUid == request.auth.uid
+        && a.data.targetId == targetId;
+    }
+
+    // Sama persis dengan canChangeRole() di src/lib/roles.ts
+    function roleChangeAllowed(uid) {
+      let from = resource.data.role;
+      let to = request.resource.data.role;
+      return request.auth.uid != uid
+        && validRole(to)
+        && from != to
+        && (
+          isOwnerRole()
+          || (myRole() == 'admin' && from in ['user', 'mentor'] && to in ['user', 'mentor'])
+        );
+    }
+
+    // ---------- users/{uid} ----------
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+
+      // Pendaftaran: TIDAK BISA daftar sendiri. Hanya untuk email yang punya undangan aktif
+      // ATAU yang menukar voucher valid di batch yang sama. Email wajib terverifikasi
+      // (login lewat link email), untuk dirinya sendiri, role WAJIB 'user'.
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && request.auth.token.email_verified == true
+        && (
+          (exists(/databases/$(database)/documents/invites/$(myEmail()))
+            && get(/databases/$(database)/documents/invites/$(myEmail())).data.status != 'revoked')
+          || ('viaVoucher' in request.resource.data
+            && freshRedemption(request.resource.data.viaVoucher + '_' + uid))
+        )
+        && request.resource.data.keys().hasOnly(['email', 'displayName', 'role', 'viaVoucher', 'createdAt', 'updatedAt'])
+        && request.resource.data.role == 'user'
+        && request.resource.data.email == request.auth.token.email
+        && isShortString(request.resource.data.displayName, 80)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+
+      allow update: if signedIn() && (
+        // (a) User mengubah profilnya sendiri — hanya nama tampilan.
+        (
+          request.auth.uid == uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'updatedAt'])
+          && isShortString(request.resource.data.displayName, 80)
+          && request.resource.data.updatedAt == request.time
+        )
+        ||
+        // (b) Admin/owner mengubah role — WAJIB disertai audit log di batch yang sama.
+        (
+          isAdmin()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'lastAuditId', 'updatedAt'])
+          && roleChangeAllowed(uid)
+          && request.resource.data.updatedAt == request.time
+          && existsAfter(/databases/$(database)/documents/auditLogs/$(request.resource.data.lastAuditId))
+          && getAfter(/databases/$(database)/documents/auditLogs/$(request.resource.data.lastAuditId)).data.targetId == uid
+          && getAfter(/databases/$(database)/documents/auditLogs/$(request.resource.data.lastAuditId)).data.after.role == request.resource.data.role
+        )
+      );
+
+      // Penghapusan akun lewat server (Sprint 7), bukan dari browser.
+      allow delete: if false;
+    }
+
+    // ---------- passports/{uid} ----------
+    // Entrepreneur Passport: hanya pemilik yang boleh baca/tulis/hapus.
+    // Admin boleh membaca (dukungan & analitik), TIDAK boleh mengubah.
+    match /passports/{uid} {
+      function validPassport() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['personal', 'skills', 'resources', 'interests', 'goals', 'ownerUid', 'createdAt', 'updatedAt'])
+          && d.keys().hasAll(['personal', 'skills', 'resources', 'interests', 'goals', 'ownerUid'])
+          && d.ownerUid == uid
+          && d.personal is map && d.skills is map && d.resources is map
+          && d.interests is map && d.goals is map
+          && isShortString(d.personal.fullName, 80)
+          && d.personal.fullName.size() >= 2
+          && isShortString(d.personal.programGoal, 500)
+          && d.updatedAt == request.time;
+      }
+
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create: if isMember() && request.auth.uid == uid && validPassport()
+        && request.resource.data.createdAt == request.time;
+      allow update: if isMember() && request.auth.uid == uid && validPassport()
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if signedIn() && request.auth.uid == uid;
+    }
+
+    // ---------- auditLogs/{id} ----------
+    // Hanya bisa ditambah (append-only). Tidak bisa diubah atau dihapus siapa pun.
+    match /auditLogs/{id} {
+      allow read: if isAdmin();
+      allow create: if isAdmin()
+        && request.resource.data.actorUid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['actorUid', 'action', 'targetType', 'targetId', 'before', 'after', 'reason', 'createdAt'])
+        && isShortString(request.resource.data.action, 60)
+        && isShortString(request.resource.data.reason, 300)
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+
+    // ---------- assessments/{uid} ----------
+    // Hasil Assessment Industri. Hanya pemilik yang menulis; admin boleh membaca.
+    match /assessments/{uid} {
+      function validAssessment() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['ownerUid', 'answers', 'industryScores', 'trackScores', 'topIndustries', 'track', 'profileScores', 'topProfiles', 'attempts', 'completedAt'])
+          && d.ownerUid == uid
+          && d.answers is map && d.answers.size() <= 60
+          && d.industryScores is map && d.trackScores is map
+          && d.topIndustries is list && d.topIndustries.size() == 3
+          && d.track in ['sales_partner', 'marketing_partner', 'business_builder']
+          && (!('profileScores' in d) || (d.profileScores is map && d.profileScores.size() <= 8))
+          && (!('topProfiles' in d) || (d.topProfiles is list && d.topProfiles.size() == 2))
+          && d.attempts is int && d.attempts <= 1000
+          && d.completedAt == request.time;
+      }
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create, update: if isMember() && request.auth.uid == uid && validAssessment();
+      allow delete: if signedIn() && request.auth.uid == uid;
+    }
+
+    // ---------- progress/{uid} ----------
+    // Progres pelajaran & Action Plan (self-reported). Hanya pemilik.
+    match /progress/{uid} {
+      function validProgress() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['ownerUid', 'lessons', 'plan', 'updatedAt'])
+          && d.ownerUid == uid
+          && (!('lessons' in d) || (d.lessons is map && d.lessons.size() <= 200))
+          && (!('plan' in d) || (d.plan is map && d.plan.keys().hasOnly(['tasks', 'notes'])))
+          && d.updatedAt == request.time;
+      }
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create, update: if isMember() && request.auth.uid == uid && validProgress();
+      allow delete: if signedIn() && request.auth.uid == uid;
+    }
+
+    // ---------- savedItems/{id} ----------
+    // Pesan, prompt, proposal, simulasi yang disimpan peserta. Privat — admin pun tidak membaca.
+    match /savedItems/{id} {
+      allow read, delete: if signedIn() && resource.data.ownerUid == request.auth.uid;
+      allow create: if isMember()
+        && request.resource.data.keys().hasOnly(['ownerUid', 'kind', 'title', 'content', 'createdAt'])
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.kind in ['outreach', 'prompt', 'proposal', 'calc', 'problem']
+        && isShortString(request.resource.data.title, 120)
+        && isShortString(request.resource.data.content, 6000)
+        && request.resource.data.createdAt == request.time;
+      allow update: if false;
+    }
+
+    // ---------- dreamPacts/{uid} ----------
+    // Dream Pact (Pakta Mimpi): komitmen pribadi. Pemilik menulis; admin hanya membaca.
+    match /dreamPacts/{uid} {
+      function validPact() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['ownerUid', 'why', 'edge', 'dream', 'milestones', 'skillTree', 'plan', 'commit', 'createdAt', 'updatedAt'])
+          && d.keys().hasAll(['ownerUid', 'why', 'edge', 'dream', 'milestones', 'skillTree', 'plan', 'commit'])
+          && d.ownerUid == uid
+          && d.why is map && d.edge is map && d.dream is map
+          && d.milestones is map && d.skillTree is map && d.commit is map
+          && d.plan is list && d.plan.size() <= 15
+          && d.updatedAt == request.time;
+      }
+      allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
+      allow create: if isMember() && request.auth.uid == uid && validPact() && request.resource.data.createdAt == request.time;
+      allow update: if isMember() && request.auth.uid == uid && validPact() && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if signedIn() && request.auth.uid == uid;
+    }
+
+    // ---------- invites/{email} ----------
+    // Undangan dari admin. ID dokumen = email huruf kecil. Tanpa undangan, akun tidak bisa dibuat.
+    match /invites/{email} {
+      function validInvite() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['email', 'name', 'status', 'invitedBy', 'createdAt', 'updatedAt', 'acceptedAt'])
+          && d.email == email
+          && isShortString(d.name, 80)
+          && d.status in ['pending', 'accepted', 'revoked']
+          && d.updatedAt == request.time;
+      }
+      allow read: if isAdmin() || myEmail() == email;
+      allow create: if isAdmin() && validInvite()
+        && request.resource.data.invitedBy == request.auth.uid
+        && request.resource.data.createdAt == request.time;
+      allow update: if (isAdmin() && validInvite())
+        // Peserta hanya boleh menandai undangannya sendiri "accepted" saat pertama login.
+        || (myEmail() == email
+            && resource.data.status == 'pending'
+            && request.resource.data.status == 'accepted'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'acceptedAt', 'updatedAt'])
+            && request.resource.data.acceptedAt == request.time
+            && request.resource.data.updatedAt == request.time);
+      allow delete: if false;
+    }
+
+    // ---------- memberships/{email} ----------
+    // Paket & trial peserta. Hanya admin yang mengubah, WAJIB disertai audit log di batch yang sama.
+    match /memberships/{email} {
+      function validTrial(t) {
+        return t == null || (
+          t is map && t.keys().hasOnly(['plan', 'days', 'startedAt', 'endsAt'])
+          && t.plan in ['spark', 'boost', 'impact']
+          && t.days is int && t.days >= 1 && t.days <= 30
+          && t.startedAt is timestamp && t.endsAt is timestamp
+        );
+      }
+      function validMembership() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['email', 'name', 'plan', 'trial', 'trialsUsed', 'note', 'updatedAt', 'updatedBy', 'lastAuditId', 'lastRedemptionId'])
+          && d.email == email
+          && isShortString(d.name, 80)
+          && d.plan in ['none', 'spark', 'boost', 'impact']
+          && validTrial(d.trial)
+          && d.trialsUsed is map && d.trialsUsed.keys().hasOnly(['boost', 'impact', 'spark', 'voucher'])
+          && isShortString(d.note, 300)
+          && d.updatedBy == request.auth.uid
+          && d.updatedAt == request.time;
+      }
+      // Peserta menukar voucher PAKET: paket = paket voucher, hanya NAIK, trial & catatan tidak boleh diubah.
+      // Voucher TRIAL tidak lewat sini — ditukar di server (/api/voucher/redeem-trial) karena butuh jam server.
+      function voucherUpgrade() {
+        let d = request.resource.data;
+        return myEmail() == email
+          && validMembership()
+          && freshRedemption(d.lastRedemptionId)
+          && getAfter(/databases/$(database)/documents/redemptions/$(d.lastRedemptionId)).data.plan == d.plan;
+      }
+      allow read: if isAdmin() || myEmail() == email;
+      allow create: if (isAdmin() && validMembership() && auditOk(email))
+        || (voucherUpgrade()
+            && request.resource.data.trial == null
+            && request.resource.data.trialsUsed == {'boost': false, 'impact': false}
+            && request.resource.data.note == '');
+      allow update: if (isAdmin() && validMembership() && auditOk(email))
+        || (voucherUpgrade()
+            && planRank(request.resource.data.plan) > planRank(resource.data.plan)
+            && request.resource.data.trial == resource.data.trial
+            && request.resource.data.trialsUsed == resource.data.trialsUsed
+            && request.resource.data.note == resource.data.note);
+      allow delete: if false;
+    }
+
+    // ---------- vouchers/{code} ----------
+    // Kode voucher (mis. dari pembelian di GoAkal). Dibuat & dikelola admin.
+    // Peserta yang login hanya bisa MEMBACA satu kode yang ia ketik (bukan melihat daftar),
+    // dan menambah pemakaian +1 bersamaan dengan membuat catatan penukaran.
+    match /vouchers/{code} {
+      function isTrialVoucher(v) {
+        return 'kind' in v && v.kind == 'trial';
+      }
+      function validVoucher() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['code', 'kind', 'trialDays', 'plan', 'maxUses', 'uses', 'active', 'expiresAt', 'batch', 'note', 'createdBy', 'createdAt', 'updatedAt', 'assignedEmail', 'source', 'sourcePaymentId'])
+          && d.code == code
+          // kind: 'plan' (paket permanen; boleh tidak ada di voucher lama) atau 'trial' (wajib trialDays 1–30).
+          && (!('kind' in d) || d.kind in ['plan', 'trial'])
+          && (('kind' in d && d.kind == 'trial')
+                ? (d.trialDays is int && d.trialDays >= 1 && d.trialDays <= 30)
+                : !('trialDays' in d))
+          && code.matches('^[A-Z0-9-]{4,32}$')
+          && d.plan in ['spark', 'boost', 'impact']
+          && d.maxUses is int && d.maxUses >= 1 && d.maxUses <= 100000
+          && d.uses is int && d.uses >= 0 && d.uses <= d.maxUses
+          && d.active is bool
+          && (d.expiresAt == null || d.expiresAt is timestamp)
+          && isShortString(d.batch, 60)
+          && isShortString(d.note, 300)
+          && (!('assignedEmail' in d) || (isShortString(d.assignedEmail, 120) && d.assignedEmail.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$')))
+          && (!('source' in d) || isShortString(d.source, 30))
+          && (!('sourcePaymentId' in d) || isShortString(d.sourcePaymentId, 120))
+          && d.updatedAt == request.time;
+      }
+      // Voucher GoAkal (punya assignedEmail) hanya bisa dibaca pemilik email & admin,
+      // agar email pembeli/ID pembayaran tidak terlihat oleh orang lain yang tahu kodenya.
+      // Voucher manual lama (tanpa assignedEmail) tetap bisa dibaca semua yang login.
+      allow get: if signedIn() && (
+        resource == null
+        || !('assignedEmail' in resource.data)
+        || resource.data.assignedEmail == myEmail()
+        || isAdmin()
+      );
+      allow list: if isAdmin();
+      allow create: if isAdmin() && validVoucher()
+        && request.resource.data.uses == 0
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.createdAt == request.time;
+      allow update: if (isAdmin() && validVoucher())
+        || (signedIn()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['uses', 'updatedAt'])
+            && request.resource.data.uses == resource.data.uses + 1
+            && request.resource.data.uses <= resource.data.maxUses
+            && resource.data.active == true
+            && !isTrialVoucher(resource.data)
+            && (!('assignedEmail' in resource.data) || resource.data.assignedEmail == myEmail())
+            && (resource.data.expiresAt == null || request.time < resource.data.expiresAt)
+            && request.resource.data.updatedAt == request.time
+            && existsAfter(/databases/$(database)/documents/redemptions/$(code + '_' + request.auth.uid)));
+      allow delete: if isAdmin() && resource.data.uses == 0;
+    }
+
+    // ---------- redemptions/{code_uid} ----------
+    // Catatan penukaran voucher. Satu kode hanya bisa ditukar sekali per akun. Tidak bisa diubah/dihapus.
+    // Dari browser hanya voucher PAKET; penukaran voucher trial ditulis server (Admin SDK).
+    match /redemptions/{rid} {
+      allow read: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['code', 'uid', 'email', 'plan', 'createdAt'])
+        && rid == request.resource.data.code + '_' + request.auth.uid
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == myEmail()
+        && request.auth.token.email_verified == true
+        && exists(/databases/$(database)/documents/vouchers/$(request.resource.data.code))
+        && get(/databases/$(database)/documents/vouchers/$(request.resource.data.code)).data.get('kind', 'plan') != 'trial'
+        && request.resource.data.plan == get(/databases/$(database)/documents/vouchers/$(request.resource.data.code)).data.plan
+        && getAfter(/databases/$(database)/documents/vouchers/$(request.resource.data.code)).data.uses
+            == get(/databases/$(database)/documents/vouchers/$(request.resource.data.code)).data.uses + 1
+        && request.resource.data.createdAt == request.time;
+      allow update, delete: if false;
+    }
+
+    // ---------- config/access ----------
+    // Saklar mode akses: terbuka (pra-launch) atau sesuai paket. Hanya Super Admin.
+    match /config/{key} {
+      allow read: if signedIn();
+      allow create, update: if isOwnerRole()
+        && key == 'access'
+        && request.resource.data.keys().hasOnly(['gatingEnabled', 'updatedAt', 'updatedBy', 'lastAuditId'])
+        && request.resource.data.gatingEnabled is bool
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.updatedAt == request.time
+        && auditOk('config/access');
+      allow delete: if false;
+    }
+
+    // ---------- waitlist/{id} ----------
+    // Daftar tunggu dari landing page. Siapa pun boleh MENAMBAH (tanpa login) dengan isian terbatas;
+    // hanya admin yang boleh membaca & mengubah status.
+    match /waitlist/{id} {
+      allow create: if request.resource.data.keys().hasOnly(['name', 'email', 'whatsapp', 'interest', 'message', 'status', 'createdAt'])
+        && isShortString(request.resource.data.name, 80) && request.resource.data.name.size() >= 2
+        && isShortString(request.resource.data.email, 120) && request.resource.data.email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$')
+        && isShortString(request.resource.data.whatsapp, 20)
+        && request.resource.data.interest in ['spark', 'boost', 'impact', 'unsure']
+        && isShortString(request.resource.data.message, 300)
+        && request.resource.data.status == 'new'
+        && request.resource.data.createdAt == request.time;
+      allow read, delete: if isAdmin();
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status in ['new', 'invited', 'skipped'];
+    }
+
+    // goakalOrders/{id} — catatan order GoAkal (idempotensi & status email).
+    // Hanya ditulis/dibaca server lewat Firebase Admin SDK (melewati Rules). Tertutup untuk browser.
+    match /goakalOrders/{id} {
+      allow read, write: if false;
+    }
+
+    // Semua koleksi lain tertutup secara default.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

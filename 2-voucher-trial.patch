@@ -1,0 +1,1171 @@
+From c3d65ce1a06eb38b5f5d38515d7f78ca7266a0c4 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 22 Oct 2026 11:27:18 +0000
+Subject: [PATCH] Voucher trial untuk peserta webinar + voucher tidak pernah
+ menurunkan paket
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- Jenis voucher baru 'trial' (Admin → Voucher): paket + lama trial (default 3 hari)
+- Penukaran lewat server /api/voucher/redeem-trial: paket tetap, hanya trial diisi; sekali per akun
+- Trial Spark didukung (TrialPlan mencakup spark); pengingat H-1 berisi ajakan beli + harga
+- redeemVoucher menolak penurunan paket; Rules menolak voucher trial ditukar dari browser
+- Tes unit, server, dan Firestore Rules (emulator)
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_013ssjXvHMPWzTJw3zesJswc
+---
+ api/_lib/trial-core.js            |  52 ++++++++++--
+ api/_lib/trial-server.js          |  80 ++++++++++++++++--
+ api/_lib/voucher-trial.test.js    | 136 ++++++++++++++++++++++++++++++
+ api/voucher/redeem-trial.js       |  63 ++++++++++++++
+ firestore.rules                   |  21 ++++-
+ src/lib/data.ts                   |  46 ++++++++--
+ src/lib/membership.test.ts        |  14 +++
+ src/lib/membership.ts             |   9 +-
+ src/lib/voucher.test.ts           |  32 ++++++-
+ src/lib/voucher.ts                |  35 +++++++-
+ src/pages/VoucherPage.tsx         |  38 ++++++---
+ src/pages/admin/AdminVouchers.tsx |  58 ++++++++++---
+ tests/firestore.rules.test.ts     |  64 ++++++++++++--
+ vercel.json                       |   3 +
+ 14 files changed, 591 insertions(+), 60 deletions(-)
+ create mode 100644 api/_lib/voucher-trial.test.js
+ create mode 100644 api/voucher/redeem-trial.js
+
+diff --git a/api/_lib/trial-core.js b/api/_lib/trial-core.js
+index 838468a..4453dc7 100644
+--- a/api/_lib/trial-core.js
++++ b/api/_lib/trial-core.js
+@@ -9,11 +9,17 @@ export const DAY_MS = 24 * 60 * 60 * 1000;
+ /** Spark → coba Boost 3 hari · Boost → coba Impact 7 hari. Sekali per akun. */
+ export const TRIAL_OFFER = { spark: { plan: 'boost', days: 3 }, boost: { plan: 'impact', days: 7 } };
+ 
+-/** Link checkout GoAkal untuk paket yang sedang dicoba (sama dengan src/config/site.ts). */
++/** Link checkout GoAkal & harga untuk paket yang sedang dicoba (sama dengan src/config/site.ts). */
+ export const CHECKOUT_URL = {
++  spark: 'https://goakal.com/genzpreneur/webinar-b1/z7x0w/apply',
+   boost: 'https://goakal.com/genzpreneur/webinar-b1/tzu72/apply',
+   impact: 'https://goakal.com/genzpreneur/webinar-b1/2md0s/apply',
+ };
++export const PRICE_LABEL = { spark: 'Rp79.000', boost: 'Rp149.000', impact: 'Rp299.000' };
++
++export const PLAN_RANK = { none: 0, spark: 1, boost: 2, impact: 3 };
++export const TRIAL_PLANS = ['spark', 'boost', 'impact'];
++export const VOUCHER_TRIAL_DAYS_MAX = 30;
+ 
+ /** Firestore Timestamp / Date / angka → milidetik (null bila tidak terbaca). */
+ export function toMs(v) {
+@@ -43,15 +49,48 @@ export function formatDateTime(ms) {
+   return new Intl.DateTimeFormat('id-ID', { dateStyle: 'full', timeStyle: 'short', timeZone: 'Asia/Jakarta' }).format(new Date(ms)) + ' WIB';
+ }
+ 
++/** Paket yang berlaku sekarang (paket berbayar atau trial yang masih jalan, mana yang lebih tinggi). */
++export function effectivePlanAt(m, nowMs) {
++  const plan = m && PLAN_RANK[m.plan] !== undefined ? m.plan : 'none';
++  const endsAt = toMs(m?.trial?.endsAt);
++  const t = m?.trial?.plan;
++  if (endsAt && endsAt > nowMs && PLAN_RANK[t] > PLAN_RANK[plan]) return t;
++  return plan;
++}
++
++/**
++ * Boleh tidak voucher trial ini ditukar? Harus sama dengan voucherProblem() di src/lib/voucher.ts.
++ * Mengembalikan { ok: true } atau { reason }.
++ */
++export function checkVoucherTrial({ voucher, membership, email, nowMs, alreadyRedeemedTrial }) {
++  if (!voucher) return { reason: 'not_found' };
++  if (voucher.kind !== 'trial') return { reason: 'not_trial' };
++  const days = Number(voucher.trialDays);
++  if (!TRIAL_PLANS.includes(voucher.plan) || !Number.isInteger(days) || days < 1 || days > VOUCHER_TRIAL_DAYS_MAX) return { reason: 'invalid' };
++  if (voucher.active !== true) return { reason: 'inactive' };
++  const exp = toMs(voucher.expiresAt);
++  if (exp && nowMs >= exp) return { reason: 'expired' };
++  if (Number(voucher.uses || 0) >= Number(voucher.maxUses || 0)) return { reason: 'used_up' };
++  if (voucher.assignedEmail && String(voucher.assignedEmail).toLowerCase() !== String(email).toLowerCase()) return { reason: 'wrong_email' };
++  if (PLAN_RANK[voucher.plan] <= PLAN_RANK[effectivePlanAt(membership, nowMs)]) return { reason: 'trial_not_higher' };
++  if (alreadyRedeemedTrial || membership?.trialsUsed?.voucher === true) return { reason: 'trial_used' };
++  const endsAt = toMs(membership?.trial?.endsAt);
++  if (endsAt && endsAt > nowMs) return { reason: 'trial_active' };
++  return { ok: true, plan: voucher.plan, days };
++}
++
+ /** Email pengingat H-1 sebelum trial berakhir. */
+ export function buildTrialReminderEmail({ name, trialPlan, endsAtMs }, appUrl) {
+   const planName = PLAN_LABEL[trialPlan] || trialPlan;
+   const checkout = CHECKOUT_URL[trialPlan];
+   const when = formatDateTime(endsAtMs);
+   const hi = name ? `Hai ${name},` : 'Hai Founder,';
+-  const keep = trialPlan === 'impact'
+-    ? 'Simulasi Founder lengkap (30 skenario), Season 4, dan playbook tim'
+-    : 'Alat Bisnis (HPP & harga, proposal), Cari Pelanggan, dan Season 2–3';
++  const price = PRICE_LABEL[trialPlan] || '';
++  const keep = {
++    spark: 'Misi Pertama 9 tahap, Business 101 & Season 1, dan Dream Pact',
++    boost: 'Alat Bisnis (HPP & harga, proposal), Cari Pelanggan, dan Season 2–3',
++    impact: 'Simulasi Founder lengkap (30 skenario), Season 4, dan playbook tim',
++  }[trialPlan] || 'fitur paket ini';
+   const subject = `Trial ${planName} kamu berakhir besok — GenZ Preneur`;
+   const html = `<!doctype html><html><body style="margin:0;background:#fbf8f2;padding:24px 12px">
+ <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:auto;color:#111;background:#fff;border:2px solid #111;border-radius:20px;padding:28px">
+@@ -59,7 +98,8 @@ export function buildTrialReminderEmail({ name, trialPlan, endsAtMs }, appUrl) {
+ <h1 style="margin:0 0 12px;font-size:24px">Trial kamu berakhir besok</h1>
+ <p>${escapeHtml(hi)} trial <strong>${escapeHtml(planName)}</strong> kamu berakhir <strong>${escapeHtml(when)}</strong>.</p>
+ <p>Setelah itu ${escapeHtml(keep)} terkunci lagi. Progres dan draf kamu <strong>tetap aman</strong>, tidak ada yang dihapus.</p>
+-<p style="text-align:center;margin:24px 0"><a href="${escapeHtml(checkout)}" style="display:inline-block;background:#ff7a1a;color:#111;padding:14px 22px;border:2px solid #111;border-radius:14px;text-decoration:none;font-weight:700">Lanjut pakai ${escapeHtml(planName)}</a></p>
++<p style="text-align:center;margin:24px 0"><a href="${escapeHtml(checkout)}" style="display:inline-block;background:#ff7a1a;color:#111;padding:14px 22px;border:2px solid #111;border-radius:14px;text-decoration:none;font-weight:700">Lanjut pakai ${escapeHtml(planName)}${price ? ` — ${escapeHtml(price)}` : ''}</a></p>
++<p style="font-size:13px;color:#444;text-align:center;margin-top:-12px">Sekali bayar, bukan langganan.</p>
+ <p style="font-size:13px;color:#444">Setelah bayar di GoAkal, kode voucher dikirim ke emailmu. Tukarkan di ${escapeHtml(appUrl)}/voucher dengan email yang sama.</p>
+ <p style="font-size:12px;color:#777;margin-top:24px">Tidak ada tagihan otomatis. Kalau belum mau lanjut, abaikan saja email ini.</p>
+ </div></body></html>`;
+@@ -67,7 +107,7 @@ export function buildTrialReminderEmail({ name, trialPlan, endsAtMs }, appUrl) {
+     `${hi} trial ${planName} kamu berakhir ${when}.`,
+     `Setelah itu ${keep} terkunci lagi. Progres dan draf kamu tetap aman.`,
+     '',
+-    `Lanjut pakai ${planName}: ${checkout}`,
++    `Lanjut pakai ${planName}${price ? ` (${price}, sekali bayar)` : ''}: ${checkout}`,
+     `Setelah bayar, tukarkan kode voucher di ${appUrl}/voucher dengan email yang sama.`,
+     '',
+     'Tidak ada tagihan otomatis. Kalau belum mau lanjut, abaikan saja email ini.',
+diff --git a/api/_lib/trial-server.js b/api/_lib/trial-server.js
+index 233cc32..aee72df 100644
+--- a/api/_lib/trial-server.js
++++ b/api/_lib/trial-server.js
+@@ -4,7 +4,7 @@
+ // =====================================================================
+ import { parseServiceAccount } from './goakal-server.js';
+ import { maskEmail, normalizeEmail, redact } from './goakal-core.js';
+-import { buildTrialReminderEmail, DAY_MS, pickSelfTrial, reminderId, toMs } from './trial-core.js';
++import { buildTrialReminderEmail, checkVoucherTrial, DAY_MS, pickSelfTrial, PLAN_RANK, reminderId, TRIAL_PLANS, toMs } from './trial-core.js';
+ 
+ // Kunci web Firebase ini PUBLIK (sudah ada di kode frontend, src/lib/firebase.ts) — bukan rahasia.
+ const PUBLIC_WEB_API_KEY = 'AIzaSyBVHILZ7SFYW_26cd5g5vanedwZ8KdoBlE';
+@@ -52,6 +52,11 @@ export async function realDeps(serviceAccountJson) {
+     FieldValue,
+     Timestamp,
+     verifyIdToken: (t) => verifyIdTokenViaRest(t),
++    /** Apakah akun ini pernah menukar voucher trial (kode apa pun)? */
++    hasTrialRedemption: async (uid) => {
++      const snap = await db.collection('redemptions').where('uid', '==', uid).limit(200).get();
++      return snap.docs.some((d) => d.data().kind === 'trial');
++    },
+     /** Membership dengan trial yang berakhir dalam (fromMs, toMs]. */
+     listEndingTrials: async (fromMs, toMs_) => {
+       const snap = await db.collection('memberships')
+@@ -94,7 +99,8 @@ export async function startSelfTrial({ uid, email }, deps) {
+     });
+     t.update(memRef, {
+       trial: { plan, days, startedAt: Timestamp.fromMillis(now), endsAt: Timestamp.fromMillis(endsAtMs) },
+-      trialsUsed: { boost: m.trialsUsed?.boost === true || plan === 'boost', impact: m.trialsUsed?.impact === true || plan === 'impact' },
++      // Pertahankan penanda lain (spark/voucher) dari voucher trial.
++      trialsUsed: { ...(m.trialsUsed || {}), boost: m.trialsUsed?.boost === true || plan === 'boost', impact: m.trialsUsed?.impact === true || plan === 'impact' },
+       updatedAt: FieldValue.serverTimestamp(),
+       updatedBy: uid,
+       lastAuditId: auditRef.id,
+@@ -103,6 +109,71 @@ export async function startSelfTrial({ uid, email }, deps) {
+   });
+ }
+ 
++/**
++ * Peserta menukar voucher trial (mis. WEBINARSPARK). Paket TIDAK berubah; yang diisi hanya trial.
++ * Satu transaksi: pemakaian voucher +1, catatan penukaran, akun (bila baru), membership, audit log.
++ * Satu voucher trial per akun: dicek dari koleksi redemptions + penanda trialsUsed.voucher.
++ */
++export async function redeemTrialVoucher({ uid, email, name }, code, deps) {
++  const { db, FieldValue, Timestamp } = deps;
++  const now = deps.now ? deps.now() : Date.now();
++  const id = normalizeEmail(email);
++  const rid = `${code}_${uid}`;
++  const voucherRef = db.collection('vouchers').doc(code);
++  const memRef = db.collection('memberships').doc(id);
++  const userRef = db.collection('users').doc(uid);
++  const redRef = db.collection('redemptions').doc(rid);
++  const auditRef = db.collection('auditLogs').doc(deps.newId ? deps.newId() : `trial-voucher-${uid}-${now}`);
++  const alreadyRedeemedTrial = deps.hasTrialRedemption ? await deps.hasTrialRedemption(uid) : false;
++  return db.runTransaction(async (t) => {
++    const vSnap = await t.get(voucherRef);
++    const memSnap = await t.get(memRef);
++    const userSnap = await t.get(userRef);
++    const redSnap = await t.get(redRef);
++    if (redSnap.exists) return { ok: false, reason: 'trial_used' };
++    const m = memSnap.exists ? memSnap.data() : null;
++    const v = vSnap.exists ? vSnap.data() : null;
++    const check = checkVoucherTrial({ voucher: v, membership: m, email: id, nowMs: now, alreadyRedeemedTrial });
++    if (!check.ok) return { ok: false, reason: check.reason };
++    const { plan, days } = check;
++    const endsAtMs = now + days * DAY_MS;
++    const displayName = String(name || '').trim().slice(0, 80) || id.split('@')[0];
++    const trial = { plan, days, startedAt: Timestamp.fromMillis(now), endsAt: Timestamp.fromMillis(endsAtMs) };
++    const trialsUsed = { boost: false, impact: false, ...(m?.trialsUsed || {}), [plan]: true, voucher: true };
++
++    t.update(voucherRef, { uses: FieldValue.increment(1), updatedAt: FieldValue.serverTimestamp() });
++    t.set(redRef, { code, uid, email: id, plan, kind: 'trial', trialDays: days, createdAt: FieldValue.serverTimestamp() });
++    if (!userSnap.exists) {
++      t.set(userRef, {
++        email, displayName, role: 'user', viaVoucher: code,
++        createdAt: FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp(),
++      });
++    }
++    t.set(auditRef, {
++      actorUid: uid,
++      action: 'membership.trial_voucher',
++      targetType: 'membership',
++      targetId: id,
++      before: m ? { plan: m.plan || 'none', trial: m.trial ? `${m.trial.plan} s.d. ${new Date(toMs(m.trial.endsAt)).toISOString()}` : null } : {},
++      after: { plan: m?.plan || 'none', trial: `${plan} s.d. ${new Date(endsAtMs).toISOString()}` },
++      reason: `Voucher trial ${code}: ${plan} ${days} hari`,
++      createdAt: FieldValue.serverTimestamp(),
++    });
++    if (m) {
++      t.update(memRef, {
++        trial, trialsUsed,
++        updatedAt: FieldValue.serverTimestamp(), updatedBy: uid, lastAuditId: auditRef.id, lastRedemptionId: rid,
++      });
++    } else {
++      t.set(memRef, {
++        email: id, name: displayName, plan: 'none', trial, trialsUsed, note: '',
++        updatedAt: FieldValue.serverTimestamp(), updatedBy: uid, lastAuditId: auditRef.id, lastRedemptionId: rid,
++      });
++    }
++    return { ok: true, plan, days, endsAtMs, newUser: !userSnap.exists };
++  });
++}
++
+ export async function sendReminderEmail({ to, name, trialPlan, endsAtMs }, config, fetchImpl = fetch) {
+   const { subject, html, text } = buildTrialReminderEmail({ name, trialPlan, endsAtMs }, config.appUrl);
+   const response = await fetchImpl('https://api.resend.com/emails', {
+@@ -136,10 +207,9 @@ export async function runTrialReminders(config, deps) {
+     const endsAtMs = toMs(m.trial?.endsAt);
+     const email = normalizeEmail(m.email || m.id || '');
+     const trialPlan = m.trial?.plan;
+-    if (!endsAtMs || !email || !['boost', 'impact'].includes(trialPlan)) { out.skipped += 1; continue; }
++    if (!endsAtMs || !email || !TRIAL_PLANS.includes(trialPlan)) { out.skipped += 1; continue; }
+     // Sudah bayar paket yang dicoba (atau lebih tinggi)? Tidak perlu diingatkan.
+-    const rank = { none: 0, spark: 1, boost: 2, impact: 3 };
+-    if ((rank[m.plan] ?? 0) >= rank[trialPlan]) { out.skipped += 1; out.items.push({ to: maskEmail(email), status: 'already-upgraded' }); continue; }
++    if ((PLAN_RANK[m.plan] ?? 0) >= PLAN_RANK[trialPlan]) { out.skipped += 1; out.items.push({ to: maskEmail(email), status: 'already-upgraded' }); continue; }
+     const ref = db.collection('trialReminders').doc(reminderId(email, endsAtMs));
+     if ((await ref.get()).exists) { out.skipped += 1; out.items.push({ to: maskEmail(email), status: 'already-sent' }); continue; }
+     if (deps.dryRun) { out.items.push({ to: maskEmail(email), plan: trialPlan, status: 'would-send' }); continue; }
+diff --git a/api/_lib/voucher-trial.test.js b/api/_lib/voucher-trial.test.js
+new file mode 100644
+index 0000000..0704e26
+--- /dev/null
++++ b/api/_lib/voucher-trial.test.js
+@@ -0,0 +1,136 @@
++import { describe, expect, it, vi } from 'vitest';
++import { FakeDb, FakeFieldValue, FakeTimestamp } from './fake-firestore.test-helper.js';
++import { buildTrialReminderEmail, checkVoucherTrial, DAY_MS } from './trial-core.js';
++import { redeemTrialVoucher, runTrialReminders, startSelfTrial } from './trial-server.js';
++import { createRedeemTrialHandler } from '../voucher/redeem-trial.js';
++
++const NOW = Date.UTC(2026, 9, 25, 3, 0, 0);
++const WEBINAR = { code: 'WEBINARSPARK', kind: 'trial', trialDays: 3, plan: 'spark', maxUses: 2, uses: 0, active: true, expiresAt: null, batch: 'webinar', note: '' };
++
++function setup({ voucher = WEBINAR, membership = null, user = false } = {}) {
++  const db = new FakeDb();
++  db.now = () => NOW;
++  if (voucher) db.write(`vouchers/${voucher.code}`, 'set', voucher);
++  if (user) db.write('users/u1', 'set', { email: 'a@x.id', role: 'user' });
++  if (membership) db.write('memberships/a@x.id', 'set', { email: 'a@x.id', name: 'Ana', trial: null, trialsUsed: { boost: false, impact: false }, note: '', ...membership });
++  let n = 0;
++  const redeemed = new Set();
++  const deps = {
++    db, FieldValue: FakeFieldValue, Timestamp: FakeTimestamp, now: () => NOW, newId: () => `audit${(n += 1)}`,
++    hasTrialRedemption: async (uid) => db.all('redemptions').some((r) => r.uid === uid && r.kind === 'trial') || redeemed.has(uid),
++  };
++  return { db, deps };
++}
++
++const ana = { uid: 'u1', email: 'A@x.id', name: 'Ana Webinar' };
++
++describe('checkVoucherTrial', () => {
++  const base = { voucher: WEBINAR, membership: null, email: 'a@x.id', nowMs: NOW, alreadyRedeemedTrial: false };
++  it('akun baru boleh; voucher paket biasa bukan urusan endpoint ini', () => {
++    expect(checkVoucherTrial(base)).toEqual({ ok: true, plan: 'spark', days: 3 });
++    expect(checkVoucherTrial({ ...base, voucher: { ...WEBINAR, kind: undefined } }).reason).toBe('not_trial');
++  });
++  it('menolak paket ≥ trial, trial kedua, trial yang masih jalan, kedaluwarsa, kuota habis', () => {
++    expect(checkVoucherTrial({ ...base, membership: { plan: 'spark' } }).reason).toBe('trial_not_higher');
++    expect(checkVoucherTrial({ ...base, membership: { plan: 'impact' } }).reason).toBe('trial_not_higher');
++    expect(checkVoucherTrial({ ...base, alreadyRedeemedTrial: true }).reason).toBe('trial_used');
++    expect(checkVoucherTrial({ ...base, membership: { plan: 'none', trialsUsed: { voucher: true } } }).reason).toBe('trial_used');
++    const boostVoucher = { ...WEBINAR, plan: 'boost' };
++    const running = { plan: 'none', trial: { plan: 'spark', endsAt: FakeTimestamp.fromMillis(NOW + 3_600_000) } };
++    expect(checkVoucherTrial({ ...base, voucher: boostVoucher, membership: running }).reason).toBe('trial_active');
++    expect(checkVoucherTrial({ ...base, voucher: { ...WEBINAR, expiresAt: FakeTimestamp.fromMillis(NOW - 1) } }).reason).toBe('expired');
++    expect(checkVoucherTrial({ ...base, voucher: { ...WEBINAR, uses: 2 } }).reason).toBe('used_up');
++    expect(checkVoucherTrial({ ...base, voucher: { ...WEBINAR, active: false } }).reason).toBe('inactive');
++    expect(checkVoucherTrial({ ...base, voucher: { ...WEBINAR, trialDays: 99 } }).reason).toBe('invalid');
++  });
++});
++
++describe('redeemTrialVoucher', () => {
++  it('peserta webinar baru: akun dibuat, paket tetap none, trial Spark 3 hari, voucher +1', async () => {
++    const { db, deps } = setup();
++    const r = await redeemTrialVoucher(ana, 'WEBINARSPARK', deps);
++    expect(r).toMatchObject({ ok: true, plan: 'spark', days: 3, endsAtMs: NOW + 3 * DAY_MS, newUser: true });
++    const m = db.snap('memberships/a@x.id').data();
++    expect(m.plan).toBe('none');
++    expect(m.trial.plan).toBe('spark');
++    expect(m.trial.startedAt.toMillis()).toBe(NOW);
++    expect(m.trial.endsAt.toMillis()).toBe(NOW + 3 * DAY_MS);
++    expect(m.trialsUsed).toEqual({ boost: false, impact: false, spark: true, voucher: true });
++    expect(m.lastRedemptionId).toBe('WEBINARSPARK_u1');
++    expect(db.snap('users/u1').data()).toMatchObject({ role: 'user', viaVoucher: 'WEBINARSPARK', displayName: 'Ana Webinar' });
++    expect(db.snap('vouchers/WEBINARSPARK').data().uses).toBe(1);
++    expect(db.snap('redemptions/WEBINARSPARK_u1').data()).toMatchObject({ kind: 'trial', trialDays: 3, plan: 'spark', email: 'a@x.id' });
++    expect(db.snap(`auditLogs/${m.lastAuditId}`).data().action).toBe('membership.trial_voucher');
++  });
++
++  it('sekali per akun: kode yang sama atau voucher trial lain ditolak', async () => {
++    const { db, deps } = setup();
++    db.write('vouchers/WEBINARBOOST', 'set', { ...WEBINAR, code: 'WEBINARBOOST', plan: 'boost' });
++    await redeemTrialVoucher(ana, 'WEBINARSPARK', deps);
++    expect(await redeemTrialVoucher(ana, 'WEBINARSPARK', deps)).toEqual({ ok: false, reason: 'trial_used' });
++    deps.now = () => NOW + 4 * DAY_MS; // trial Spark sudah habis
++    expect(await redeemTrialVoucher(ana, 'WEBINARBOOST', deps)).toEqual({ ok: false, reason: 'trial_used' });
++  });
++
++  it('pemilik paket ≥ Spark ditolak dan datanya tidak berubah', async () => {
++    const { db, deps } = setup({ membership: { plan: 'boost' }, user: true });
++    const before = JSON.stringify(db.snap('memberships/a@x.id').data());
++    expect(await redeemTrialVoucher(ana, 'WEBINARSPARK', deps)).toEqual({ ok: false, reason: 'trial_not_higher' });
++    expect(JSON.stringify(db.snap('memberships/a@x.id').data())).toBe(before);
++    expect(db.snap('vouchers/WEBINARSPARK').data().uses).toBe(0);
++  });
++
++  it('kuota habis ditolak', async () => {
++    const { deps } = setup({ voucher: { ...WEBINAR, uses: 2 } });
++    expect(await redeemTrialVoucher(ana, 'WEBINARSPARK', deps)).toEqual({ ok: false, reason: 'used_up' });
++  });
++
++  it('trial mandiri setelahnya tidak menghapus penanda voucher', async () => {
++    const { db, deps } = setup({ membership: { plan: 'spark', trialsUsed: { boost: false, impact: false, voucher: true } }, user: true });
++    await startSelfTrial({ uid: 'u1', email: 'a@x.id' }, deps);
++    expect(db.snap('memberships/a@x.id').data().trialsUsed).toEqual({ boost: true, impact: false, voucher: true });
++  });
++});
++
++describe('POST /api/voucher/redeem-trial', () => {
++  const fakeRes = () => {
++    const r = { statusCode: 0, headers: {}, body: null };
++    r.setHeader = (k, v) => { r.headers[k] = v; };
++    r.end = (s) => { r.body = JSON.parse(s); };
++    return r;
++  };
++  it('401 tanpa token, 400 kode salah format, 403 email belum verifikasi, 200 sukses, 409 ulang', async () => {
++    const { deps } = setup();
++    const server = { ...deps, verifyIdToken: async (t) => ({ uid: 'u1', email: 'a@x.id', email_verified: t === 'ok' }) };
++    const h = createRedeemTrialHandler({ server, log: { info() {}, error() {} } });
++    const req = (auth, body) => ({ method: 'POST', headers: auth ? { authorization: `Bearer ${auth}` } : {}, body });
++    let res = fakeRes(); await h(req(null, { code: 'WEBINARSPARK' }), res); expect(res.statusCode).toBe(401);
++    res = fakeRes(); await h(req('ok', { code: 'x' }), res); expect(res.statusCode).toBe(400);
++    res = fakeRes(); await h(req('nope', { code: 'WEBINARSPARK' }), res); expect(res.statusCode).toBe(403);
++    res = fakeRes(); await h(req('ok', { code: ' webinarspark ', name: 'Ana' }), res);
++    expect(res.statusCode).toBe(200);
++    expect(res.body).toMatchObject({ ok: true, plan: 'spark', days: 3 });
++    res = fakeRes(); await h(req('ok', { code: 'WEBINARSPARK' }), res);
++    expect(res.statusCode).toBe(409);
++    expect(res.body.reason).toBe('trial_used');
++  });
++});
++
++describe('pengingat H-1 untuk trial Spark', () => {
++  const config = { resendApiKey: 're_test', emailFrom: 'GenZ Preneur <akses@genzpreneur.id>', appUrl: 'https://genzpreneur.id' };
++  it('peserta webinar (paket none) dengan trial Spark diingatkan', async () => {
++    const { deps } = setup();
++    const sendEmail = vi.fn(async () => 'msg1');
++    const rows = [{ id: 'a@x.id', email: 'a@x.id', name: 'Ana', plan: 'none', trial: { plan: 'spark', endsAt: FakeTimestamp.fromMillis(NOW + 20 * 3_600_000) } }];
++    expect(await runTrialReminders(config, { ...deps, sendEmail, listEndingTrials: async () => rows })).toMatchObject({ sent: 1 });
++    expect(sendEmail).toHaveBeenCalledWith(expect.objectContaining({ trialPlan: 'spark' }));
++  });
++  it('isi email Spark: harga Rp79.000 + link GoAkal Spark', () => {
++    const e = buildTrialReminderEmail({ name: 'Ana', trialPlan: 'spark', endsAtMs: NOW }, 'https://genzpreneur.id');
++    expect(e.subject).toContain('GenZ Spark');
++    expect(e.html).toContain('Rp79.000');
++    expect(e.html).toContain('https://goakal.com/genzpreneur/webinar-b1/z7x0w/apply');
++    expect(e.text).toContain('Rp79.000');
++    expect(e.text).toMatch(/Misi Pertama/);
++  });
++});
+diff --git a/api/voucher/redeem-trial.js b/api/voucher/redeem-trial.js
+new file mode 100644
+index 0000000..3f3ec43
+--- /dev/null
++++ b/api/voucher/redeem-trial.js
+@@ -0,0 +1,63 @@
++// POST /api/voucher/redeem-trial — peserta menukar voucher TRIAL (mis. peserta webinar, gratis).
++// Paket tidak berubah; peserta mendapat trial paket voucher selama N hari. Sekali per akun.
++// Wajib header: Authorization: Bearer <Firebase ID token peserta yang login>
++// Body: { code: "WEBINARSPARK", name: "Nama Lengkap" }
++// Env: FIREBASE_SERVICE_ACCOUNT_JSON
++import { realDeps, redeemTrialVoucher } from '../_lib/trial-server.js';
++import { bearer, readJson, send } from '../_lib/http.js';
++
++const CODE_RE = /^[A-Z0-9-]{4,32}$/;
++
++const REASON_MSG = {
++  not_found: 'Kode voucher tidak ditemukan. Cek lagi penulisannya.',
++  not_trial: 'Kode ini bukan voucher trial.',
++  invalid: 'Voucher ini belum diatur dengan benar. Hubungi tim GenZ Preneur.',
++  inactive: 'Kode voucher ini sudah dinonaktifkan. Hubungi tim GenZ Preneur.',
++  expired: 'Kode voucher ini sudah kedaluwarsa.',
++  used_up: 'Kuota pemakaian kode voucher ini sudah habis.',
++  wrong_email: 'Voucher ini terkunci ke email lain.',
++  trial_not_higher: 'Paketmu sekarang sudah mencakup isi trial ini, jadi tidak perlu ditukar.',
++  trial_used: 'Akunmu sudah pernah memakai voucher trial. Voucher trial hanya berlaku sekali per akun.',
++  trial_active: 'Trial-mu yang sekarang masih berjalan. Tukar kode ini setelah trial itu selesai.',
++};
++
++export function createRedeemTrialHandler(deps = {}) {
++  const env = deps.env || process.env;
++  const log = deps.log || console;
++  return async function handler(req, res) {
++    if (req.method !== 'POST') {
++      res.setHeader('Allow', 'POST');
++      return send(res, 405, { error: 'Method not allowed' });
++    }
++    const token = bearer(req);
++    if (!token) return send(res, 401, { error: 'Unauthorized' });
++    let body;
++    try { body = await readJson(req); } catch (e) { return send(res, e.statusCode || 400, { error: 'Permintaan tidak valid.' }); }
++    const code = String(body?.code || '').trim().toUpperCase().replace(/\s+/g, '');
++    if (!CODE_RE.test(code)) return send(res, 400, { error: 'Format kode tidak valid (4–32 huruf/angka).' });
++    const saJson = String(env.FIREBASE_SERVICE_ACCOUNT_JSON || '').trim();
++    if (!saJson && !deps.server) {
++      log.error('[redeem-trial] FIREBASE_SERVICE_ACCOUNT_JSON kosong');
++      return send(res, 500, { error: 'Server belum dikonfigurasi' });
++    }
++    let server;
++    try { server = deps.server || (await realDeps(saJson)); } catch (e) {
++      log.error('[redeem-trial] init gagal', e instanceof Error ? e.message.slice(0, 120) : 'unknown');
++      return send(res, 500, { error: 'Server belum dikonfigurasi' });
++    }
++    let user;
++    try { user = await server.verifyIdToken(token); } catch { return send(res, 401, { error: 'Sesi tidak valid, silakan masuk ulang.' }); }
++    if (!user?.uid || !user.email || user.email_verified !== true) return send(res, 403, { error: 'Email belum terverifikasi. Masuk lewat link yang dikirim ke emailmu.' });
++    try {
++      const result = await redeemTrialVoucher({ uid: user.uid, email: user.email, name: body?.name }, code, server);
++      if (!result.ok) return send(res, 409, { error: REASON_MSG[result.reason] || 'Voucher tidak bisa ditukar.', reason: result.reason });
++      log.info('[redeem-trial]', { plan: result.plan, days: result.days, newUser: result.newUser });
++      return send(res, 200, { ok: true, plan: result.plan, days: result.days, endsAt: new Date(result.endsAtMs).toISOString() });
++    } catch (e) {
++      log.error('[redeem-trial] gagal', e instanceof Error ? e.message.slice(0, 160) : 'unknown');
++      return send(res, 500, { error: 'Gagal menukar voucher. Coba lagi sebentar.' });
++    }
++  };
++}
++
++export default createRedeemTrialHandler();
+diff --git a/firestore.rules b/firestore.rules
+index e26be88..d8d065b 100644
+--- a/firestore.rules
++++ b/firestore.rules
+@@ -266,7 +266,8 @@ service cloud.firestore {
+       function validTrial(t) {
+         return t == null || (
+           t is map && t.keys().hasOnly(['plan', 'days', 'startedAt', 'endsAt'])
+-          && t.plan in ['boost', 'impact'] && t.days in [3, 7]
++          && t.plan in ['spark', 'boost', 'impact']
++          && t.days is int && t.days >= 1 && t.days <= 30
+           && t.startedAt is timestamp && t.endsAt is timestamp
+         );
+       }
+@@ -277,12 +278,13 @@ service cloud.firestore {
+           && isShortString(d.name, 80)
+           && d.plan in ['none', 'spark', 'boost', 'impact']
+           && validTrial(d.trial)
+-          && d.trialsUsed is map && d.trialsUsed.keys().hasOnly(['boost', 'impact'])
++          && d.trialsUsed is map && d.trialsUsed.keys().hasOnly(['boost', 'impact', 'spark', 'voucher'])
+           && isShortString(d.note, 300)
+           && d.updatedBy == request.auth.uid
+           && d.updatedAt == request.time;
+       }
+-      // Peserta menukar voucher: paket = paket voucher, hanya NAIK, trial & catatan tidak boleh diubah.
++      // Peserta menukar voucher PAKET: paket = paket voucher, hanya NAIK, trial & catatan tidak boleh diubah.
++      // Voucher TRIAL tidak lewat sini — ditukar di server (/api/voucher/redeem-trial) karena butuh jam server.
+       function voucherUpgrade() {
+         let d = request.resource.data;
+         return myEmail() == email
+@@ -310,10 +312,18 @@ service cloud.firestore {
+     // Peserta yang login hanya bisa MEMBACA satu kode yang ia ketik (bukan melihat daftar),
+     // dan menambah pemakaian +1 bersamaan dengan membuat catatan penukaran.
+     match /vouchers/{code} {
++      function isTrialVoucher(v) {
++        return 'kind' in v && v.kind == 'trial';
++      }
+       function validVoucher() {
+         let d = request.resource.data;
+-        return d.keys().hasOnly(['code', 'plan', 'maxUses', 'uses', 'active', 'expiresAt', 'batch', 'note', 'createdBy', 'createdAt', 'updatedAt', 'assignedEmail', 'source', 'sourcePaymentId'])
++        return d.keys().hasOnly(['code', 'kind', 'trialDays', 'plan', 'maxUses', 'uses', 'active', 'expiresAt', 'batch', 'note', 'createdBy', 'createdAt', 'updatedAt', 'assignedEmail', 'source', 'sourcePaymentId'])
+           && d.code == code
++          // kind: 'plan' (paket permanen; boleh tidak ada di voucher lama) atau 'trial' (wajib trialDays 1–30).
++          && (!('kind' in d) || d.kind in ['plan', 'trial'])
++          && (('kind' in d && d.kind == 'trial')
++                ? (d.trialDays is int && d.trialDays >= 1 && d.trialDays <= 30)
++                : !('trialDays' in d))
+           && code.matches('^[A-Z0-9-]{4,32}$')
+           && d.plan in ['spark', 'boost', 'impact']
+           && d.maxUses is int && d.maxUses >= 1 && d.maxUses <= 100000
+@@ -347,6 +357,7 @@ service cloud.firestore {
+             && request.resource.data.uses == resource.data.uses + 1
+             && request.resource.data.uses <= resource.data.maxUses
+             && resource.data.active == true
++            && !isTrialVoucher(resource.data)
+             && (!('assignedEmail' in resource.data) || resource.data.assignedEmail == myEmail())
+             && (resource.data.expiresAt == null || request.time < resource.data.expiresAt)
+             && request.resource.data.updatedAt == request.time
+@@ -356,6 +367,7 @@ service cloud.firestore {
+ 
+     // ---------- redemptions/{code_uid} ----------
+     // Catatan penukaran voucher. Satu kode hanya bisa ditukar sekali per akun. Tidak bisa diubah/dihapus.
++    // Dari browser hanya voucher PAKET; penukaran voucher trial ditulis server (Admin SDK).
+     match /redemptions/{rid} {
+       allow read: if isAdmin() || (signedIn() && resource.data.uid == request.auth.uid);
+       allow create: if signedIn()
+@@ -365,6 +377,7 @@ service cloud.firestore {
+         && request.resource.data.email == myEmail()
+         && request.auth.token.email_verified == true
+         && exists(/databases/$(database)/documents/vouchers/$(request.resource.data.code))
++        && get(/databases/$(database)/documents/vouchers/$(request.resource.data.code)).data.get('kind', 'plan') != 'trial'
+         && request.resource.data.plan == get(/databases/$(database)/documents/vouchers/$(request.resource.data.code)).data.plan
+         && getAfter(/databases/$(database)/documents/vouchers/$(request.resource.data.code)).data.uses
+             == get(/databases/$(database)/documents/vouchers/$(request.resource.data.code)).data.uses + 1
+diff --git a/src/lib/data.ts b/src/lib/data.ts
+index 5ad1d9d..3486145 100644
+--- a/src/lib/data.ts
++++ b/src/lib/data.ts
+@@ -26,7 +26,7 @@ import { auth, db } from './firebase';
+ import { isRole, type Role } from './roles';
+ import { normalizePassport, passportSchema, type Passport } from './passport';
+ import {
+-  buildTrial, isPlanKey, normalizeEmail, type Membership, type PlanKey, type Trial, type TrialPlan,
++  buildTrial, isPlanKey, normalizeEmail, rank, type Membership, type PlanKey, type Trial, type TrialPlan,
+ } from './membership';
+ import { normalizeCode, type Voucher } from './voucher';
+ import { encodeMissionDraft, missionKey, type MissionDraft } from './mission';
+@@ -367,7 +367,7 @@ function toTrial(v: unknown): Trial | null {
+   const t = v as Record<string, unknown>;
+   const startedAt = toDate(t.startedAt);
+   const endsAt = toDate(t.endsAt);
+-  if ((t.plan !== 'boost' && t.plan !== 'impact') || !startedAt || !endsAt) return null;
++  if ((t.plan !== 'spark' && t.plan !== 'boost' && t.plan !== 'impact') || !startedAt || !endsAt) return null;
+   return { plan: t.plan, days: Number(t.days ?? 0), startedAt, endsAt };
+ }
+ 
+@@ -378,7 +378,10 @@ function toMembership(id: string, d: Record<string, unknown>): Membership {
+     name: String(d.name ?? ''),
+     plan: isPlanKey(d.plan) ? d.plan : 'none',
+     trial: toTrial(d.trial),
+-    trialsUsed: { boost: used.boost === true, impact: used.impact === true },
++    trialsUsed: {
++      boost: used.boost === true, impact: used.impact === true,
++      ...(used.spark === true ? { spark: true } : {}), ...(used.voucher === true ? { voucher: true } : {}),
++    },
+     note: String(d.note ?? ''),
+     updatedAt: toDate(d.updatedAt),
+   };
+@@ -605,8 +608,11 @@ export async function sendInviteLink(email: string) {
+ 
+ 
+ function toVoucher(id: string, x: Record<string, unknown>): Voucher {
++  const kind = x.kind === 'trial' ? 'trial' : 'plan';
+   return {
+     code: id,
++    kind,
++    trialDays: kind === 'trial' ? Number(x.trialDays ?? 0) : null,
+     plan: (x.plan === 'boost' || x.plan === 'impact' ? x.plan : 'spark'),
+     maxUses: Number(x.maxUses ?? 1),
+     uses: Number(x.uses ?? 0),
+@@ -651,6 +657,10 @@ export async function redeemVoucher(params: {
+   membership: Membership | null;
+ }) {
+   const { uid, authEmail, name, voucher, hasUserDoc, membership } = params;
++  // Voucher trial ditukar lewat server (redeemTrialVoucher), bukan di sini.
++  if (voucher.kind === 'trial') throw new Error('Voucher trial harus ditukar lewat redeemTrialVoucher.');
++  // Jangan pernah menurunkan paket (Security Rules juga menolaknya).
++  if (membership && rank(voucher.plan) <= rank(membership.plan)) throw new Error('Paket voucher tidak lebih tinggi dari paket sekarang.');
+   const email = normalizeEmail(authEmail);
+   const rid = `${voucher.code}_${uid}`;
+   const batch = writeBatch(db());
+@@ -685,13 +695,16 @@ export async function listVouchers(max = 5000): Promise<Voucher[]> {
+ 
+ export async function createVouchers(params: {
+   actorUid: string; codes: string[]; plan: Voucher['plan']; maxUses: number; expiresAt: Date | null; batch: string; note: string;
++  /** Diisi untuk voucher trial; kosong = voucher paket permanen. */
++  trialDays?: number;
+ }) {
++  const kindFields = params.trialDays ? { kind: 'trial', trialDays: params.trialDays } : { kind: 'plan' };
+   const { codes } = params;
+   for (let i = 0; i < codes.length; i += 400) {
+     const b = writeBatch(db());
+     for (const code of codes.slice(i, i + 400)) {
+       b.set(doc(db(), 'vouchers', code), {
+-        code, plan: params.plan, maxUses: params.maxUses, uses: 0, active: true,
++        code, ...kindFields, plan: params.plan, maxUses: params.maxUses, uses: 0, active: true,
+         expiresAt: params.expiresAt, batch: params.batch.trim().slice(0, 60), note: params.note.trim().slice(0, 300),
+         createdBy: params.actorUid, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
+       });
+@@ -713,13 +726,16 @@ export async function setVouchersActive(codes: string[], active: boolean) {
+   }
+ }
+ 
+-export interface Redemption { id: string; code: string; uid: string; email: string; plan: string; createdAt: Date | null }
++export interface Redemption { id: string; code: string; uid: string; email: string; plan: string; kind: 'plan' | 'trial'; trialDays: number | null; createdAt: Date | null }
+ 
+ export async function listRedemptions(max = 2000): Promise<Redemption[]> {
+   const snap = await getDocs(query(collection(db(), 'redemptions'), limit(max)));
+   return snap.docs.map((d) => {
+     const x = d.data();
+-    return { id: d.id, code: String(x.code ?? ''), uid: String(x.uid ?? ''), email: String(x.email ?? ''), plan: String(x.plan ?? ''), createdAt: toDate(x.createdAt) };
++    return {
++      id: d.id, code: String(x.code ?? ''), uid: String(x.uid ?? ''), email: String(x.email ?? ''), plan: String(x.plan ?? ''),
++      kind: (x.kind === 'trial' ? 'trial' : 'plan') as Redemption['kind'], trialDays: x.kind === 'trial' ? Number(x.trialDays ?? 0) : null, createdAt: toDate(x.createdAt),
++    };
+   }).sort((a, b) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0));
+ }
+ 
+@@ -733,3 +749,21 @@ export async function startSelfTrial(): Promise<{ plan: string; days: number; en
+   if (!res.ok) throw new Error(typeof body?.error === 'string' ? body.error : 'Server sedang sibuk. Muat ulang halaman; kalau trial belum aktif, klik lagi.');
+   return body;
+ }
++
++/**
++ * Menukar voucher trial (mis. peserta webinar). Diproses server supaya waktu mulai/berakhir trial
++ * memakai jam server dan jatah "satu voucher trial per akun" dicek dari catatan penukaran.
++ */
++export async function redeemTrialVoucher(code: string, name: string): Promise<{ plan: string; days: number; endsAt: string }> {
++  const user = auth().currentUser;
++  if (!user) throw new Error('Silakan masuk dulu.');
++  const token = await user.getIdToken();
++  const res = await fetch('/api/voucher/redeem-trial', {
++    method: 'POST',
++    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
++    body: JSON.stringify({ code, name }),
++  });
++  const body = await res.json().catch(() => ({}));
++  if (!res.ok) throw new Error(typeof body?.error === 'string' ? body.error : 'Server sedang sibuk. Coba lagi sebentar.');
++  return body;
++}
+diff --git a/src/lib/membership.test.ts b/src/lib/membership.test.ts
+index 9b7b714..2bc1075 100644
+--- a/src/lib/membership.test.ts
++++ b/src/lib/membership.test.ts
+@@ -87,3 +87,17 @@ describe('akses fitur', () => {
+     expect(canUse('simulatorTeaser', { gatingEnabled: true, isAdmin: false, plan: 'none' })).toBe(false);
+   });
+ });
++
++describe('trial Spark dari voucher webinar', () => {
++  it('akun tanpa paket + trial Spark aktif → akses Spark; setelah habis kembali none', () => {
++    const now = new Date('2026-10-25T03:00:00Z');
++    const m = { ...base, plan: 'none' as const, trial: buildTrial('spark', 3, now), trialsUsed: { boost: false, impact: false, spark: true, voucher: true } };
++    expect(effectivePlan(m, now)).toBe('spark');
++    expect(canUse('actionPlan', { gatingEnabled: true, isAdmin: false, plan: effectivePlan(m, now) })).toBe(true);
++    expect(canUse('outreach', { gatingEnabled: true, isAdmin: false, plan: effectivePlan(m, now) })).toBe(false);
++    const later = new Date(now.getTime() + 3 * 86_400_000 + 1);
++    expect(effectivePlan(m, later)).toBe('none');
++    expect(memberStatus(m, later)).toBe('trial_expired');
++    expect(availableTrial(m, now)).toBeNull();
++  });
++});
+diff --git a/src/lib/membership.ts b/src/lib/membership.ts
+index 2119edd..1fc1a0b 100644
+--- a/src/lib/membership.ts
++++ b/src/lib/membership.ts
+@@ -8,7 +8,9 @@
+  */
+ export const PLAN_KEYS = ['none', 'spark', 'boost', 'impact'] as const;
+ export type PlanKey = (typeof PLAN_KEYS)[number];
+-export type TrialPlan = 'boost' | 'impact';
++/** Trial mandiri (dari Dashboard) hanya ke Boost/Impact; trial dari voucher webinar bisa juga Spark. */
++export type SelfTrialPlan = 'boost' | 'impact';
++export type TrialPlan = 'spark' | SelfTrialPlan;
+ 
+ export const PLAN_INFO: Record<PlanKey, { name: string; emoji: string; tile: string }> = {
+   none: { name: 'Belum ada paket', emoji: '🔒', tile: 'bg-paper-2' },
+@@ -18,7 +20,7 @@ export const PLAN_INFO: Record<PlanKey, { name: string; emoji: string; tile: str
+ };
+ 
+ /** Trial yang bisa diberikan sesuai paket saat ini. */
+-export const TRIAL_OFFER: Partial<Record<PlanKey, { plan: TrialPlan; days: number }>> = {
++export const TRIAL_OFFER: Partial<Record<PlanKey, { plan: SelfTrialPlan; days: number }>> = {
+   spark: { plan: 'boost', days: 3 },
+   boost: { plan: 'impact', days: 7 },
+ };
+@@ -30,7 +32,8 @@ export interface Membership {
+   name: string;
+   plan: PlanKey;
+   trial: Trial | null;
+-  trialsUsed: { boost: boolean; impact: boolean };
++  /** spark & voucher hanya ada (true) bila pernah dipakai — dokumen lama cukup { boost, impact }. */
++  trialsUsed: { boost: boolean; impact: boolean; spark?: boolean; voucher?: boolean };
+   note: string;
+   updatedAt: Date | null;
+ }
+diff --git a/src/lib/voucher.test.ts b/src/lib/voucher.test.ts
+index 53a4317..2bcad6f 100644
+--- a/src/lib/voucher.test.ts
++++ b/src/lib/voucher.test.ts
+@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
+ import { generateCodes, normalizeCode, randomCode, VOUCHER_RE, voucherProblem, type Voucher } from './voucher';
+ 
+ const now = new Date('2026-10-16T10:00:00Z');
+-const v: Voucher = { code: 'BOOST-ABCD2345', plan: 'boost', maxUses: 10, uses: 3, active: true, expiresAt: null, batch: '', note: '', createdAt: null };
++const v: Voucher = { code: 'BOOST-ABCD2345', kind: 'plan', trialDays: null, plan: 'boost', maxUses: 10, uses: 3, active: true, expiresAt: null, batch: '', note: '', createdAt: null };
+ 
+ describe('kode voucher', () => {
+   it('format & normalisasi', () => {
+@@ -37,3 +37,33 @@ describe('validasi penukaran', () => {
+     expect(voucherProblem(assigned, 'none', now, ' Buyer@Mail.ID ')).toBeNull();
+   });
+ });
++
++describe('voucher trial (mis. peserta webinar)', () => {
++  const t: Voucher = { ...v, code: 'WEBINARSPARK', kind: 'trial', trialDays: 3, plan: 'spark', maxUses: 100, uses: 0 };
++  const none = { plan: 'none' as const, trial: null, trialsUsed: { boost: false, impact: false } };
++  const hour = 3_600_000;
++
++  it('valid untuk akun baru / tanpa paket', () => {
++    expect(voucherProblem(t, 'none', now)).toBeNull();
++    expect(voucherProblem(t, 'none', now, 'a@x.id', none)).toBeNull();
++  });
++  it('ditolak bila paket (atau trial yang sedang jalan) sudah setara/lebih tinggi', () => {
++    expect(voucherProblem(t, 'spark', now, 'a@x.id', { ...none, plan: 'spark' })).toBe('trial_not_higher');
++    expect(voucherProblem(t, 'boost', now, 'a@x.id', { ...none, plan: 'boost' })).toBe('trial_not_higher');
++    const boostTrial = { plan: 'boost' as const, days: 3, startedAt: now, endsAt: new Date(now.getTime() + 48 * hour) };
++    expect(voucherProblem(t, 'none', now, 'a@x.id', { ...none, trial: boostTrial })).toBe('trial_not_higher');
++  });
++  it('sekali per akun & tidak menimpa trial yang masih jalan', () => {
++    expect(voucherProblem(t, 'none', now, 'a@x.id', { ...none, trialsUsed: { boost: false, impact: false, voucher: true } })).toBe('trial_used');
++    const sparkTrial = { plan: 'spark' as const, days: 3, startedAt: now, endsAt: new Date(now.getTime() + 2 * hour) };
++    const boostVoucher = { ...t, plan: 'boost' as const };
++    expect(voucherProblem(boostVoucher, 'none', now, 'a@x.id', { ...none, trial: sparkTrial })).toBe('trial_active');
++    const expired = { ...sparkTrial, endsAt: new Date(now.getTime() - hour) };
++    expect(voucherProblem(boostVoucher, 'none', now, 'a@x.id', { ...none, trial: expired })).toBeNull();
++  });
++  it('pemeriksaan umum tetap berlaku (nonaktif, kedaluwarsa, kuota)', () => {
++    expect(voucherProblem({ ...t, active: false }, 'none', now)).toBe('inactive');
++    expect(voucherProblem({ ...t, expiresAt: new Date('2026-10-01') }, 'none', now)).toBe('expired');
++    expect(voucherProblem({ ...t, uses: 100 }, 'none', now)).toBe('used_up');
++  });
++});
+diff --git a/src/lib/voucher.ts b/src/lib/voucher.ts
+index 610341d..8ffb737 100644
+--- a/src/lib/voucher.ts
++++ b/src/lib/voucher.ts
+@@ -1,4 +1,4 @@
+-import type { PlanKey } from './membership';
++import { effectivePlan, trialState, type Membership, type PlanKey } from './membership';
+ 
+ /** Kode voucher: huruf besar, angka, dan tanda hubung. 4–32 karakter. */
+ export const VOUCHER_RE = /^[A-Z0-9-]{4,32}$/;
+@@ -27,8 +27,18 @@ export function generateCodes(prefix: string, count: number, length = 8): string
+   return [...set];
+ }
+ 
++/**
++ * plan  = paket permanen (pembelian GoAkal, voucher manual lama).
++ * trial = coba paket selama `trialDays` hari tanpa mengubah paket (mis. peserta webinar gratis).
++ */
++export type VoucherKind = 'plan' | 'trial';
++export const TRIAL_DAYS_MAX = 30;
++
+ export interface Voucher {
+   code: string;
++  kind: VoucherKind;
++  /** Hanya untuk kind 'trial'. */
++  trialDays: number | null;
+   plan: Exclude<PlanKey, 'none'>;
+   maxUses: number;
+   uses: number;
+@@ -42,17 +52,31 @@ export interface Voucher {
+   createdAt: Date | null;
+ }
+ 
+-export type VoucherProblem = 'not_found' | 'inactive' | 'expired' | 'used_up' | 'not_higher' | 'wrong_email' | null;
++export type VoucherProblem = 'not_found' | 'inactive' | 'expired' | 'used_up' | 'not_higher' | 'wrong_email'
++  | 'trial_used' | 'trial_active' | 'trial_not_higher' | null;
+ 
+ const RANK: Record<PlanKey, number> = { none: 0, spark: 1, boost: 2, impact: 3 };
+ 
+-/** Cek apakah voucher bisa ditukar oleh peserta dengan paket saat ini. Server tetap memeriksa ulang. */
+-export function voucherProblem(v: Voucher | null, currentPlan: PlanKey, now: Date, signedInEmail?: string): VoucherProblem {
++/**
++ * Cek apakah voucher bisa ditukar oleh peserta dengan paket saat ini. Server tetap memeriksa ulang.
++ * `membership` dipakai untuk voucher trial (trial yang sedang jalan & jatah satu trial voucher per akun).
++ */
++export function voucherProblem(
++  v: Voucher | null, currentPlan: PlanKey, now: Date, signedInEmail?: string,
++  membership?: Pick<Membership, 'plan' | 'trial' | 'trialsUsed'> | null,
++): VoucherProblem {
+   if (!v) return 'not_found';
+   if (!v.active) return 'inactive';
+   if (v.expiresAt && now >= v.expiresAt) return 'expired';
+   if (v.uses >= v.maxUses) return 'used_up';
+   if (v.assignedEmail && v.assignedEmail !== signedInEmail?.trim().toLowerCase()) return 'wrong_email';
++  if (v.kind === 'trial') {
++    if (RANK[v.plan] <= RANK[membership ? effectivePlan(membership, now) : currentPlan]) return 'trial_not_higher';
++    if (membership?.trialsUsed.voucher) return 'trial_used';
++    const s = trialState(membership ?? null, now);
++    if (s === 'active' || s === 'ending') return 'trial_active';
++    return null;
++  }
+   if (RANK[v.plan] <= RANK[currentPlan]) return 'not_higher';
+   return null;
+ }
+@@ -64,4 +88,7 @@ export const VOUCHER_PROBLEM_TEXT: Record<Exclude<VoucherProblem, null>, string>
+   used_up: 'Kuota pemakaian kode voucher ini sudah habis.',
+   wrong_email: 'Voucher ini hanya bisa dipakai dengan email yang digunakan saat membeli di GoAkal.',
+   not_higher: 'Paketmu sekarang sudah setara atau lebih tinggi dari isi voucher ini.',
++  trial_used: 'Akunmu sudah pernah memakai voucher trial. Voucher trial hanya berlaku sekali per akun.',
++  trial_active: 'Trial-mu yang sekarang masih berjalan. Tukar kode ini setelah trial itu selesai.',
++  trial_not_higher: 'Kabar baik: paketmu sekarang sudah mencakup isi trial ini, jadi kamu tidak perlu menukarnya. Langsung lanjut belajar di Dashboard.',
+ };
+diff --git a/src/pages/VoucherPage.tsx b/src/pages/VoucherPage.tsx
+index aecc05a..b712e2a 100644
+--- a/src/pages/VoucherPage.tsx
++++ b/src/pages/VoucherPage.tsx
+@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
+ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+ import { z } from 'zod';
+ import { authErrorMessage, useAuth } from '../auth/AuthProvider';
+-import { getMembership, getUserRecord, getVoucher, redeemVoucher } from '../lib/data';
++import { getMembership, getUserRecord, getVoucher, redeemTrialVoucher, redeemVoucher } from '../lib/data';
+ import { PLAN_INFO } from '../lib/membership';
+ import { normalizeCode, VOUCHER_PROBLEM_TEXT, VOUCHER_RE, voucherProblem } from '../lib/voucher';
+ import { isFirebaseConfigured } from '../lib/firebase';
+@@ -22,7 +22,7 @@ export function RedeemVoucherForm({ initialCode = '', onDone }: { initialCode?:
+   const [name, setName] = useState(profile?.displayName ?? firebaseUser?.displayName ?? '');
+   const [error, setError] = useState('');
+   const [busy, setBusy] = useState(false);
+-  const [success, setSuccess] = useState<string | null>(null);
++  const [success, setSuccess] = useState<{ plan: string; trialDays?: number; endsAt?: string } | null>(null);
+   const needName = !profile;
+ 
+   async function submit(e: FormEvent) {
+@@ -38,14 +38,19 @@ export function RedeemVoucherForm({ initialCode = '', onDone }: { initialCode?:
+       const [found, membership, userRec] = await Promise.all([getVoucher(c), getMembership(email).catch(() => null), getUserRecord(firebaseUser.uid).catch(() => null)]);
+       if (found === 'wrong_email') { setError(VOUCHER_PROBLEM_TEXT.wrong_email); return; }
+       const voucher = found;
+-      const problem = voucherProblem(voucher, membership?.plan ?? 'none', new Date(), email);
++      const problem = voucherProblem(voucher, membership?.plan ?? 'none', new Date(), email, membership);
+       if (problem) { setError(VOUCHER_PROBLEM_TEXT[problem]); return; }
+-      await redeemVoucher({
+-        uid: firebaseUser.uid, authEmail: email, name: name || profile?.displayName || email.split('@')[0],
+-        voucher: voucher!, hasUserDoc: !!userRec, membership,
+-      });
+-      writePendingVoucher(null);
+-      setSuccess(PLAN_INFO[voucher!.plan].name);
++      const displayName = name || profile?.displayName || email.split('@')[0];
++      if (voucher!.kind === 'trial') {
++        // Voucher trial (mis. peserta webinar) diproses server: paket tetap, hanya trial yang diisi.
++        const r = await redeemTrialVoucher(voucher!.code, displayName);
++        writePendingVoucher(null);
++        setSuccess({ plan: PLAN_INFO[voucher!.plan].name, trialDays: r.days, endsAt: r.endsAt });
++      } else {
++        await redeemVoucher({ uid: firebaseUser.uid, authEmail: email, name: displayName, voucher: voucher!, hasUserDoc: !!userRec, membership });
++        writePendingVoucher(null);
++        setSuccess({ plan: PLAN_INFO[voucher!.plan].name });
++      }
+       await refreshProfile();
+       onDone?.();
+     } catch (err) {
+@@ -53,6 +58,7 @@ export function RedeemVoucherForm({ initialCode = '', onDone }: { initialCode?:
+       const code = (err as { code?: string }).code;
+       setError(code === 'permission-denied'
+         ? 'Voucher ditolak server. Kemungkinan kode ini sudah pernah kamu pakai, kuotanya baru saja habis, atau emailmu belum terverifikasi lewat link masuk.'
++        : !code && err instanceof Error && err.message && !err.message.includes('fetch') ? err.message
+         : 'Gagal menukar voucher. Periksa koneksi lalu coba lagi.');
+     } finally {
+       setBusy(false);
+@@ -63,7 +69,15 @@ export function RedeemVoucherForm({ initialCode = '', onDone }: { initialCode?:
+     return (
+       <div role="status" className="space-y-3 rounded-3xl border-2 border-ink bg-lime/60 p-5 text-sm">
+         <p className="font-display text-lg font-extrabold">🎉 Voucher berhasil ditukar!</p>
+-        <p>Paketmu sekarang: <strong>{success}</strong>. Selamat belajar & eksekusi!</p>
++        {success.trialDays ? (
++          <p>
++            Trial <strong>{success.plan} {success.trialDays} hari</strong> aktif
++            {success.endsAt && <> sampai <strong>{new Date(success.endsAt).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</strong></>}.
++            {' '}Mulai dari Misi Pertama — kerjakan tahap 1 hari ini.
++          </p>
++        ) : (
++          <p>Paketmu sekarang: <strong>{success.plan}</strong>. Selamat belajar & eksekusi!</p>
++        )}
+         <a href={isFirebaseConfigured ? '/app' : '#'} className="btn-primary">Buka dashboard →</a>
+       </div>
+     );
+@@ -81,7 +95,7 @@ export function RedeemVoucherForm({ initialCode = '', onDone }: { initialCode?:
+         <label htmlFor="v-code" className="label">Kode voucher</label>
+         <input id="v-code" className="input font-mono uppercase tracking-wider placeholder:normal-case placeholder:tracking-normal" autoComplete="off" placeholder="mis. BOOST-7KQ2M9XA"
+           value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} aria-invalid={!!error} />
+-        <p className="hint">Kode ada di halaman/email konfirmasi pembelianmu.</p>
++        <p className="hint">Kode ada di email konfirmasi pembelianmu, atau dibagikan saat webinar.</p>
+       </div>
+       {error && <p role="alert" className="rounded-lg bg-danger-soft px-3 py-2 text-sm text-danger">{error}</p>}
+       <button type="submit" className="btn-accent w-full" disabled={busy}>{busy ? 'Memeriksa…' : 'Tukar voucher'}</button>
+@@ -126,7 +140,7 @@ export default function VoucherPage() {
+   return (
+     <AuthShell
+       title="Akses voucher"
+-      subtitle="Sudah beli paket GenZ Preneur? Tukarkan kode vouchermu di sini untuk mengaktifkan akses."
++      subtitle="Sudah beli paket atau ikut webinar GenZ Preneur? Tukarkan kodemu di sini untuk mengaktifkan akses."
+       footer={<>Belum punya voucher? <Link to="/#harga" className="font-semibold text-ink underline">Lihat paket</Link> · {firebaseUser ? <Link to="/" className="font-semibold text-ink underline">Beranda</Link> : <Link to="/masuk" className="font-semibold text-ink underline">Masuk</Link>}</>}
+     >
+       <nav aria-label="Navigasi halaman voucher" className="mb-6">
+diff --git a/src/pages/admin/AdminVouchers.tsx b/src/pages/admin/AdminVouchers.tsx
+index e93efb9..0d36b53 100644
+--- a/src/pages/admin/AdminVouchers.tsx
++++ b/src/pages/admin/AdminVouchers.tsx
+@@ -2,12 +2,18 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react
+ import { useAuth } from '../../auth/AuthProvider';
+ import { createVouchers, listRedemptions, listVouchers, setVoucherActive, setVouchersActive, type Redemption } from '../../lib/data';
+ import { PLAN_INFO } from '../../lib/membership';
+-import { generateCodes, normalizeCode, VOUCHER_RE, type Voucher } from '../../lib/voucher';
++import { generateCodes, normalizeCode, TRIAL_DAYS_MAX, VOUCHER_RE, type Voucher, type VoucherKind } from '../../lib/voucher';
+ import { CopyButton, EmptyState, ErrorState, PageSkeleton, useToast } from '../../components/ui';
+ 
+ type Mode = 'unique' | 'shared';
+ type PaidPlan = Voucher['plan'];
+ 
++/** Label isi voucher, mis. "⚡ Spark" atau "⚡ Spark · trial 3 hari". */
++function contentLabel(plan: PaidPlan, kind: VoucherKind, days: number | null) {
++  const base = `${PLAN_INFO[plan].emoji} ${PLAN_INFO[plan].name.replace('GenZ ', '')}`;
++  return kind === 'trial' ? `${base} · trial ${days} hari` : base;
++}
++
+ function statusOf(v: Voucher, now: Date) {
+   if (!v.active) return { l: 'Nonaktif', cls: 'bg-paper-2' };
+   if (v.expiresAt && now >= v.expiresAt) return { l: 'Kedaluwarsa', cls: 'bg-pink' };
+@@ -28,7 +34,7 @@ export default function AdminVouchers() {
+   const [busy, setBusy] = useState(false);
+   const [created, setCreated] = useState<string[] | null>(null);
+   const [form, setForm] = useState({
+-    mode: 'unique' as Mode, plan: 'boost' as PaidPlan, count: '20', prefix: 'BOOST', sharedCode: '', maxUses: '50',
++    mode: 'unique' as Mode, kind: 'plan' as VoucherKind, trialDays: '3', plan: 'boost' as PaidPlan, count: '20', prefix: 'BOOST', sharedCode: '', maxUses: '50',
+     expires: '', batch: '', note: '',
+   });
+ 
+@@ -75,6 +81,10 @@ export default function AdminVouchers() {
+     if (!profile) return;
+     const expiresAt = form.expires ? new Date(`${form.expires}T23:59:59`) : null;
+     if (expiresAt && expiresAt <= new Date()) return toast('error', 'Tanggal kedaluwarsa harus di masa depan.');
++    const trialDays = form.kind === 'trial' ? Number(form.trialDays) : undefined;
++    if (trialDays !== undefined && (!Number.isInteger(trialDays) || trialDays < 1 || trialDays > TRIAL_DAYS_MAX)) {
++      return toast('error', `Lama trial 1–${TRIAL_DAYS_MAX} hari.`);
++    }
+     let codes: string[];
+     let maxUses: number;
+     if (form.mode === 'unique') {
+@@ -93,9 +103,10 @@ export default function AdminVouchers() {
+     }
+     setBusy(true);
+     try {
+-      await createVouchers({ actorUid: profile.uid, codes, plan: form.plan, maxUses, expiresAt, batch: form.batch || `${form.plan}-${new Date().toISOString().slice(0, 10)}`, note: form.note });
++      const defaultBatch = `${form.plan}${trialDays ? `-trial${trialDays}` : ''}-${new Date().toISOString().slice(0, 10)}`;
++      await createVouchers({ actorUid: profile.uid, codes, plan: form.plan, maxUses, expiresAt, batch: form.batch || defaultBatch, note: form.note, trialDays });
+       setCreated(codes);
+-      toast('success', `${codes.length} kode voucher ${PLAN_INFO[form.plan].name} dibuat.`);
++      toast('success', `${codes.length} kode voucher ${trialDays ? `trial ${PLAN_INFO[form.plan].name} ${trialDays} hari` : PLAN_INFO[form.plan].name} dibuat.`);
+       await load();
+     } catch (err) {
+       console.error(err);
+@@ -131,8 +142,8 @@ export default function AdminVouchers() {
+   if (!vouchers) return <PageSkeleton />;
+ 
+   const listText = list.map((v) => v.code).join('\n');
+-  const csv = ['kode,paket,dipakai,kuota,status,batch,kedaluwarsa', ...list.map((v) =>
+-    [v.code, v.plan, v.uses, v.maxUses, statusOf(v, now).l, v.batch, v.expiresAt?.toISOString().slice(0, 10) ?? ''].join(','))].join('\n');
++  const csv = ['kode,paket,jenis,hari_trial,dipakai,kuota,status,batch,kedaluwarsa', ...list.map((v) =>
++    [v.code, v.plan, v.kind, v.trialDays ?? '', v.uses, v.maxUses, statusOf(v, now).l, v.batch, v.expiresAt?.toISOString().slice(0, 10) ?? ''].join(','))].join('\n');
+ 
+   return (
+     <div className="space-y-6">
+@@ -140,7 +151,7 @@ export default function AdminVouchers() {
+         <p className="text-sm font-medium text-amber-ink">Command Center</p>
+         <h1 className="h-page">Voucher</h1>
+         <p className="mt-1 max-w-2xl text-sm text-muted">
+-          Buat kode untuk pembeli (mis. dari GoAkal). Pembeli menukarnya di <strong>{typeof window !== 'undefined' ? window.location.origin : ''}/voucher</strong> → akunnya otomatis aktif dengan paket voucher.
++          Buat kode untuk pembeli (mis. dari GoAkal) atau peserta webinar (voucher trial). Kode ditukar di <strong>{typeof window !== 'undefined' ? window.location.origin : ''}/voucher</strong> → akunnya otomatis aktif.
+         </p>
+       </header>
+ 
+@@ -171,7 +182,22 @@ export default function AdminVouchers() {
+           </div>
+         </fieldset>
+         <fieldset>
+-          <legend className="label">Paket yang didapat</legend>
++          <legend className="label">Isi voucher</legend>
++          <div className="grid gap-2 sm:grid-cols-2">
++            {([
++              ['plan', '💳 Paket permanen', 'Untuk pembeli. Paket aktif selamanya (sekali bayar).'],
++              ['trial', '🎁 Trial gratis', 'Mis. peserta webinar. Coba paket beberapa hari; paket akun tidak berubah. Sekali per akun.'],
++            ] as const).map(([k, l, d]) => (
++              <button key={k} type="button" aria-pressed={form.kind === k} onClick={() => setForm({ ...form, kind: k })}
++                className={`rounded-2xl border-2 p-3 text-left text-sm ${form.kind === k ? 'border-ink bg-lime' : 'border-line bg-white'}`}>
++                <p className="font-bold">{l}</p>
++                <p className="text-xs text-ink/70">{d}</p>
++              </button>
++            ))}
++          </div>
++        </fieldset>
++        <fieldset>
++          <legend className="label">{form.kind === 'trial' ? 'Paket yang dicoba' : 'Paket yang didapat'}</legend>
+           <div className="flex flex-wrap gap-2">
+             {(['spark', 'boost', 'impact'] as const).map((p) => (
+               <button key={p} type="button" aria-pressed={form.plan === p}
+@@ -182,6 +208,13 @@ export default function AdminVouchers() {
+             ))}
+           </div>
+         </fieldset>
++        {form.kind === 'trial' && (
++          <div className="sm:max-w-xs">
++            <label htmlFor="vc-days" className="label">Lama trial (hari)</label>
++            <input id="vc-days" type="number" min={1} max={TRIAL_DAYS_MAX} className="input" value={form.trialDays} onChange={(e) => setForm({ ...form, trialDays: e.target.value })} />
++            <p className="hint">Dihitung sejak kode ditukar. H-1 sebelum habis, peserta dapat email ajakan beli.</p>
++          </div>
++        )}
+         <div className="grid gap-4 sm:grid-cols-2">
+           {form.mode === 'unique' ? (
+             <>
+@@ -209,8 +242,9 @@ export default function AdminVouchers() {
+             </>
+           )}
+           <div>
+-            <label htmlFor="vc-exp" className="label">Berlaku sampai (opsional)</label>
++            <label htmlFor="vc-exp" className="label">Batas penukaran kode (opsional)</label>
+             <input id="vc-exp" type="date" className="input" value={form.expires} onChange={(e) => setForm({ ...form, expires: e.target.value })} />
++            <p className="hint">Setelah tanggal ini kode tidak bisa ditukar. {form.kind === 'trial' ? 'Lama trial tetap dihitung dari saat ditukar.' : 'Paket yang sudah aktif tidak ikut berakhir.'}</p>
+           </div>
+           <div>
+             <label htmlFor="vc-batch" className="label">Nama batch (opsional)</label>
+@@ -285,7 +319,7 @@ export default function AdminVouchers() {
+             <div className="card overflow-x-auto">
+               <table className="w-full min-w-[720px] text-left text-sm">
+                 <thead className="border-b border-line bg-paper text-xs uppercase tracking-wider text-muted">
+-                  <tr><th className="px-4 py-3">Kode</th><th className="px-4 py-3">Paket</th><th className="px-4 py-3">Dipakai</th><th className="px-4 py-3">Email</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Batch</th><th className="px-4 py-3">Berlaku s.d.</th><th className="px-4 py-3" /></tr>
++                  <tr><th className="px-4 py-3">Kode</th><th className="px-4 py-3">Paket</th><th className="px-4 py-3">Dipakai</th><th className="px-4 py-3">Email</th><th className="px-4 py-3">Status</th><th className="px-4 py-3">Batch</th><th className="px-4 py-3">Tukar s.d.</th><th className="px-4 py-3" /></tr>
+                 </thead>
+                 <tbody className="divide-y divide-line">
+                   {list.map((v) => {
+@@ -293,7 +327,7 @@ export default function AdminVouchers() {
+                     return (
+                       <tr key={v.code}>
+                         <td className="px-4 py-2 font-mono text-xs font-bold">{v.code}</td>
+-                        <td className="px-4 py-2">{PLAN_INFO[v.plan].emoji} {PLAN_INFO[v.plan].name.replace('GenZ ', '')}</td>
++                        <td className="px-4 py-2">{contentLabel(v.plan, v.kind, v.trialDays)}</td>
+                         <td className="px-4 py-2">{v.uses}/{v.maxUses}</td>
+                         <td className="px-4 py-2 text-xs">
+                           {(usedBy.get(v.code) ?? []).length > 0
+@@ -327,7 +361,7 @@ export default function AdminVouchers() {
+                 <tr key={r.id}>
+                   <td className="px-4 py-2">{r.email}</td>
+                   <td className="px-4 py-2 font-mono text-xs">{r.code}</td>
+-                  <td className="px-4 py-2">{PLAN_INFO[(r.plan as PaidPlan)]?.name ?? r.plan}</td>
++                  <td className="px-4 py-2">{PLAN_INFO[(r.plan as PaidPlan)] ? contentLabel(r.plan as PaidPlan, r.kind, r.trialDays) : r.plan}</td>
+                   <td className="px-4 py-2 text-xs text-muted">{r.createdAt?.toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) ?? '—'}</td>
+                 </tr>
+               ))}
+diff --git a/tests/firestore.rules.test.ts b/tests/firestore.rules.test.ts
+index 8a5e70f..d9e0803 100644
+--- a/tests/firestore.rules.test.ts
++++ b/tests/firestore.rules.test.ts
+@@ -257,14 +257,24 @@ describe('undangan, paket & trial', () => {
+     await assertFails(updateDoc(doc(ctx('alice'), 'memberships', 'alice@test.id'), { plan: 'impact' }));
+   });
+ 
+-  it('trial hanya boost/impact 3 atau 7 hari', async () => {
+-    const db = ctx('adi');
+-    const b = writeBatch(db);
+-    const a = doc(collection(db, 'auditLogs'));
+-    b.set(a, audit('adi'));
+-    b.set(doc(db, 'memberships', 'newbie@test.id'), { ...membership('adi', a.id), trial: { plan: 'impact', days: 30, startedAt: new Date(), endsAt: new Date() } });
+-    await assertFails(b.commit());
++  it('trial: paket spark/boost/impact, 1–30 hari; penanda trialsUsed hanya boost/impact/spark/voucher', async () => {
++    const write = (over: Record<string, unknown>) => {
++      const db = ctx('adi');
++      const b = writeBatch(db);
++      const a = doc(collection(db, 'auditLogs'));
++      b.set(a, audit('adi'));
++      b.set(doc(db, 'memberships', 'newbie@test.id'), { ...membership('adi', a.id), ...over });
++      return b.commit();
++    };
++    const trial = (plan: string, days: unknown) => ({ trial: { plan, days, startedAt: new Date(), endsAt: new Date() } });
++    await assertFails(write(trial('impact', 31)));
++    await assertFails(write(trial('impact', 0)));
++    await assertFails(write(trial('none', 3)));
++    await assertFails(write(trialsUsedWith({ lainnya: true })));
++    await assertSucceeds(write({ plan: 'none', ...trial('spark', 3), ...trialsUsedWith({ spark: true, voucher: true }) }));
++    await assertSucceeds(write(trial('impact', 7)));
+   });
++  const trialsUsedWith = (extra: Record<string, boolean>) => ({ trialsUsed: { boost: false, impact: false, ...extra } });
+ 
+   it('hanya admin yang bisa membuat undangan; peserta hanya bisa menandai undangannya diterima', async () => {
+     const inv = { email: 'newbie@test.id', name: 'N', status: 'pending', invitedBy: 'adi', createdAt: serverTimestamp(), updatedAt: serverTimestamp() };
+@@ -319,6 +329,46 @@ describe('voucher', () => {
+     return b.commit();
+   }
+ 
++  it('voucher TRIAL tidak bisa ditukar dari browser jadi paket permanen (harus lewat server)', async () => {
++    await seedVoucher({ kind: 'trial', trialDays: 3, plan: 'boost', maxUses: 100 });
++    await assertFails(redeemBatch('buyer'));
++    // Bahkan hanya menambah pemakaian + catatan penukaran pun ditolak.
++    const db = ctx('buyer');
++    const b = writeBatch(db);
++    b.update(doc(db, 'vouchers', 'BOOST-ABCD2345'), { uses: 1, updatedAt: serverTimestamp() });
++    b.set(doc(db, 'redemptions', 'BOOST-ABCD2345_buyer'), { code: 'BOOST-ABCD2345', uid: 'buyer', email: 'buyer@test.id', plan: 'boost', createdAt: serverTimestamp() });
++    await assertFails(b.commit());
++  });
++  it('voucher dengan kind "plan" eksplisit tetap bisa ditukar seperti biasa', async () => {
++    await seedVoucher({ kind: 'plan' });
++    await assertSucceeds(redeemBatch('buyer'));
++  });
++  it('admin membuat voucher trial: wajib trialDays 1–30; voucher paket tidak boleh punya trialDays', async () => {
++    const db = ctx('adi');
++    const make = (code: string, over: Record<string, unknown>) => setDoc(doc(db, 'vouchers', code),
++      { ...voucher(over), code, uses: 0, createdBy: 'adi', createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
++    await assertSucceeds(make('WEBINARSPARK', { kind: 'trial', trialDays: 3, plan: 'spark', maxUses: 120 }));
++    await assertFails(make('WEBINAR-NODAYS', { kind: 'trial', plan: 'spark' }));
++    await assertFails(make('WEBINAR-LAMA', { kind: 'trial', trialDays: 31, plan: 'spark' }));
++    await assertFails(make('PLAN-DAYS', { kind: 'plan', trialDays: 3 }));
++    await assertFails(make('ANEH-KIND', { kind: 'gratis' }));
++    await assertSucceeds(make('PLAN-OK', { kind: 'plan' }));
++  });
++  it('voucher paket tidak bisa menurunkan paket (Boost tidak bisa turun ke Spark)', async () => {
++    await env.withSecurityRulesDisabled(async (c) => {
++      await setDoc(doc(c.firestore(), 'vouchers', 'SPARK-ABCD2345'), { ...voucher({ plan: 'spark' }), code: 'SPARK-ABCD2345' });
++      await setDoc(doc(c.firestore(), 'memberships', 'alice@test.id'), {
++        email: 'alice@test.id', name: 'alice', plan: 'boost', trial: null, trialsUsed: { boost: false, impact: false }, note: '', updatedAt: new Date(), updatedBy: 'adi',
++      });
++    });
++    const db = ctx('alice');
++    const b = writeBatch(db);
++    const rid = 'SPARK-ABCD2345_alice';
++    b.update(doc(db, 'vouchers', 'SPARK-ABCD2345'), { uses: 1, updatedAt: serverTimestamp() });
++    b.set(doc(db, 'redemptions', rid), { code: 'SPARK-ABCD2345', uid: 'alice', email: 'alice@test.id', plan: 'spark', createdAt: serverTimestamp() });
++    b.update(doc(db, 'memberships', 'alice@test.id'), { plan: 'spark', updatedAt: serverTimestamp(), updatedBy: 'alice', lastRedemptionId: rid });
++    await assertFails(b.commit());
++  });
+   it('pembeli tanpa undangan bisa menukar voucher valid → akun + paket aktif', async () => {
+     await seedVoucher();
+     await assertSucceeds(redeemBatch('buyer'));
+diff --git a/vercel.json b/vercel.json
+index abf9e9a..f4580a9 100644
+--- a/vercel.json
++++ b/vercel.json
+@@ -11,6 +11,9 @@
+     },
+     "api/cron/trial-reminder.js": {
+       "maxDuration": 60
++    },
++    "api/voucher/redeem-trial.js": {
++      "maxDuration": 30
+     }
+   },
+   "rewrites": [
+-- 
+2.43.0
+
